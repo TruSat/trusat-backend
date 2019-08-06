@@ -15,3 +15,25 @@ Modified from [pyorbital](https://github.com/pytroll/pyorbital/blob/master/RELEA
 [Version Numbering](semver.org)
 5. push changes to github `git push --follow-tags`
 7. check verification tools
+
+## Initialization
+```
+pip3 install virtualenv
+virtualenv -p python3 venv
+source venv/bin/activate
+pip3 install pysha3 pyjwt eth_account
+git config --global "[username]"
+pip3 install git+ssh://git@github.com/consensys-space/sathunt-database
+```
+## Stopping
+```
+deactivate
+```
+
+## Internal Running on server
+```
+sudo apt install tmux
+tmux
+ctrl+b  d
+tmux attach
+```
