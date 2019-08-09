@@ -1,0 +1,302 @@
+import sys
+
+if sys.version_info[0] != 3 or sys.version_info[1] < 6:
+	print("This script requires Python version 3.6")
+	sys.exit(1)
+
+import os
+from eth_account import Account
+# from web3.auto import w3
+from eth_account.messages import defunct_hash_message
+from getpass import getpass
+from time import time
+import argparse
+from datetime import datetime
+
+import logging
+log = logging.getLogger(__name__)
+
+import database
+import iod
+
+def get_submit_time_from_filename(filename):
+    """ Determine the submitted date from the filename string from John's hypermail scraper """
+    file_string = os.path.basename(filename)
+    file_string = os.path.splitext(file_string)[0]
+
+    try:           
+        # Fri,_10_Jul_1998_14:11:27_+0200
+        (day_name, day, month_name,year,time,offset) = file_string.split('_')
+    except:
+        try:
+            (day, month_name,year,time,offset, TZ_string) = file_string.split('_')
+        except:
+            try:
+                # 'Fri,_11_Dec_1998_05:53:14_-0800_(PST)'
+                (day_name, day, month_name,year,time,offset, TZ_string) = file_string.split('_')
+            except:
+                try:
+                    # '8_Feb_99_17:27:56_MET'
+                    (day, month_name,year,time,TZ_string) = file_string.split('_')
+                    offset = '+0000'
+                    year = int(year)
+                    if (year >= 57 and year < 100):
+                        year = 1900 + year
+                    elif (year < 57):
+                        year = 2000 + year
+                except:
+                    pass
+
+    # FIXME: A bit messy, but gets the job done
+    try:
+        # This part needed to zero-pad the day
+        datestring = "{:02} {} {} {} {}".format(int(day), month_name, year, time, offset)
+
+        submit_datetime = datetime.strptime(datestring,"%d %b %Y %X %z")
+        if submit_datetime.utcoffset():
+            submit_datetime = submit_datetime - submit_datetime.utcoffset()
+            submit_datetime = submit_datetime.replace(tzinfo=None)
+        return submit_datetime.strftime('%Y-%m-%d %H:%M:%S')
+    except ValueError:
+        return "0000-00-00"
+
+
+if __name__ == '__main__':
+    # Read commandline options
+    conf_parser = argparse.ArgumentParser(description='Utility to initalize IOD database from email file archive')
+    conf_parser.add_argument("-d", "--dir", 
+                             help="read from directory DIR [default ./all_emails]",
+                             dest='root_dir',
+                             default='./all_emails',
+                             nargs='?',
+                             const=1,                             
+                             type=str,                             
+                             metavar="FILE")
+    conf_parser.add_argument("-dbname", "--database", 
+                             help="database to USE",
+                             dest='dbname',
+                             default='opensatcat_dev',                           
+                             nargs='?',
+                             const=1,                             
+                             type=str,                             
+                             metavar="NAME")
+    conf_parser.add_argument("-H", "--hostname", 
+                             help="database hostname",
+                             dest='dbhostname',
+                             default='opensatcat.cvpypmmxjtv1.us-east-2.rds.amazonaws.com',
+                             nargs='?',
+                             const=1,
+                             type=str,                             
+                             metavar="HOSTNAME")
+    conf_parser.add_argument("-u", "--user", 
+                             help="database user name",
+                             dest='dbusername',
+                             nargs='?',
+                             type=str,                             
+                             metavar="USER")
+    conf_parser.add_argument("-p", "--password", 
+                             help="database user password",
+                             dest='dbpassword',
+                             nargs='?',
+                             type=str,                             
+                             metavar="PASSWD")
+    conf_parser.add_argument("-t", "--dbtype", 
+                             help="database type [INFILE, sqlserver, sqlite] default: INFILE",
+                             dest='dbtype',
+                             nargs='?',
+                             choices=['INFILE', 'sqlserver', 'sqlite'],
+                             default='INFILE',
+                             type=str,                             
+                             metavar="TYPE")
+    conf_parser.add_argument("-q", "--quiet", help="Suppress console output",
+                             dest='quiet',
+                             action="store_true")
+    conf_parser.add_argument("-V", "--verbose", 
+                             help="increase verbosity: 0 = only warnings, 1 = info, 2 = debug. No number means info. Default is no verbosity.",
+                             const=1, 
+                             default=0, 
+                             type=int, 
+                             nargs="?")
+
+    args = conf_parser.parse_args()
+    # Process commandline options and parse configuration
+    root_dir = args.root_dir
+    dbname = args.dbname
+    dbhostname = args.dbhostname
+    dbusername = args.dbusername
+    dbpassword = args.dbpassword
+    dbtype = args.dbtype
+    verbose = args.verbose
+    quiet = args.quiet
+    app_start_time = time()
+
+    # https://stackoverflow.com/questions/14097061/easier-way-to-enable-verbose-logging
+    # https://stackoverflow.com/questions/15727420/using-python-logging-in-multiple-modules
+    log = logging.getLogger()
+
+    # make it print to the console.
+    console = logging.StreamHandler()
+    log.addHandler(console)
+
+    if (quiet == False):
+        if verbose == 0:
+            log.setLevel(logging.WARN) 
+        elif verbose == 1:
+            log.setLevel(logging.INFO) 
+        elif verbose == 2:
+            log.setLevel(logging.DEBUG) 
+        log.debug("Log level set to {}".format(log.level))
+
+    if verbose:
+        for arg in vars(args):
+            log.debug("%s : %s",arg, getattr(args, arg))
+
+    if (os.path.isdir(root_dir) == False):
+        log.warning("Unable to open directory {}. Exiting.".format(root_dir))
+        sys.exit()
+
+    if (dbtype == "sqlserver"):
+        if dbusername == None:
+            try: 
+                dbusername = input("Username: ") 
+            except Exception as error: 
+                log.warning('ERROR: password must be specified {}'.format(error))
+        if dbpassword == None:
+            try: 
+                dbpassword = getpass() 
+            except Exception as error: 
+                log.warning('ERROR: password must be specified {}'.format(error))
+
+    # Set up database connection or files
+    db = database.Database(dbname,dbtype,dbhostname,dbusername,dbpassword)
+    if (dbtype != "INFILE"):
+        try:
+            db.createObsTables()
+        except:
+            log.warning("Tables already exist or there is a big problem buddy.")
+
+    # Initialize variables we want fresh for the processing loop
+    existing_users = {} # A rolling list of users that have already had addresses assigned
+    TotalCount_IOD = 0
+    TotalCount_UK = 0 
+    TotalCount_RDE = 0
+    TotalObsCount = 0
+    FileCount_running = 0
+    UserCount_running = 0
+    UserDict = []
+
+    # Traverse the directory
+    FileCount_total = sum([len(fileList) for dirName, subdirList, fileList in os.walk(root_dir)])
+    DirCount_total = sum(os.path.isdir(os.path.join(root_dir, i)) for i in os.listdir(root_dir)) 
+
+    if (quiet == False):
+        print("Processing {} files in {}...".format(FileCount_total,root_dir))
+
+    try:
+        for dirName, subdirList, fileList in os.walk(root_dir):
+            subdirList.sort()
+            # Go through individual files from the subdirectories
+            dirfileTotal = len(fileList)
+            dirfileCount = 0
+            for fname in sorted(fileList):
+                time_start = time()
+                dirfileCount += 1
+                FileCount_running += 1
+                if(fname == ".DS_Store"):
+                    continue
+
+                fileIODCount = 0
+                fileUKCount = 0
+                fileRDEcount = 0
+
+                fileName = os.path.join(dirName, fname)
+
+                # Start with most numerous records, move to least
+                # Assume there's only one record type per file
+                IOD_records = []
+                try:
+                    IOD_records = iod.get_iod_records_from_file(fileName)
+                    fileIODCount = len(IOD_records)
+                    TotalCount_IOD += fileIODCount
+                    TotalObsCount += fileIODCount
+                except:
+                    pass
+
+                if not (len(IOD_records)):
+                    try: 
+                        IOD_records = iod.get_uk_records_from_file(fileName)
+                        fileUKCount = len(IOD_records)
+                        TotalCount_UK += fileUKCount
+                        TotalObsCount += fileUKCount
+                    except:
+                        pass
+
+                if not (len(IOD_records)):
+                    try: 
+                        IOD_records = iod.get_rde_records_from_file(fileName)
+                        fileRDEcount = len(IOD_records)
+                        TotalCount_RDE += fileRDEcount
+                        TotalObsCount += fileRDEcount
+                    except:
+                        pass
+
+                if (len(IOD_records)):
+                    IODpeek = IOD_records[0]
+                    log.info("Found {} {} observations in file ({}/{}): {}".format(len(IOD_records), IODpeek.IODType, FileCount_running, FileCount_total, fileName))
+                    # Go back into file to get observer information
+                    with open(fileName) as file:
+                        lines = file.readlines()
+
+                        # Pop off the list and process the header which applies to all following records
+                        line = lines.pop(0)
+                        first_line = line.strip()
+                        # Parse out the name of the sender
+                        find_via = line.find('via Seesat')
+                        find_parenthases = line.find('(')
+                        find_left_angle_bracket = line.find('<')
+                        if find_via > 0:
+                            sender = line[6:find_via-1]
+                        elif find_parenthases > 0:
+                            sender = line[6:find_parenthases-1]
+                        elif find_left_angle_bracket > 0:
+                            sender = line[6:find_left_angle_bracket-1]
+                        else:
+                            sender = line[6:]
+                        
+                        # Remove leading/trailing whitespace, and quotes
+                        sender = sender.strip()
+                        sender = sender.lstrip('\"')
+                        sender = sender.rstrip('\"')
+
+                        # For now, just counting on all the filenames having this
+                        # Alternatively, some of the files have it in the second line
+                        submit_time = get_submit_time_from_filename(fileName)
+
+                    if (sender not in UserDict):
+                        UserDict.append(sender)
+            
+                    obsid = db.addParsedIOD(IOD_records, sender, submit_time)
+
+                    if (dbtype != "INFILE"):
+                        db.commit_IOD_db_writes()
+                    time_end = time()
+                    delta = (time_end-time_start)
+                    log.debug(' File ({}/{}) in dir "{}" contained'.format(dirfileCount,dirfileTotal,dirName))
+                    log.debug('                                    ({}/{}) IOD records'.format(fileIODCount,TotalCount_IOD))
+                    log.debug('                                    ({}/{}) UK records'.format(fileUKCount,TotalCount_UK))
+                    log.debug('                                    ({}/{}) RDE records'.format(fileRDEcount,TotalCount_RDE))
+                    log.debug('                                        of {} records\n'.format(TotalObsCount))
+    except KeyboardInterrupt as ex:
+        log.warning("Terminated by user.")
+
+    if (quiet == False):
+        if DirCount_total:
+            dirCount = ("{} directories".format(DirCount_total))
+        else:
+            dirCount = "1 directory"
+
+    print("Processed {} observations from {} users in {} files in {}.".format(TotalObsCount, len(UserDict), FileCount_total, dirCount))
+    print('                                          ({}) IOD records ({:4.2f} %)'.format(TotalCount_IOD,100*TotalCount_IOD/TotalObsCount))
+    print('                                          ({}) UK records ({:4.2f} %)'.format(TotalCount_UK,100*TotalCount_UK/TotalObsCount))
+    print('                                          ({}) RDE records ({:4.2f} %)\n'.format(TotalCount_RDE, 100*TotalCount_RDE/TotalObsCount))
+    print("Elapsed time: {:.3f} seconds.".format(time()-app_start_time))
