@@ -1,0 +1,735 @@
+import sqlite3
+import mysql.connector as mariadb
+from secrets import randbelow, randbits
+from datetime import datetime
+from hashlib import md5
+from csv import writer 
+import logging
+log = logging.getLogger(__name__)
+
+"""
+database.py: Does database interactions for the Open Satellite Catalog
+"""
+
+def generate_user_id():
+    """ Generate 32-bit random number """
+    return randbelow(2147483647) # Maximum signed value of SQL INT type
+
+
+def generate_object_id():
+    """ Generate 256-bit random number as a string """
+    return str(randbits(256))
+
+# TODO: Add index statements to the appropriate fields when creating the tables
+class Database:
+    """ Database class opens and stores connection to the database, and performs database operations.
+
+    Connect to database
+    inputs:
+        dbname     - name of the database
+        dbtype     - database type INFILE, sqlserver or sqlite3
+        dbhostname - hostname for sqlserver
+        dbusernmae - username for sqlserver
+        dbpassword - password for sqlserver
+    """
+    def __init__(self, dbname,dbtype,dbhostname,dbusername,dbpassword):
+        self._dbname     = dbname
+        self._dbtype     = dbtype
+        self._dbhostname = dbhostname
+        self._dbusername = dbusername
+        self._dbpassword = dbpassword
+
+        self._last_observer_id = None
+        self._IODentryList = []
+        self._TLEentryList = []
+        self._TLEFileDict = []
+        self._observerDict = {} # Used for INFILE method
+        self._tle_fingerprintDict = {} # Used for INFILE method
+        self._obsid = 0
+        self._new_observerid = 0
+        self._tle_file_fingerprintDict = {} # Used for INFILE method
+        self._SATCAT_file_fingerprintDict = {} # Used for INFILE method
+        self._UCSDB_file_fingerprintDict = {} # Used for INFILE method
+
+        # Account for differences in SQL expressions
+        if (self._dbtype == "sqlserver"):
+            self.charset_string = "CHARSET=utf8 ENGINE=Aria;"
+            self.increment = " AUTO_INCREMENT"
+        else:
+            self.charset_string = ""
+            self.increment = " AUTOINCREMENT"
+
+        if self._dbtype == "INFILE": # Make CSV files
+            self._f_ParsedIOD =  open(self._dbname + "_ParsedIOD.csv", 'w')
+            self._writer_ParsedIOD = writer(self._f_ParsedIOD, dialect='unix')
+
+            self._f_Observer =  open(self._dbname + "_Observer.csv", 'w')
+            self._writer_Observer = writer(self._f_Observer, dialect='unix')
+
+            self._f_TLE = open(self._dbname + "_TLE.csv", 'w')
+            self._writer_TLE = writer(self._f_TLE, dialect='unix')
+
+            self._f_TLEFile = open(self._dbname + "_TLEFILE.csv", 'w')
+            self._writer_TLEFile = writer(self._f_TLEFile, dialect='unix')
+
+            self._f_SATCAT = open(self._dbname + "_SATCAT.csv", 'w')
+            self._writer_SATCAT = writer(self._f_SATCAT, dialect='unix')
+
+            self._f_UCSDB = open(self._dbname + "_UCSDB.csv", 'w')
+            self._writer_UCSDB = writer(self._f_UCSDB, dialect='unix')
+
+        elif self._dbtype == "sqlserver":  # Make database
+            self.conn = mariadb.connect(
+                host=self._dbhostname,
+                user=self._dbusername,
+                passwd=self._dbpassword,
+                db=self._dbname,
+                charset='utf8',
+                use_unicode=True
+                )
+            self.c = self.conn.cursor()
+
+            # Need a cursor for each prepared statement
+            self.c_addParsedIOD = self.conn.cursor(prepared=True)
+            self.c_addStation_query = None
+            self.c_addObserver_query = self.conn.cursor(prepared=True)
+            self.c_selectObserver_query = self.conn.cursor(prepared=True)
+            self.c_selectTLEFile_query = self.conn.cursor(prepared=True)
+            self.c_selectTLEFingerprint_query = self.conn.cursor(prepared=True)
+            self.c_addTLE_query = self.conn.cursor(prepared=True)
+            self.c_addTLEFile_query = self.conn.cursor(prepared=True)
+            self.c_addSATCAT_query = self.conn.cursor(prepared=True)
+            self.c_addUCSDB_query = self.conn.cursor(prepared=True)
+
+        else:
+            self.conn = sqlite3.connect(self._dbname + ".db")
+            self.c = self.conn.cursor()
+
+        # Predefined queries - In the case of sqlserver, prepared statements accelerate / secure import queries
+        #  %s only works for sqlserver, ? works for both sqlite and sqlserver
+        self.addParsedIOD_query = '''INSERT INTO ParsedIOD (
+            submitted,
+            user_string,
+            object_number,
+            international_designation,
+            station_number,
+            station_status_code,
+            obs_time_string,
+            obs_time,
+            time_uncertainty,
+            time_standard_code,
+            angle_format_code,
+            epoch_code,
+            epoch,
+            ra,
+            declination,
+            azimuth,
+            elevation,
+            positional_uncertainty,
+            optical_behavior_code,
+            visual_magnitude,
+            visual_magnitude_high,
+            visual_magnitude_low,
+            magnitude_uncertainty,
+            flash_period,
+            remarks,
+            iod_type,
+            iod_string,
+            valid_position,
+            message_id,
+            obsFingerPrint
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'''
+        self.addStation_query = None
+        self.addObserver_query = '''INSERT INTO Observer VALUES(?,?,?,?,?)'''
+        self.selectObserver_query = '''SELECT id FROM Observer WHERE verified LIKE ? LIMIT 1'''
+        self.selectTLEFile_query = '''SELECT file_fingerprint FROM TLEFILE WHERE file_fingerprint LIKE ? LIMIT 1'''
+        self.selectTLEFingerprint_query = '''SELECT tle_fingerprint FROM TLE WHERE tle_fingerprint LIKE ? LIMIT 1'''
+        self.addTLE_query = '''INSERT INTO TLE (
+            line0,
+            line1,
+            line2,
+            sat_name,
+            satellite_number,
+            classification,
+            designation,
+            epoch,
+            mean_motion_derivative,
+            mean_motion_sec_derivative,
+            bstar,
+            ephemeris_type,
+            element_set_number,
+            inclination,
+            inclination_radians,
+            raan_degrees,
+            raan_radians,
+            eccentricity,
+            arg_perigee_degrees,
+            arg_perigee_radians,
+            mean_anomaly_degrees,
+            mean_anomaly_radians,
+            mean_motion_orbits_per_day,
+            mean_motion_radians_per_second,
+            orbit_number,
+            launch_piece_number,
+            analyst_object,
+            strict_import,
+            tle_fingerprint,
+            file_fingerprint
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'''
+        self.addTLEFile_query = '''INSERT INTO TLEFILE (file_fingerprint, source_filename) VALUES (?,?)'''
+        self.addSATCAT_query = '''INSERT INTO celestrak_SATCAT (
+            intl_desg,
+            norad_num,
+            multiple_name_flag,
+            payload_flag,
+            ops_status_code,
+            name,
+            source,
+            launch_date,
+            decay_date,
+            orbit_period_minutes,
+            inclination_deg,
+            apogee,
+            perigee,
+            radar_crosssec,
+            orbit_status_code,
+            line_fingerprint,
+            file_fingerprint) VALUES
+            (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'''
+
+        self.addUCSDB_query = '''INSERT INTO ucs_SATDB (
+            name,
+            country_registered,
+            country_owner,
+            owner_operator,
+            users,
+            purpose,
+            purpose_detailed,
+            orbit_class,
+            orbit_type,
+            GEO_longitude,
+            perigee_km,
+            apogee_km,
+            eccentricity,
+            inclination_degrees,
+            period_minutes,
+            launch_mass_kg,
+            dry_mass_kg,
+            power_watts,
+            launch_date,
+            expected_lifetime_years,
+            contractor,
+            contractor_country,
+            launch_site,
+            launch_vehicle,
+            international_designator,
+            norad_number,
+            comments,
+            detailed_comments,
+            source_1,
+            source_2,
+            source_3,
+            source_4,
+            source_5,
+            source_6,
+            source_7,
+            line_fingerprint,
+            file_fingerprint) VALUES
+            (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'''
+
+
+    def createObsTables(self):
+        """ Generate Observation tables """
+        log.info("Creating Observation tables...")
+
+        """ ParsedIOD """
+        createquery = '''CREATE TABLE IF NOT EXISTS ParsedIOD (
+            obs_id                      INT NOT NULL  PRIMARY KEY ''' + self.increment + ''',
+            submitted                   DATETIME,   
+            user_string                 TEXT, 
+            object_number               MEDIUMINT(5) UNSIGNED,
+            international_designation   VARCHAR(14),
+            station_number              SMALLINT(4) UNSIGNED NOT NULL,
+            station_status_code         CHAR(1),
+            obs_time_string             VARCHAR(27),
+            obs_time                    DATETIME(4),
+            time_uncertainty            FLOAT,
+            time_standard_code          TINYINT,
+            angle_format_code           CHAR(1),
+            epoch_code                  CHAR(1),
+            epoch                       SMALLINT,
+            ra                          DOUBLE,
+            declination                 DOUBLE, /* dec appears to be namespace collision */
+            azimuth                     DOUBLE,
+            elevation                   DOUBLE,
+            positional_uncertainty      DOUBLE,
+            optical_behavior_code       CHAR(1),
+            visual_magnitude            FLOAT,
+            visual_magnitude_high       FLOAT,
+            visual_magnitude_low        FLOAT,
+            magnitude_uncertainty       FLOAT,
+            flash_period                FLOAT,
+            remarks                     TEXT,
+            iod_type                    VARCHAR(3),
+            iod_string                  TEXT NOT NULL,
+            valid_position              BOOL,
+            message_id                  TEXT,
+            obsFingerPrint              CHAR(32) NOT NULL UNIQUE,
+            import_timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+            )''' + self.charset_string
+        self.c.execute(createquery)
+
+        """ Station """
+        createquery = '''CREATE TABLE IF NOT EXISTS Station (
+            id          INTEGER PRIMARY KEY''' + self.increment + ''',
+            station_id  INTEGER,
+            latitude    DOUBLE,
+            longitude   DOUBLE,
+            altitude    SMALLINT
+        )''' + self.charset_string
+        self.c.execute(createquery)
+
+        """ Observer """
+        createquery = '''CREATE TABLE IF NOT EXISTS Observer (
+            id          INTEGER PRIMARY KEY''' + self.increment + ''',
+            eth_addr	TEXT,
+            verified	TEXT,
+            reputation	INTEGER,
+            reference   TEXT
+        )''' + self.charset_string
+        self.c.execute(createquery)
+        self.conn.commit()
+
+
+    def createTLETables(self):
+        log.info("Creating TLE tables...")
+
+        """ TLE """
+        createquery = '''CREATE TABLE IF NOT EXISTS TLE (
+            tle_id                      INTEGER PRIMARY KEY''' + self.increment + ''',
+            line0                       TINYTEXT,
+            line1                       TINYTEXT,
+            line2                       TINYTEXT,
+
+            sat_name                    TINYTEXT,
+            satellite_number            MEDIUMINT,
+            classification              CHAR(1),
+            designation                 CHAR(24),
+            epoch                       DATETIME,
+            mean_motion_derivative      DOUBLE,
+            mean_motion_sec_derivative  DOUBLE,
+            bstar                       DOUBLE,
+            ephemeris_type              TINYINT,
+            element_set_number          MEDIUMINT,
+            inclination                 DOUBLE,
+            inclination_radians         DOUBLE,
+            raan_degrees                DOUBLE,
+            raan_radians                DOUBLE,
+            eccentricity                DOUBLE,
+            arg_perigee_degrees         DOUBLE,
+            arg_perigee_radians         DOUBLE,
+            mean_anomaly_degrees        DOUBLE,
+            mean_anomaly_radians        DOUBLE,
+            mean_motion_orbits_per_day  DOUBLE,
+            mean_motion_radians_per_second DOUBLE,
+            orbit_number                MEDIUMINT,
+
+            launch_piece_number         SMALLINT,
+            analyst_object              BOOL,
+            strict_import               BOOL,
+            tle_fingerprint             CHAR(32) NOT NULL,
+            file_fingerprint            CHAR(32),
+            import_timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )''' + self.charset_string
+        self.c.execute(createquery)
+        self.conn.commit()
+
+        createquery = '''CREATE TABLE IF NOT EXISTS TLEFILE (
+            file_id                 INTEGER PRIMARY KEY''' + self.increment + ''',
+            file_fingerprint        CHAR(32) NOT NULL,
+            source_filename         TINYTEXT,
+            import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )''' + self.charset_string
+        self.c.execute(createquery)
+        self.conn.commit()
+
+
+    def createSATCATtable(self):
+        """ Celestrak SATCAT """
+        print("Creating Celestrak SAT CAT table...")
+
+        # TODO: make another table from the multiple_name_flag data in https://celestrak.com/pub/satcat-annex.txt
+        createquery = '''CREATE TABLE IF NOT EXISTS celestrak_SATCAT (
+            satcat_id              INTEGER PRIMARY KEY''' + self.increment + ''',
+            intl_desg               VARCHAR(11) NOT NULL,
+            norad_num               MEDIUMINT UNSIGNED NOT NULL,
+            multiple_name_flag      TINYINT(1) UNSIGNED NOT NULL,
+            payload_flag            TINYINT(1) UNSIGNED NOT NULL,
+            ops_status_code         VARCHAR,
+            name                    VARCHAR(24) NOT NULL,
+            source                  CHAR(5),
+            launch_date             DATE,
+            decay_date              DATE,
+            orbit_period_minutes    MEDIUMINT,
+            inclination_deg         DOUBLE,
+            apogee                  DOUBLE,
+            perigee                 DOUBLE,
+            radar_crosssec          DOUBLE,
+            orbit_status_code       CHAR(3),
+            line_fingerprint        CHAR(32) NOT NULL,
+            file_fingerprint        CHAR(32) NOT NULL,
+            import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )''' + self.charset_string
+        self.c.execute(createquery)
+
+        self.conn.commit()
+
+    def createUCSSATDBtable(self):
+        """ Union of Concerned Scientists Satellite Database """
+        print("Creating Union of Concerned Scientists Satellite Database table...")
+
+        # FIXME: Need to optimize these auto-gen types
+        createquery = '''CREATE TABLE IF NOT EXISTS ucs_SATDB (
+            satdb_id              INTEGER PRIMARY KEY''' + self.increment + ''',
+            name text DEFAULT NULL,
+            country_registered text DEFAULT NULL,
+            country_owner text DEFAULT NULL,
+            owner_operator text DEFAULT NULL,
+            users text DEFAULT NULL,
+            purpose text DEFAULT NULL,
+            purpose_detailed text DEFAULT NULL,
+            orbit_class text DEFAULT NULL,
+            orbit_type text DEFAULT NULL,
+            GEO_longitude int(11) DEFAULT NULL,
+            perigee_km int(11) DEFAULT NULL,
+            apogee_km int(11) DEFAULT NULL,
+            eccentricity float DEFAULT NULL,
+            inclination_degrees float DEFAULT NULL,
+            period_minutes int(11) DEFAULT NULL,
+            launch_mass_kg int(11) DEFAULT NULL,
+            dry_mass_kg text DEFAULT NULL,
+            power_watts text DEFAULT NULL,
+            launch_date DATE DEFAULT NULL,
+            expected_lifetime_years text DEFAULT NULL,
+            contractor text DEFAULT NULL,
+            contractor_country text DEFAULT NULL,
+            launch_site text DEFAULT NULL,
+            launch_vehicle text DEFAULT NULL,
+            international_designator text DEFAULT NULL,
+            norad_number int(11) DEFAULT NULL,
+            comments text DEFAULT NULL,
+            detailed_comments text DEFAULT NULL,
+            source_1 text DEFAULT NULL,
+            source_2 text DEFAULT NULL,
+            source_3 text DEFAULT NULL,
+            source_4 text DEFAULT NULL,
+            source_5 text DEFAULT NULL,
+            source_6 text DEFAULT NULL,
+            source_7 text DEFAULT NULL,
+            line_fingerprint        CHAR(32) NOT NULL,
+            file_fingerprint        CHAR(32) NOT NULL,
+            import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )''' + self.charset_string
+        self.c.execute(createquery)
+        self.conn.commit()
+
+
+    def addParsedIOD(self, entryList, user_string, submit_time):
+        """ Add an IOD entry to the database """
+        for entry in entryList:
+            # Create fingerprint string from the time and position data only
+            # Should uniquely identify the observation
+            # Note that this will have uniqueness problems with people who report time but not position (roll call posts)
+            if (entry.IODType == "IOD"):
+                obsFingerPrintString = entry.line[23:64].strip()
+            elif (entry.IODType == "UK"):
+                obsFingerPrintString = entry.line[11:32].strip() + entry.line[33:55].strip()
+            elif (entry.IODType == "RDE"):
+                obsFingerPrintString = entry.line[14:20].strip() + entry.line[20:24].strip() + entry.line[34:56].strip()
+            else:
+                log.error("unknown type specified to {}".format(__name__))
+
+            obsFingerPrint = md5(obsFingerPrintString.encode('utf-8')).hexdigest()
+            newentryTuple = (
+                    submit_time,
+                    user_string,
+                    entry.ObjectNumber,
+                    entry.InternationalDesignation,
+                    entry.Station,
+                    entry.StationStatusCode,
+                    entry.DateTimeString,
+                    entry.DateTime,
+                    entry.TimeUncertainty,
+                    entry.TimeStandardCode,
+                    entry.AngleFormatCode,
+                    entry.EpochCode,
+                    entry.Epoch,
+                    entry.RA,
+                    entry.DEC,
+                    entry.AZ,
+                    entry.EL,
+                    entry.PositionUncertainty,
+                    entry.OpticalCode,
+                    entry.VisualMagnitude,
+                    entry.VisualMagnitude_high,
+                    entry.VisualMagnitude_low,
+                    entry.MagnitudeUncertainty,
+                    entry.FlashPeriod,
+                    entry.Remarks,
+                    entry.IODType,
+                    entry.line,
+                    entry.ValidPosition,
+                    entry.message_id,
+                    obsFingerPrint,
+                    )
+
+            if self._dbtype == "INFILE": # Make CSV files
+                self._writer_ParsedIOD.writerow(newentryTuple)
+            elif self._dbtype == "sqlite":
+                try:
+                    self.c.execute(self.addParsedIOD_query,newentryTuple)
+                except sqlite3.IntegrityError as e:
+                    log.error("{}".format(e))
+            else:
+                self._IODentryList.append(newentryTuple)
+        return self._obsid
+        # return self.c_addParsedIOD.lastrowid
+
+
+    def addStation(self, station):
+        print("not done yet, get on it")
+
+
+    def addObserver(self,
+            eth_addr, 
+            verification,
+            reputation,
+            first_line):
+
+        self._new_observerid += 1
+
+        observerTuple = (
+            self._new_observerid, # Use the AUTO_INCREMENT-ed value
+            eth_addr,
+            verification,
+            reputation,
+            first_line
+            )
+    
+        if self._dbtype == "INFILE": # Make CSV files
+            self._writer_Observer.writerow(observerTuple)
+            self._observerDict[verification] = self._new_observerid
+        elif self._dbtype == "sqlite":
+            try:
+                self.c.execute(self.addObserver_query,observerTuple)
+                self.conn.commit()
+            except sqlite3.IntegrityError as e:
+                log.error("{}".format(e))
+        else:
+            try:
+                self.c_addObserver_query.execute(self.addObserver_query, observerTuple)
+            except Exception as e:
+                log.error("MYSQL ERROR: {}".format(e))
+        return self._new_observerid
+
+
+    def addTLE(self, entry):
+        """ Add an TLE entry to the database """
+        self._tleid = 0 # Set this as a variable in case we want to generate out own in the future
+        newentryTuple = (
+            entry.line0,
+            entry.line1,
+            entry.line2,
+
+            entry.name,
+            entry.sat_num,
+            entry.classification,
+            entry.designation,
+            entry.epoch_string,
+            entry.mean_motion_derivative,
+            entry.mean_motion_sec_derivative,                
+            entry.bstar,
+            entry.ephemeris_type,
+            entry.element_num,
+            entry.inclination_degrees,
+            entry.inclination_radians,
+            entry.raan_degrees,
+            entry.raan_radians,
+
+            entry.eccentricity,
+            entry.arg_perigee_degrees,
+            entry.arg_perigee_radians,
+            entry.mean_anomaly_degrees,
+            entry.mean_anomaly_radians,
+            entry.mean_motion_orbits_per_day,
+            entry.mean_motion_radians_per_second,
+            entry.orbit_num,
+
+            entry.launch_piece_number,
+            entry.analyst_object,
+            entry.strict,
+
+            entry.tle_fingerprint,
+            entry._tle_file_fingerprint
+            )
+
+        if self._dbtype == "INFILE": # Make CSV files
+            self._writer_TLE.writerow(newentryTuple)
+        elif self._dbtype == "sqlite":
+            try:
+                self.c.execute(self.addTLE_query,newentryTuple)
+            except sqlite3.IntegrityError as e:
+                log.error("{}".format(e))
+        else:
+            self._TLEentryList.append(newentryTuple)
+        return self._tleid
+
+
+    def addTLEFile(self, entry):
+        """ Add an TLE file entry to the database """
+        self._tlefileid = 0 # Set this as a variable in case we want to generate our own in the future
+
+        # self._tlefileid, # Use the AUTO_INCREMENT-ed value
+        newentryTuple = (
+                entry.file_fingerprint,
+                entry._tle_basename
+                )
+
+        if self._dbtype == "INFILE": # Make CSV files
+            self._writer_TLEFile.writerow(newentryTuple)
+            self._TLEFileDict[entry.file_fingerprint] = entry._tle_basename
+        elif self._dbtype == "sqlite":
+            try:
+                self.c.execute(self.addTLEFile_query,newentryTuple)
+                self.conn.commit()
+            except sqlite3.IntegrityError as e:
+                log.error("{}".format(e))
+        else:
+            try:
+                self.c_addTLEFile_query.execute(self.addTLEFile_query, newentryTuple)
+            except Exception as e:
+                log.error("MYSQL ERROR: {}".format(e))
+        return True
+
+
+    def addSATCATentry(self, newentryTuple):
+        """ Add an SATCAT entry to the database """
+        self._satcatid = 0 # Set this as a variable in case we want to generate our own in the future
+
+        if self._dbtype == "INFILE": # Make CSV files
+            self._writer_SATCAT.writerow(newentryTuple)
+#            self._SATCAT_file_fingerprintDict[entry.satcat_file_fingerprint] = _satcat_basename
+        elif self._dbtype == "sqlite":
+            try:
+                self.c.execute(self.addSATCAT_query, newentryTuple)
+                self.conn.commit()
+            except sqlite3.IntegrityError as e:
+                log.error("{}".format(e))
+        else:
+            try:
+                self.c_addSATCAT_query.execute(self.addSATCAT_query, newentryTuple)
+            except Exception as e:
+                log.error("MYSQL ERROR: {}".format(e))
+        return True
+
+
+    def addUCSDBentry(self, newentryTuple):
+        """ Add an UCS DB entry to the database """
+        self._satcatid = 0 # Set this as a variable in case we want to generate our own in the future
+
+        if self._dbtype == "INFILE": # Make CSV files
+            self._writer_UCSDB.writerow(newentryTuple)
+#            self._UCSDB_file_fingerprintDict[entry.satcat_file_fingerprint] = _satcat_basename
+        elif self._dbtype == "sqlite":
+            try:
+                self.c.execute(self.addUCSDB_query, newentryTuple)
+                self.conn.commit()
+            except sqlite3.IntegrityError as e:
+                log.error("{}".format(e))
+        else:
+            try:
+                self.c_addUCSDB_query.execute(self.addUCSDB_query, newentryTuple)
+            except Exception as e:
+                log.error("MYSQL ERROR: {}".format(e))
+        return True
+
+
+    def selectObserver(self, observer_name):
+        if self._dbtype == "INFILE": # Manage array
+            try:
+                results = [self._observerDict[observer_name]]
+            except KeyError:
+                results = None
+        elif self._dbtype == "sqlite":
+            self.c.execute(self.selectObserver_query, [observer_name])
+            results = self.c.fetchone()
+        else:
+            self.c_selectObserver_query.execute(self.selectObserver_query, [observer_name])
+            results = self.c_selectObserver_query.fetchone()
+        return results
+
+
+
+    def selectTLEFile(self, tle_file_fingerprint):
+        """Query to see if a TLE file is already in the database."""
+        if self._dbtype == "INFILE": # Manage array
+            if (tle_file_fingerprint not in self._tle_file_fingerprintDict):
+                results = None
+            else:
+                results = self._tle_file_fingerprintDict[tle_file_fingerprint]
+        elif self._dbtype == "sqlite":
+            self.c.execute(self.selectTLEFile_query, [tle_file_fingerprint])
+            results = self.c.fetchone()
+        else:
+            self.c_selectTLEFile_query.execute(self.selectTLEFile_query, [tle_file_fingerprint])
+            results = self.c_selectTLEFile_query.fetchone()
+        return results
+
+
+    def selectTLEFingerprint(self, tle_fingerprint):
+        """Query to see if a specific TLE is already in the database"""
+        if self._dbtype == "INFILE": # Manage array
+            if (tle_fingerprint not in self._tle_fingerprintDict):
+                results = None
+            else:
+                results = self._tle_fingerprintDict[tle_fingerprint]
+        elif self._dbtype == "sqlite":
+            self.c.execute(self.selectTLEFingerprint_query, [tle_fingerprint])
+            results = self.c.fetchone()
+        else:
+            self.c_selectTLEFingerprint_query.execute(self.selectTLEFingerprint_query, [tle_fingerprint])
+            results = self.c_selectTLEFingerprint_query.fetchone()
+        return results
+
+
+    def commit_TLE_db_writes(self):
+        """Process a stored query batch for all the TLEs in a file at once.
+
+        Note that for large TLEs (50,000 entries, we might want to batch this at 1,000 per per something)
+        That's not an issue for the small McCants files
+        """
+        if (self._dbtype == "sqlserver"):
+            if(len(self._TLEentryList) > 0):
+                try: 
+                    self.c_addTLE_query.executemany(self.addTLE_query,self._TLEentryList)
+                    self._TLEentryList = []
+                except Exception as e:
+                    log.error("MYSQL ERROR: {}".format(e))
+        if (self._dbtype != "INFILE"):
+            self.conn.commit()
+
+
+    def commit_IOD_db_writes(self):
+        if (self._dbtype == "sqlserver"):
+            if(len(self._IODentryList) > 0):
+                try: 
+                    self.c_addParsedIOD.executemany(self.addParsedIOD_query,self._IODentryList)
+                    self._IODentryList = []
+                except Exception as e:
+                    log.error("MYSQL ERROR: {}".format(e))
+        if (self._dbtype != "INFILE"):
+            self.conn.commit()
+
+
+    def clean(self):
+        self.conn.close()
