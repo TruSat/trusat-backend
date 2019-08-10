@@ -813,6 +813,17 @@ class Database:
             results = self.c_selectTLEFingerprint_query.fetchone()
         return results
 
+    def selectTLEEpochBeforeDate(self, query_epoch_datetime, satellite_number):
+        """Query to return the first TLE with epoch prior to specified date for a specific satellite number"""
+        self.selectTLEEpochBeforeDate_query = "SELECT * FROM TLE WHERE epoch <= '{}' AND satellite_number={} ORDER BY epoch DESC LIMIT 1".format(query_epoch_datetime, satellite_number)
+        self.c.execute(self.selectTLEEpochBeforeDate_query)
+        return self.c.fetchone()
+
+    def selectTLEEpochNearestDate(self, query_epoch_datetime, satellite_number):
+        """Query to return the nearest TLE with epoch for a specific satellite for a specified date"""
+        self.selectTLEEpochNearestDate_query = "SELECT *,ABS(TIMEDIFF(epoch,'{}')) as diff FROM TLE where satellite_number={} ORDER BY diff ASC LIMIT 1".format(query_epoch_datetime, satellite_number)
+        self.c.execute(self.selectTLEEpochNearestDate_query)
+        return self.c.fetchone()
 
     def commit_TLE_db_writes(self):
         """Process a stored query batch for all the TLEs in a file at once.
