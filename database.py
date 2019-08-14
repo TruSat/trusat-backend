@@ -122,11 +122,11 @@ class Database:
         self.updateObserverNonce_query = '''UPDATE Observer SET nonce=? WHERE id=?'''
         self.updateObserverJWT_query = '''UPDATE Observer SET jwt=?, password=?, WHERE id=?'''
         self.getObserverNonce_query = '''SELECT nonce FROM Observer WHERE id=?'''
-        self.getObservationCount_query = '''SELECT object_number, COUNT(object_number) as querycount from ParsedIOD GROUP BY object_number order by querycount DESC'''
-        self.getCommunityObservationByYear_query = '''SELECT YEAR(obs_time), COUNT(*) as querycount from ParsedIOD GROUP BY YEAR(obs_time) order by YEAR(obs_time) ASC'''
-        self.getCommunityObservationByMonth_query = '''SELECT MONTH(obs_time), COUNT(*) as querycount from ParsedIOD GROUP BY MONTH(obs_time) order by MONTH(obs_time) ASC'''
+        self.getObservationCount_query = '''SELECT object_number, COUNT(object_number) as querycount from ParsedIOD where valid_position>0 GROUP BY object_number order by querycount DESC'''
+        self.getCommunityObservationByYear_query = '''SELECT YEAR(obs_time), COUNT(*) as querycount from ParsedIOD where valid_position>0 GROUP BY YEAR(obs_time) order by YEAR(obs_time) ASC'''
+        self.getCommunityObservationByMonth_query = '''SELECT MONTH(obs_time), COUNT(*) as querycount from ParsedIOD where valid_position>0 GROUP BY MONTH(obs_time) order by MONTH(obs_time) ASC'''
         self.getObserverCountByID_query = '''SELECT id, COUNT(*)from Observer WHERE id=?'''
-        self.getRecentObservations_query = '''SELECT * FROM ParsedIOD ORDER BY obs_time DESC LIMIT 5'''
+        self.getRecentObservations_query = '''SELECT * FROM ParsedIOD where valid_position>0 ORDER BY obs_time DESC LIMIT 5'''
         self.selectTLEFile_query = '''SELECT file_fingerprint FROM TLEFILE WHERE file_fingerprint LIKE ? LIMIT 1'''
         self.selectTLEFingerprint_query = '''SELECT tle_fingerprint FROM TLE WHERE tle_fingerprint LIKE ? LIMIT 1'''
         self.addParsedIOD_query = '''INSERT INTO ParsedIOD (
@@ -261,7 +261,7 @@ class Database:
 
         """ ParsedIOD """
         createquery = '''CREATE TABLE IF NOT EXISTS ParsedIOD (
-            obs_id                      INT NOT NULL  PRIMARY KEY ''' + self.increment + ''',
+            obs_id                      INT NOT NULL ''' + self.increment + ''',
             submitted                   DATETIME,   
             user_string                 TEXT, 
             object_number               MEDIUMINT(5) UNSIGNED,
@@ -292,7 +292,14 @@ class Database:
             valid_position              BOOL,
             message_id                  TEXT,
             obsFingerPrint              CHAR(32) NOT NULL UNIQUE,
-            import_timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+            import_timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            PRIMARY KEY (`obs_id`),
+            UNIQUE KEY `ParsedIOD_obsFingerPrint_idx` (`obsFingerPrint`),
+            KEY `ParsedIOD_user_string_40_idx` (`user_string`(40)) USING BTREE,
+            KEY `ParsedIOD_object_number_idx` (`object_number`) USING BTREE,
+            KEY `ParsedIOD_station_number_idx` (`station_number`) USING BTREE,
+            KEY `ParsedIOD_obs_time_idx` (`obs_time`) USING BTREE,
+            KEY `ParsedIOD_valid_position_idx` (`valid_position`) USING BTREE
             )''' + self.charset_string
         self.c.execute(createquery)
 
