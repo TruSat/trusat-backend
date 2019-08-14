@@ -90,10 +90,19 @@ class Database:
             self.c = self.conn.cursor()
 
             # Need a cursor for each prepared statement
+            # TODO: Probably don't need prepared statements for all of these
             self.c_addParsedIOD = self.conn.cursor(prepared=True)
             self.c_addStation_query = None
             self.c_addObserver_query = self.conn.cursor(prepared=True)
             self.c_selectObserver_query = self.conn.cursor(prepared=True)
+            self.c_updateObserverNonce_query = self.conn.cursor(prepared=True)
+            self.c_updateObserverJWT_query = self.conn.cursor(prepared=True)
+            self.c_getObserverNonce_query = self.conn.cursor(prepared=True)
+            self.c_getObservationCount_query = self.conn.cursor(prepared=True)
+            self.c_getCommunityObservationByYear_query = self.conn.cursor(prepared=True)
+            self.c_getCommunityObservationByMonth_query = self.conn.cursor(prepared=True)
+            self.c_getObserverCountByID_query = self.conn.cursor(prepared=True)
+            self.c_getRecentObservations_query = self.conn.cursor(prepared=True)
             self.c_selectTLEFile_query = self.conn.cursor(prepared=True)
             self.c_selectTLEFingerprint_query = self.conn.cursor(prepared=True)
             self.c_addTLE_query = self.conn.cursor(prepared=True)
@@ -107,6 +116,19 @@ class Database:
 
         # Predefined queries - In the case of sqlserver, prepared statements accelerate / secure import queries
         #  %s only works for sqlserver, ? works for both sqlite and sqlserver
+        self.addStation_query = None
+        self.addObserver_query = '''INSERT INTO Observer VALUES(?,?,?,?,?)'''
+        self.selectObserver_query = '''SELECT id FROM Observer WHERE verified LIKE ? LIMIT 1'''
+        self.updateObserverNonce_query = '''UPDATE Observer SET nonce=? WHERE id=?'''
+        self.updateObserverJWT_query = '''UPDATE Observer SET jwt=?, password=?, WHERE id=?'''
+        self.getObserverNonce_query = '''SELECT nonce FROM Observer WHERE id=?'''
+        self.getObservationCount_query = '''SELECT object_number, COUNT(object_number) as querycount from ParsedIOD where valid_position>0 GROUP BY object_number order by querycount DESC'''
+        self.getCommunityObservationByYear_query = '''SELECT YEAR(obs_time), COUNT(*) as querycount from ParsedIOD where valid_position>0 GROUP BY YEAR(obs_time) order by YEAR(obs_time) ASC'''
+        self.getCommunityObservationByMonth_query = '''SELECT MONTH(obs_time), COUNT(*) as querycount from ParsedIOD where valid_position>0 GROUP BY MONTH(obs_time) order by MONTH(obs_time) ASC'''
+        self.getObserverCountByID_query = '''SELECT id, COUNT(*)from Observer WHERE id=?'''
+        self.getRecentObservations_query = '''SELECT * FROM ParsedIOD where valid_position>0 ORDER BY obs_time DESC LIMIT 5'''
+        self.selectTLEFile_query = '''SELECT file_fingerprint FROM TLEFILE WHERE file_fingerprint LIKE ? LIMIT 1'''
+        self.selectTLEFingerprint_query = '''SELECT tle_fingerprint FROM TLE WHERE tle_fingerprint LIKE ? LIMIT 1'''
         self.addParsedIOD_query = '''INSERT INTO ParsedIOD (
             submitted,
             user_string,
@@ -139,11 +161,6 @@ class Database:
             message_id,
             obsFingerPrint
         ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'''
-        self.addStation_query = None
-        self.addObserver_query = '''INSERT INTO Observer VALUES(?,?,?,?,?)'''
-        self.selectObserver_query = '''SELECT id FROM Observer WHERE verified LIKE ? LIMIT 1'''
-        self.selectTLEFile_query = '''SELECT file_fingerprint FROM TLEFILE WHERE file_fingerprint LIKE ? LIMIT 1'''
-        self.selectTLEFingerprint_query = '''SELECT tle_fingerprint FROM TLE WHERE tle_fingerprint LIKE ? LIMIT 1'''
         self.addTLE_query = '''INSERT INTO TLE (
             line0,
             line1,
@@ -244,7 +261,7 @@ class Database:
 
         """ ParsedIOD """
         createquery = '''CREATE TABLE IF NOT EXISTS ParsedIOD (
-            obs_id                      INT NOT NULL  PRIMARY KEY ''' + self.increment + ''',
+            obs_id                      INT NOT NULL ''' + self.increment + ''',
             submitted                   DATETIME,   
             user_string                 TEXT, 
             object_number               MEDIUMINT(5) UNSIGNED,
@@ -275,14 +292,22 @@ class Database:
             valid_position              BOOL,
             message_id                  TEXT,
             obsFingerPrint              CHAR(32) NOT NULL UNIQUE,
-            import_timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+            import_timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            PRIMARY KEY (`obs_id`),
+            UNIQUE KEY `ParsedIOD_obsFingerPrint_idx` (`obsFingerPrint`),
+            KEY `ParsedIOD_user_string_40_idx` (`user_string`(40)) USING BTREE,
+            KEY `ParsedIOD_object_number_idx` (`object_number`) USING BTREE,
+            KEY `ParsedIOD_station_number_idx` (`station_number`) USING BTREE,
+            KEY `ParsedIOD_obs_time_idx` (`obs_time`) USING BTREE,
+            KEY `ParsedIOD_valid_position_idx` (`valid_position`) USING BTREE
             )''' + self.charset_string
         self.c.execute(createquery)
 
         """ Station """
         createquery = '''CREATE TABLE IF NOT EXISTS Station (
             id          INTEGER PRIMARY KEY''' + self.increment + ''',
-            station_id  INTEGER,
+            station_id  SMALLINT(4) UNSIGNED NOT NULL,
+            eth_addr    CHAR(42),
             latitude    DOUBLE,
             longitude   DOUBLE,
             altitude    SMALLINT
@@ -292,11 +317,15 @@ class Database:
         """ Observer """
         createquery = '''CREATE TABLE IF NOT EXISTS Observer (
             id          INTEGER PRIMARY KEY''' + self.increment + ''',
-            eth_addr	TEXT,
-            verified	TEXT,
-            reputation	INTEGER,
-            reference   TEXT
-        )''' + self.charset_string
+            eth_addr    CHAR(42),
+            verified    TEXT,
+            reputation  INTEGER,
+            reference   TEXT,
+            nonce       INTEGER,
+            jwt         TEXT,
+            password    TEXT,
+            jwt_secret  CHAR(78)
+            )''' + self.charset_string
         self.c.execute(createquery)
         self.conn.commit()
 
@@ -655,6 +684,7 @@ class Database:
 
 
     def selectObserver(self, observer_name):
+        """ Look up an observer by (name/email string) in database or internal dictionary"""
         if self._dbtype == "INFILE": # Manage array
             try:
                 results = [self._observerDict[observer_name]]
@@ -668,6 +698,95 @@ class Database:
             results = self.c_selectObserver_query.fetchone()
         return results
 
+    def getObserverNonce(self, public_address):
+        """ GET OBSERVER NONCE """
+        if self._dbtype == "INFILE":
+            try:
+                results = (self.getObserverNonce_query, [public_address])
+            except KeyError:
+                results = None
+        elif self._dbtype == "sqlite":
+            self.c.execute(self.getObserverNonce_query, [public_address])
+            results = self.c.fetchone()
+        else:
+            self.c_getObserverNonce_query.execute(self.getObserverNonce_query, [public_address])
+            results = self.c_getObserverNonce_query.fetchone()
+        return results
+
+    def getObservationCount(self):
+        """ GET OBSERVATION COUNT """
+        if self._dbtype == "INFILE":
+            try:
+                results = (self.getObservationCount_query, [])
+            except KeyError:
+                results = None
+        elif self._dbtype == "sqlite":
+            self.c.execute(self.getObservationCount_query, [])
+            results = self.c.fetchone()
+        else:
+            self.c_getObservationCount_query.execute(self.getObservationCount_query, [])
+            results = self.c_getObservationCount_query.fetchone()
+        return results
+
+    def getCommunityObservationByYear(self):
+        """ GET COMMUNITY OBSERVATION BY YEAR """
+        if self._dbtype == "INFILE":
+            try:
+                results = (self.getCommunityObservationByYear_query, [])
+            except KeyError:
+                results = None
+        elif self._dbtype == "sqlite":
+            self.c.execute(self.getCommunityObservationByYear_query, [])
+            results = self.c.fetchall()
+        else:
+            self.c_getCommunityObservationByYear_query.execute(self.getCommunityObservationByYear_query, [])
+            results = self.c_getCommunityObservationByYear_query.fetchall()
+        return results
+
+    def getCommunityObservationByMonth(self):
+        """ GET COMMUNITY OBSERVATION BY YEAR """
+        if self._dbtype == "INFILE":
+            try:
+                results = (self.getCommunityObservationByMonth_query, [])
+            except KeyError:
+                results = None
+        elif self._dbtype == "sqlite":
+            self.c.execute(self.getCommunityObservationByMonth_query, [])
+            results = self.c.fetchall()
+        else:
+            self.c_getCommunityObservationByMonth_query.execute(self.getCommunityObservationByMonth_query, [])
+            results = self.c_getCommunityObservationByMonth_query.fetchall()
+        return results
+    
+    def getObserverCountByID(self, public_address):
+        """ GET OBSERVER COUNT BY ID """
+        if self._dbtype == "INFILE":
+            try:
+                results = (self.getObserverCountByID_query, [public_address])
+            except KeyError:
+                results = None
+        elif self._dbtype == "sqlite":
+            self.c.execute(self.getObserverCountByID_query, [public_address])
+            results = self.c.fetchone()
+        else:
+            self.c_getObserverCountByID_query.execute(self.getObserverCountByID_query, [public_address])
+            results = self.c_getObserverCountByID_query.fetchone()
+        return results
+
+    def getRecentObservations(self):
+        """ GET RECENT OBSERVATIONS """
+        if self._dbtype == "INFILE":
+            try:
+                results = (self.getRecentObservations_query, [])
+            except KeyError:
+                results = None
+        elif self._dbtype == "sqlite":
+            self.c.execute(self.getRecentObservations_query, [])
+            results = self.c.fetchall()
+        else:
+            self.c_getRecentObservations_query.execute(self.getRecentObservations_query, [])
+            results = self.c_getRecentObservations_query.fetchall()
+        return results        
 
 
     def selectTLEFile(self, tle_file_fingerprint):
@@ -701,6 +820,17 @@ class Database:
             results = self.c_selectTLEFingerprint_query.fetchone()
         return results
 
+    def selectTLEEpochBeforeDate(self, query_epoch_datetime, satellite_number):
+        """Query to return the first TLE with epoch prior to specified date for a specific satellite number"""
+        self.selectTLEEpochBeforeDate_query = "SELECT * FROM TLE WHERE epoch <= '{}' AND satellite_number={} ORDER BY epoch DESC LIMIT 1".format(query_epoch_datetime, satellite_number)
+        self.c.execute(self.selectTLEEpochBeforeDate_query)
+        return self.c.fetchone()
+
+    def selectTLEEpochNearestDate(self, query_epoch_datetime, satellite_number):
+        """Query to return the nearest TLE with epoch for a specific satellite for a specified date"""
+        self.selectTLEEpochNearestDate_query = "SELECT *,ABS(TIMEDIFF(epoch,'{}')) as diff FROM TLE where satellite_number={} ORDER BY diff ASC LIMIT 1".format(query_epoch_datetime, satellite_number)
+        self.c.execute(self.selectTLEEpochNearestDate_query)
+        return self.c.fetchone()
 
     def commit_TLE_db_writes(self):
         """Process a stored query batch for all the TLEs in a file at once.
