@@ -42,7 +42,7 @@ class Database:
         self._last_observer_id = None
         self._IODentryList = []
         self._TLEentryList = []
-        self._TLEFileDict = []
+        self._TLEFileDict = {} # Used for INFILE method
         self._observerDict = {} # Used for INFILE method
         self._tle_fingerprintDict = {} # Used for INFILE method
         self._obsid = 0
@@ -297,6 +297,7 @@ class Database:
             UNIQUE KEY `ParsedIOD_obsFingerPrint_idx` (`obsFingerPrint`),
             KEY `ParsedIOD_user_string_40_idx` (`user_string`(40)) USING BTREE,
             KEY `ParsedIOD_object_number_idx` (`object_number`) USING BTREE,
+            KEY `ParsedIOD_international_designation_idx` (`international_designation` (14)) USING BTREE,
             KEY `ParsedIOD_station_number_idx` (`station_number`) USING BTREE,
             KEY `ParsedIOD_obs_time_idx` (`obs_time`) USING BTREE,
             KEY `ParsedIOD_valid_position_idx` (`valid_position`) USING BTREE
@@ -389,7 +390,7 @@ class Database:
 
         # TODO: make another table from the multiple_name_flag data in https://celestrak.com/pub/satcat-annex.txt
         createquery = '''CREATE TABLE IF NOT EXISTS celestrak_SATCAT (
-            satcat_id              INTEGER PRIMARY KEY''' + self.increment + ''',
+            satcat_id              INTEGER ''' + self.increment + ''',
             intl_desg               VARCHAR(11) NOT NULL,
             norad_num               MEDIUMINT UNSIGNED NOT NULL,
             multiple_name_flag      TINYINT(1) UNSIGNED NOT NULL,
@@ -407,7 +408,10 @@ class Database:
             orbit_status_code       CHAR(3),
             line_fingerprint        CHAR(32) NOT NULL,
             file_fingerprint        CHAR(32) NOT NULL,
-            import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+            import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            PRIMARY KEY (`satcat_id`),
+            KEY `celestrak_SATCAT_intl_desg_idx` (`intl_desg`(11)) USING BTREE,
+            KEY `celestrak_SATCAT_norad_num_idx` (`norad_num`) USING BTREE
         )''' + self.charset_string
         self.c.execute(createquery)
 
@@ -831,6 +835,26 @@ class Database:
         self.selectTLEEpochNearestDate_query = "SELECT *,ABS(TIMEDIFF(epoch,'{}')) as diff FROM TLE where satellite_number={} ORDER BY diff ASC LIMIT 1".format(query_epoch_datetime, satellite_number)
         self.c.execute(self.selectTLEEpochNearestDate_query)
         return self.c.fetchone()
+
+
+
+    def selectTLEEpochNearestDate(self, query_epoch_datetime, satellite_number):
+        """Query to return the nearest TLE with epoch for a specific satellite for a specified date"""
+        self.selectTLEEpochNearestDate_query = "SELECT *,ABS(TIMEDIFF(epoch,'{}')) as diff FROM TLE where satellite_number={} ORDER BY diff ASC LIMIT 1".format(query_epoch_datetime, satellite_number)
+        self.c.execute(self.selectTLEEpochNearestDate_query)
+        return self.c.fetchone()
+
+    def selectGlobalPriorities(self):
+        """Query to return priority observations.
+        
+        Since we don't have priorities in the database yet, just return a number for the column.
+        For now, this one is sorted on most recent observations to create something dynamic and interesting.
+
+        """
+        query_tmp = "select '3' as Priority, celestrak_SATCAT.name, ucs_SATDB.country_owner, ucs_SATDB.purpose, ucs_SATDB.purpose_detailed, ParsedIOD.obs_time, ParsedIOD.user_string from celestrak_SATCAT, ucs_SATDB, ParsedIOD where decay_date='0000-00-00' and celestrak_SATCAT.norad_num=ucs_SATDB.norad_number and celestrak_SATCAT.norad_num = ParsedIOD.object_number and valid_position=1 order by obs_time DESC limit 10"
+        self.c.execute(query_tmp)
+        return self.c.fetchall()
+
 
     def commit_TLE_db_writes(self):
         """Process a stored query batch for all the TLEs in a file at once.
