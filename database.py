@@ -855,17 +855,6 @@ class Database:
         self.c.execute(query_tmp)
         return self.c.fetchall()
 
-    def selectGlobalPriorities_JSON(self):
-        """Query to return priority observations in JSON format.
-        
-        Since we don't have priorities in the database yet, just return a number for the column.
-        For now, this one is sorted on most recent observations to create something dynamic and interesting.
-
-        """
-        query_tmp = "select Json_Array('3' as Priority, celestrak_SATCAT.name, ucs_SATDB.country_owner, ucs_SATDB.purpose, ucs_SATDB.purpose_detailed, ParsedIOD.obs_time, ParsedIOD.user_string) from celestrak_SATCAT, ucs_SATDB, ParsedIOD where decay_date='0000-00-00' and celestrak_SATCAT.norad_num=ucs_SATDB.norad_number and celestrak_SATCAT.norad_num = ParsedIOD.object_number and valid_position=1 order by obs_time DESC limit 10"
-        self.c.execute(query_tmp)
-        return self.c.fetchall()
-
     def selectObservationHistory_JSON(self):
         # TODO Figure out from John if this is user-specific or what the history is in context of
         query_tmp = "select Json_Object('time_submitted',ParsedIOD.obs_time,'object_name',celestrak_SATCAT.name, 'right_ascension', ParsedIOD.ra, 'declination', ParsedIOD.declination, 'conditions', ParsedIOD.remarks) from celestrak_SATCAT,ParsedIOD where celestrak_SATCAT.norad_num=ParsedIOD.object_number and valid_position=1	order by obs_time DESC limit 10;" 
