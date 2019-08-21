@@ -102,3 +102,11 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+#credentials
+token.pickle
+privkey.pem
+fullchain.pem
+Astrana.db
+login.txt
+credentials.json
