@@ -397,7 +397,7 @@ class Database:
 
         # TODO: make another table from the multiple_name_flag data in https://celestrak.com/pub/satcat-annex.txt
         createquery = '''CREATE TABLE IF NOT EXISTS celestrak_SATCAT (
-            satcat_id              INTEGER ''' + self.increment + ''',
+            satcat_id               INTEGER ''' + self.increment + ''',
             intl_desg               VARCHAR(11) NOT NULL,
             norad_num               MEDIUMINT UNSIGNED NOT NULL,
             multiple_name_flag      TINYINT(1) UNSIGNED NOT NULL,
@@ -874,6 +874,102 @@ class Database:
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
 
+    def selectCatalog_Priorities_JSON(self):
+        query_tmp = """select Json_Object(
+            'object_norad_number', ParsedIOD.object_number, 
+            'object_name', celestrak_SATCAT.name,
+            'object_origin', ucs_SATDB.country_owner, 
+            'object_type', ucs_SATDB.purpose, 
+            'object_purpose', ucs_SATDB.purpose_detailed, 
+            'time_last_tracked', ParsedIOD.obs_time,
+            'address_last_tracked', Observer.eth_addr,
+            'username_last_tracked',Observer.name) 
+            FROM ucs_SATDB,celestrak_SATCAT,ParsedIOD,Observer,Station 
+            WHERE ParsedIOD.object_number = ucs_SATDB.norad_number
+            AND ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+            AND ParsedIOD.station_number = Station.station_num
+            AND Station.user = Observer.id
+            AND ParsedIOD.valid_position = 1 order by obs_time DESC limit 100;"""
+        self.c.execute(query_tmp)
+        return stringArrayToJSONArray(self.c.fetchall())
+
+    def selectCatalog_Undisclosed_JSON(self):
+        query_tmp = """select Json_Object(
+            'object_norad_number', ParsedIOD.object_number, 
+            'object_name', celestrak_SATCAT.name,
+            'object_origin', ucs_SATDB.country_owner, 
+            'object_type', ucs_SATDB.purpose, 
+            'object_purpose', ucs_SATDB.purpose_detailed, 
+            'time_last_tracked', ParsedIOD.obs_time,
+            'address_last_tracked', Observer.eth_addr,
+            'username_last_tracked',Observer.name) 
+            FROM ucs_SATDB,celestrak_SATCAT,ParsedIOD,Observer,Station 
+            WHERE ParsedIOD.object_number = ucs_SATDB.norad_number
+            AND ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+            AND ParsedIOD.station_number = Station.station_num
+            AND Station.user = Observer.id
+            AND celestrak_SATCAT.orbit_status_code = 'NEA'
+            AND ParsedIOD.valid_position = 1 order by obs_time DESC limit 100;"""
+        self.c.execute(query_tmp)
+        return stringArrayToJSONArray(self.c.fetchall())
+
+    def selectCatalog_Debris_JSON(self):
+        query_tmp = """select Json_Object(
+            'object_norad_number', ParsedIOD.object_number, 
+            'object_name', celestrak_SATCAT.name,
+            'object_origin', ucs_SATDB.country_owner, 
+            'object_type', ucs_SATDB.purpose, 
+            'object_purpose', ucs_SATDB.purpose_detailed, 
+            'time_last_tracked', ParsedIOD.obs_time,
+            'address_last_tracked', Observer.eth_addr,
+            'username_last_tracked',Observer.name) 
+            FROM ucs_SATDB,celestrak_SATCAT,ParsedIOD,Observer,Station 
+            WHERE ParsedIOD.object_number = ucs_SATDB.norad_number
+            AND ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+            AND ParsedIOD.station_number = Station.station_num
+            AND Station.user = Observer.id
+            AND celestrak_SATCAT.name LIKE '%DEB%'
+            AND ParsedIOD.valid_position = 1 order by obs_time DESC limit 100;"""
+        self.c.execute(query_tmp)
+        return stringArrayToJSONArray(self.c.fetchall())
+
+    def selectCatalog_Latest_JSON(self):
+        query_tmp = """select Json_Object(
+            'object_norad_number', ParsedIOD.object_number, 
+            'object_name', celestrak_SATCAT.name,
+            'object_origin', ucs_SATDB.country_owner, 
+            'object_type', ucs_SATDB.purpose, 
+            'object_purpose', ucs_SATDB.purpose_detailed, 
+            'time_last_tracked', ParsedIOD.obs_time,
+            'address_last_tracked', Observer.eth_addr,
+            'username_last_tracked',Observer.name) 
+            FROM ucs_SATDB,celestrak_SATCAT,ParsedIOD,Observer,Station 
+            WHERE ParsedIOD.object_number = ucs_SATDB.norad_number
+            AND ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+            AND ParsedIOD.station_number = Station.station_num
+            AND Station.user = Observer.id
+            AND ParsedIOD.valid_position = 1 order by obs_time DESC limit 100;"""
+        self.c.execute(query_tmp)
+        return stringArrayToJSONArray(self.c.fetchall())
+
+    def selectCatalog_All_JSON(self):
+        query_tmp = """select Json_Object(
+            'object_norad_number', ParsedIOD.object_number, 
+            'object_name', celestrak_SATCAT.name,
+            'object_origin', ucs_SATDB.country_owner, 
+            'object_type', ucs_SATDB.purpose, 
+            'object_purpose', ucs_SATDB.purpose_detailed, 
+            'time_last_tracked', ParsedIOD.obs_time,
+            'address_last_tracked', Observer.eth_addr,
+            'username_last_tracked',Observer.name) 
+            FROM ucs_SATDB,celestrak_SATCAT,ParsedIOD,Observer,Station 
+            WHERE ParsedIOD.object_number = ucs_SATDB.norad_number
+            AND ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+            AND ParsedIOD.station_number = Station.station_num
+            AND Station.user = Observer.id
+            AND ParsedIOD.valid_position = 1 order by obs_time DESC limit 100;"""
+        self.c.execute(query_tmp)
+        return stringArrayToJSONArray(self.c.fetchall())
 
     def commit_TLE_db_writes(self):
         """Process a stored query batch for all the TLEs in a file at once.
