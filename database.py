@@ -4,6 +4,7 @@ from secrets import randbelow, randbits
 from datetime import datetime
 from hashlib import md5
 from csv import writer 
+import json
 import logging
 log = logging.getLogger(__name__)
 
@@ -19,6 +20,12 @@ def generate_user_id():
 def generate_object_id():
     """ Generate 256-bit random number as a string """
     return str(randbits(256))
+
+def stringArrayToJSONArray(string_array):
+    json_array = []
+    for item in string_array:
+        json_array.append(json.loads(item[0]))
+    return json_array
 
 # TODO: Add index statements to the appropriate fields when creating the tables
 class Database:
@@ -859,13 +866,13 @@ class Database:
         # TODO Figure out from John if this is user-specific or what the history is in context of
         query_tmp = "select Json_Object('time_submitted',ParsedIOD.obs_time,'object_name',celestrak_SATCAT.name, 'right_ascension', ParsedIOD.ra, 'declination', ParsedIOD.declination, 'conditions', ParsedIOD.remarks) from celestrak_SATCAT,ParsedIOD where celestrak_SATCAT.norad_num=ParsedIOD.object_number and valid_position=1	order by obs_time DESC limit 10;" 
         self.c.execute(query_tmp)
-        return self.c.fetchall()
+        return stringArrayToJSONArray(self.c.fetchall())
 
     def selectObjectsObserved_JSON(self):
         # TODO Figure out from John if this is user-specific or what the history is in context of
         query_tmp = "select Json_Object('object_origin', ucs_SATDB.country_owner, 'primary_purpose', ucs_SATDB.purpose, 'object_type', ucs_SATDB.purpose_detailed, 'secondary_purpoase', 'Secondary purpose does not exist', 'observation_quality', ParsedIOD.remarks, 'time_last_tracked',ParsedIOD.obs_time,'username_last_tracked',ParsedIOD.user_string) from ucs_SATDB,ParsedIOD where ucs_SATDB.norad_number=ParsedIOD.object_number and valid_position=1 order by obs_time DESC limit 10;"
         self.c.execute(query_tmp)
-        return self.c.fetchall()
+        return stringArrayToJSONArray(self.c.fetchall())
 
 
     def commit_TLE_db_writes(self):
