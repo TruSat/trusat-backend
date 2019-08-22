@@ -8,6 +8,8 @@ import json
 import logging
 log = logging.getLogger(__name__)
 
+import random # Temporary for faking some results in DEV
+
 """
 database.py: Does database interactions for the Open Satellite Catalog
 """
@@ -977,6 +979,76 @@ class Database:
             AND ParsedIOD.valid_position = 1 order by obs_time DESC limit 100;"""
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
+
+    def selectObjectInfo_JSON(self, norad_num):
+        info_url = "https://www.heavens-above.com/SatInfo.aspx?satid={}".format(norad_num)
+        quality = random.randint(1,99)
+
+        # Get user-related info first
+        query_tmp_count = """SELECT COUNT(Observer.id), Observer.eth_addr, Observer.name, ParsedIOD.obs_time
+            FROM ParsedIOD,Observer,Station
+            WHERE ParsedIOD.station_number = Station.station_num 
+            AND Station.user = Observer.id 
+            AND ParsedIOD.object_number = {}
+            GROUP BY Observer.id
+            ORDER BY ParsedIOD.obs_time DESC
+            LIMIT 1;""".format(norad_num)
+        self.c.execute(query_tmp_count)
+        (user_count, eth_addr, name, last_tracked) = self.c.fetchone()
+
+        # Get object info and patch in user-info
+        query_tmp = """select Json_Object(
+            'object_name', celestrak_SATCAT.name,
+            'object_origin', ucs_SATDB.country_owner, 
+            'object_type', ucs_SATDB.purpose, 
+            'object_purpose', ucs_SATDB.purpose_detailed, 
+            'object_secondary_purpose', ucs_SATDB.comments,
+            'year_launched', celestrak_SATCAT.launch_date,
+            'time_last_tracked', ParsedIOD.obs_time,
+            'number_users_tracked', '{COUNT}',
+            'time_last_tracked', '{LAST_TRACKED}',
+            'address_last_tracked', '{ETH_ADDR}',
+            'username_last_tracked', '{NAME}',
+            'observation_quality', '{QUALITY}',
+            'object_background', ucs_SATDB.detailed_comments,
+            'heavens_above_url', '{URL}'
+            ) 
+            FROM ucs_SATDB,celestrak_SATCAT,ParsedIOD 
+            WHERE ParsedIOD.object_number = {NORAD_NUM}
+            AND ParsedIOD.object_number = ucs_SATDB.norad_number
+            AND ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+            AND ParsedIOD.valid_position = 1 
+            LIMIT 1;""".format(COUNT=user_count, LAST_TRACKED=last_tracked, ETH_ADDR=eth_addr, NAME=name, QUALITY=quality, URL=info_url, NORAD_NUM=norad_num)
+        self.c.execute(query_tmp)
+        result = self.c.fetchone()
+        if (result):
+            return result
+        else: # Quick hack.  ucs_SATDB only has ~2000 objects, and joining with it might end in a null result.
+        # Get object info and patch in user-info
+            query_tmp = """select Json_Object(
+                'object_name', celestrak_SATCAT.name,
+                'object_origin', celestrak_SATCAT.source, 
+                'object_type', 'no info', 
+                'object_purpose', 'no info', 
+                'object_secondary_purpose', 'no info',
+                'year_launched', celestrak_SATCAT.launch_date,
+                'time_last_tracked', ParsedIOD.obs_time,
+                'number_users_tracked', '{COUNT}',
+                'time_last_tracked', '{LAST_TRACKED}',
+                'address_last_tracked', '{ETH_ADDR}',
+                'username_last_tracked', '{NAME}',
+                'observation_quality', '{QUALITY}',
+                'object_background', 'no info',
+                'heavens_above_url', '{URL}'
+                ) 
+                FROM celestrak_SATCAT,ParsedIOD 
+                WHERE ParsedIOD.object_number = {NORAD_NUM}
+                AND ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+                AND ParsedIOD.valid_position = 1 
+                LIMIT 1;""".format(COUNT=user_count, LAST_TRACKED=last_tracked, ETH_ADDR=eth_addr, NAME=name, QUALITY=quality, URL=info_url, NORAD_NUM=norad_num)
+            self.c.execute(query_tmp)
+        return self.c.fetchone()
+
 
     def commit_TLE_db_writes(self):
         """Process a stored query batch for all the TLEs in a file at once.
