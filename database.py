@@ -1,7 +1,7 @@
 import sqlite3
 import mysql.connector as mariadb
 from secrets import randbelow, randbits
-from datetime import datetime
+from datetime import datetime, timedelta
 from hashlib import md5
 from csv import writer 
 import json
@@ -875,6 +875,7 @@ class Database:
         return stringArrayToJSONArray(self.c.fetchall())
 
     def selectCatalog_Priorities_JSON(self):
+        # TODO: No priorities in database yet, just sort by reverse obs order for something interesting/different to look at
         query_tmp = """select Json_Object(
             'object_norad_number', ParsedIOD.object_number, 
             'object_name', celestrak_SATCAT.name,
@@ -889,7 +890,7 @@ class Database:
             AND ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             AND ParsedIOD.station_number = Station.station_num
             AND Station.user = Observer.id
-            AND ParsedIOD.valid_position = 1 order by obs_time DESC limit 100;"""
+            AND ParsedIOD.valid_position = 1 order by obs_time ASC limit 100;"""
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
 
@@ -934,6 +935,10 @@ class Database:
         return stringArrayToJSONArray(self.c.fetchall())
 
     def selectCatalog_Latest_JSON(self):
+        now = datetime.utcnow()
+        date_delta = now - timedelta(days=365)
+        launch_date_string  = date_delta.strftime("%Y-%m-%d")
+
         query_tmp = """select Json_Object(
             'object_norad_number', ParsedIOD.object_number, 
             'object_name', celestrak_SATCAT.name,
@@ -948,9 +953,11 @@ class Database:
             AND ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             AND ParsedIOD.station_number = Station.station_num
             AND Station.user = Observer.id
-            AND ParsedIOD.valid_position = 1 order by obs_time DESC limit 100;"""
-        self.c.execute(query_tmp)
+            AND celestrak_SATCAT.launch_date > {}
+            AND ParsedIOD.valid_position = 1 order by obs_time DESC limit 100;""".format(launch_date_string)
+        print(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
+
 
     def selectCatalog_All_JSON(self):
         query_tmp = """select Json_Object(
