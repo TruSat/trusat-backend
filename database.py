@@ -118,6 +118,14 @@ class Database:
             self.c_addTLEFile_query = self.conn.cursor(prepared=True)
             self.c_addSATCAT_query = self.conn.cursor(prepared=True)
             self.c_addUCSDB_query = self.conn.cursor(prepared=True)
+            self.c_selectObserverID_query = self.conn.cursor(prepared=True)
+            self.selectObserverID_query = '''SELECT max(id) from Observer'''
+            try:
+                self.c_selectObserverID_query.execute(self.selectObserverID_query, [])
+                self._new_observerid = self.c_selectObserverID_query.fetchone()[0]
+            except Exception as e:
+                log.error("Could not get ObserverID: {}".format(e))
+                self._new_observerid = 0
 
         else:
             self.conn = sqlite3.connect(self._dbname + ".db")
@@ -958,6 +966,7 @@ class Database:
             AND celestrak_SATCAT.launch_date > {}
             AND ParsedIOD.valid_position = 1 order by obs_time DESC limit 100;""".format(launch_date_string)
         print(query_tmp)
+        self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
 
 
