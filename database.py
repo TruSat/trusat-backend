@@ -897,12 +897,23 @@ class Database:
             'time_last_tracked', ParsedIOD.obs_time,
             'address_last_tracked', Observer.eth_addr,
             'username_last_tracked',Observer.name) 
-            FROM ucs_SATDB,celestrak_SATCAT,ParsedIOD,Observer,Station 
-            WHERE ParsedIOD.object_number = ucs_SATDB.norad_number
-            AND ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
-            AND ParsedIOD.station_number = Station.station_num
-            AND Station.user = Observer.id
-            AND ParsedIOD.valid_position = 1 order by obs_time ASC limit 100;"""
+            /* Version using inner joins - which theoretically return values which aren't in ucs_SATDB */
+            FROM ParsedIOD
+            JOIN Station ON ParsedIOD.station_number = Station.station_num
+			JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
+			JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+			JOIN Observer ON Station.user = Observer.id
+            WHERE ParsedIOD.valid_position = 1 
+            ORDER BY obs_time DESC LIMIT 100;"""
+
+            # Original version:
+            # FROM ucs_SATDB,celestrak_SATCAT,ParsedIOD,Observer,Station 
+            # WHERE ParsedIOD.object_number = ucs_SATDB.norad_number
+            # AND ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+            # AND ParsedIOD.station_number = Station.station_num
+            # AND Station.user = Observer.id
+            # AND ParsedIOD.valid_position = 1 order by obs_time ASC limit 100;"""
+
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
 
@@ -1096,7 +1107,7 @@ class Database:
         try:
             (line0, line1, line2) = self.c.fetchone()
             return "{}r\n{}\n{}\n".format(line0,line1,line2)
-        else:
+        except:
             return None;
 
 
