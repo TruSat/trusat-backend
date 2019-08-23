@@ -887,7 +887,7 @@ class Database:
             'conditions', ParsedIOD.station_status_code)
             FROM ParsedIOD
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.norad_num 
-            WHERE valid_position=1
+            WHERE valid_position = 1
             ORDER BY obs_time DESC LIMIT 10;"""
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
@@ -904,7 +904,7 @@ class Database:
             'username_last_tracked',ParsedIOD.user_string) 
             FROM ParsedIOD
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number=ucs_SATDB.norad_number
-            WHERE valid_position=1
+            WHERE valid_position = 1
             ORDER BY obs_time DESC limit 10;"""
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
@@ -1090,8 +1090,8 @@ class Database:
             FROM ParsedIOD 
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
-            WHERE ParsedIOD.object_number = {NORAD_NUM}
-            AND ParsedIOD.valid_position = 1 
+            WHERE ParsedIOD.valid_position = 1 
+            AND ParsedIOD.object_number = {NORAD_NUM}
             LIMIT 1;""".format(COUNT=user_count, LAST_TRACKED=last_tracked, ETH_ADDR=eth_addr, NAME=name, QUALITY=quality, URL=info_url, NORAD_NUM=norad_num)
         self.c.execute(query_tmp)
         try:
@@ -1101,11 +1101,12 @@ class Database:
 
     # https://consensys-cpl.atlassian.net/browse/MVP-208
     # Create TLE endpoints
-    # FIXME - This will output TLEs view route testing, but not a sorted, latest list.
+    # FIXME - This is the latest of everything in the catalog - but some will be old from McCants stuff because they were dropped from classfd.tle
     def selectTLE_Astriagraph(self):
         query_tmp = """SELECT line0, line1, line2, satellite_number
             FROM TLE 
-            GROUP BY satellite_number;"""
+            GROUP BY satellite_number
+            ORDER BY TLE.epoch DESC;"""
         self.c.execute(query_tmp)
         result = ""
         for (line0, line1, line2, _) in self.c.fetchall():
