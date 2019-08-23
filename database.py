@@ -884,6 +884,8 @@ class Database:
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
 
+    # /catalog/priorities
+    # https://consensys-cpl.atlassian.net/browse/MVP-323
     def selectCatalog_Priorities_JSON(self):
         # TODO: No priorities in database yet, just sort by reverse obs order for something interesting/different to look at
         query_tmp = """select Json_Object(
@@ -904,6 +906,8 @@ class Database:
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
 
+    # /catalog/undisclosed
+    # https://consensys-cpl.atlassian.net/browse/MVP-324
     def selectCatalog_Undisclosed_JSON(self):
         query_tmp = """select Json_Object(
             'object_norad_number', ParsedIOD.object_number, 
@@ -924,6 +928,8 @@ class Database:
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
 
+    # /catalog/debris
+    # https://consensys-cpl.atlassian.net/browse/MVP-325
     def selectCatalog_Debris_JSON(self):
         query_tmp = """select Json_Object(
             'object_norad_number', ParsedIOD.object_number, 
@@ -944,6 +950,8 @@ class Database:
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
 
+    # /catalog/latest
+    # https://consensys-cpl.atlassian.net/browse/MVP-326
     def selectCatalog_Latest_JSON(self):
         now = datetime.utcnow()
         date_delta = now - timedelta(days=365)
@@ -969,7 +977,8 @@ class Database:
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
 
-
+    # /catalog/all 
+    # https://consensys-cpl.atlassian.net/browse/MVP-327
     def selectCatalog_All_JSON(self):
         query_tmp = """select Json_Object(
             'object_norad_number', ParsedIOD.object_number, 
@@ -1032,6 +1041,7 @@ class Database:
             LIMIT 1;""".format(COUNT=user_count, LAST_TRACKED=last_tracked, ETH_ADDR=eth_addr, NAME=name, QUALITY=quality, URL=info_url, NORAD_NUM=norad_num)
         self.c.execute(query_tmp)
         result = self.c.fetchone()
+        
         if (result):
             return result
         else: # Quick hack.  ucs_SATDB only has ~2000 objects, and joining with it might end in a null result.
@@ -1059,6 +1069,36 @@ class Database:
                 LIMIT 1;""".format(COUNT=user_count, LAST_TRACKED=last_tracked, ETH_ADDR=eth_addr, NAME=name, QUALITY=quality, URL=info_url, NORAD_NUM=norad_num)
             self.c.execute(query_tmp)
         return self.c.fetchone()
+
+    # https://consensys-cpl.atlassian.net/browse/MVP-208
+    # Create TLE endpoints
+    # FIXME - This will output TLEs view route testing, but not a sorted, latest list.
+    def selectTLE_Astriagraph(self):
+        query_tmp = """select line0, line1, line2, satellite_number
+            FROM TLE 
+            GROUP BY satellite_number;"""
+        self.c.execute(query_tmp)
+        result = ""
+        for (line0, line1, line2, _) in self.c.fetchall():
+            result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
+        return result
+
+    # https://consensys-cpl.atlassian.net/browse/MVP-208
+    # Create TLE endpoints
+    # FIXME - This will output TLEs view route testing, but not a sorted, latest list.
+    def selectTLE_single(self, norad_num):
+        query_tmp = """select line0, line1, line2 
+            FROM TLE 
+            WHERE satellite_number={}
+            ORDER BY EPOCH DESC
+            LIMIT 1;""".format(norad_num)
+        self.c.execute(query_tmp)
+        try:
+            (line0, line1, line2) = self.c.fetchone()
+            return "{}r\n{}\n{}\n".format(line0,line1,line2)
+        else:
+            return None;
+
 
 
     def commit_TLE_db_writes(self):
