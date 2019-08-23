@@ -3,16 +3,41 @@
 # Consider https://github.com/maxlath/fix-utf8
 
 import os
+import re
+import sys 
+
+import argparse
 from mailbox import mbox
 from email.header import decode_header, make_header
 from email.utils import parsedate_to_datetime,parseaddr
 from email import message_from_string
+from csv import writer 
+from datetime import datetime 
 
 import logging
 log = logging.getLogger(__name__)
 
-import iod
 import database
+
+# The following 5 lines are necessary until our modules are public
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+iod_path = os.path.join(parentdir, "sathunt-iod")
+sys.path.insert(1,iod_path) 
+import iod
+
+# Find COSPAR (case insensitive) followed by a space and a 1-4 digit number
+#cospar_format_re = re.compile('(?i)\bCOSPAR\b \d{1,4}') # pylint: disable=anomalous-backslash-in-string
+cospar_format_re = re.compile('COSPAR \d{1,4}') # pylint: disable=anomalous-backslash-in-string
+
+def find_cospar_mention(line=False):
+    match = cospar_format_re.search(line)
+    if match:
+        return True
+    else:
+        return False
+
 
 def parse_obfuscated_email(eml):
      """Simple function to re-construct an email in the form of - email at domain.com (Name)"""
@@ -105,11 +130,119 @@ def getbodyfromemail(msg):
           return body.decode("UTF-8")
 
 def main():
-     """ Tool to extract user and IOD data from SeeSat mailman archives. """
+     """ Tool to extract user and IOD data from SeeSat mailman archives. 
+     
+     http://mailman.satobs.org/mailman/private/seesat-l/
+     Note that while the website says "Gzip'd Text" - the server decodes them, but still keeps the .gz filename
+     For reasons of convenient mirroring with wget, leaving that wrong extension in place.
+     """
+     # Read commandline options
+     conf_parser = argparse.ArgumentParser(description='Utility to initalize IOD database from email file archive')
+     conf_parser.add_argument("-f", "--file", 
+                              help="read from directory FILE [default ./all_emails]",
+                              dest='mbox_filename',
+                              default='/Users/chris/Dropbox/code/MVP/seesat-gzip-emails/MEMBER_ARCHIVE_ALL.txt.gz',
+                              nargs='?',
+                              const=1,                             
+                              type=str,                             
+                              metavar="FILE")
+     conf_parser.add_argument("-dbname", "--database", 
+                              help="database to USE",
+                              dest='dbname',
+                              default='opensatcat_dev',                           
+                              nargs='?',
+                              const=1,                             
+                              type=str,                             
+                              metavar="NAME")
+     conf_parser.add_argument("-H", "--hostname", 
+                              help="database hostname",
+                              dest='dbhostname',
+                              default='opensatcat.cvpypmmxjtv1.us-east-2.rds.amazonaws.com',
+                              nargs='?',
+                              const=1,
+                              type=str,                             
+                              metavar="HOSTNAME")
+     conf_parser.add_argument("-u", "--user", 
+                              help="database user name",
+                              dest='dbusername',
+                              nargs='?',
+                              type=str,                             
+                              metavar="USER")
+     conf_parser.add_argument("-p", "--password", 
+                              help="database user password",
+                              dest='dbpassword',
+                              nargs='?',
+                              type=str,                             
+                              metavar="PASSWD")
+     conf_parser.add_argument("-t", "--dbtype", 
+                              help="database type [INFILE, sqlserver, sqlite] default: INFILE",
+                              dest='dbtype',
+                              nargs='?',
+                              choices=['INFILE', 'sqlserver', 'sqlite'],
+                              default='INFILE',
+                              type=str,                             
+                              metavar="TYPE")
+     conf_parser.add_argument("-q", "--quiet", help="Suppress console output",
+                              dest='quiet',
+                              action="store_true")
+     conf_parser.add_argument("-V", "--verbose", 
+                              help="increase verbosity: 0 = only warnings, 1 = info, 2 = debug. No number means info. Default is no verbosity.",
+                              const=1, 
+                              default=0, 
+                              type=int, 
+                              nargs="?")
 
-     dir = '/Users/chris/Dropbox/code/preMVP/seesat-gzip-emails/'
-     file = '2019-June.txt.gz'
-     file = 'MEMBER_ARCHIVE_ALL.txt.gz'
+     args = conf_parser.parse_args()
+     # Process commandline options and parse configuration
+     mbox_filename = args.mbox_filename
+     dbname = args.dbname
+     dbhostname = args.dbhostname
+     dbusername = args.dbusername
+     dbpassword = args.dbpassword
+     dbtype = args.dbtype
+     verbose = args.verbose
+     quiet = args.quiet
+
+     # https://stackoverflow.com/questions/14097061/easier-way-to-enable-verbose-logging
+     # https://stackoverflow.com/questions/15727420/using-python-logging-in-multiple-modules
+     log = logging.getLogger()
+
+     # make it print to the console.
+     console = logging.StreamHandler()
+     log.addHandler(console)
+
+     if (quiet == False):
+          if verbose == 0:
+               log.setLevel(logging.WARN) 
+          elif verbose == 1:
+               log.setLevel(logging.INFO) 
+          elif verbose == 2:
+               log.setLevel(logging.DEBUG) 
+          log.debug("Log level set to {}".format(log.level))
+
+     if verbose:
+          for arg in vars(args):
+               log.debug("%s : %s",arg, getattr(args, arg))
+
+     if (dbtype == "sqlserver"):
+          if dbusername == None:
+               try: 
+                    dbusername = input("Username: ") 
+               except Exception as error: 
+                    log.warning('ERROR: password must be specified {}'.format(error))
+          if dbpassword == None:
+               try: 
+                    dbpassword = getpass() 
+               except Exception as error: 
+                    log.warning('ERROR: password must be specified {}'.format(error))
+
+     # Set up database connection or files
+     db = database.Database(dbname,dbtype,dbhostname,dbusername,dbpassword)
+     if (dbtype != "INFILE"):
+          try:
+               db.createObsTables()
+          except:
+               log.warning("Tables already exist or there is a big problem buddy.")
 
      FileIODCount = 0
      FileUKCount = 0 
@@ -119,13 +252,20 @@ def main():
      TotalCount_RDE = 0
      message_RDE_count = 0
      UserDict = []
+     COSPAR_Dict = []
      TotalObsCount = 0
-     dbtype = "INFILE"
 
-     db = database.Database("opensatcat_dev",dbtype,"","","")
+     db = database.Database(dbname,dbtype,dbhostname,dbusername,dbpassword)
 
-     filename = os.path.join(dir, file)
-     for message in mbox(filename):
+     # Set up to write out what we learn about user records for external processing
+     UserFile =  open("seesat_mbox_users.csv", 'w')
+     writer_UserFile = writer(UserFile, dialect='unix')
+
+     # Set up to write out what we learn about user records for external processing
+     CosparFile = open("seesat_mbox_cospar.csv", 'w')
+     writer_COSPAR_Dict = writer(CosparFile, dialect='unix')
+ 
+     for message in mbox(mbox_filename):
           # https://stackoverflow.com/questions/7331351/python-email-header-decoding-utf-8
           try:
                (email_address, name) = parse_obfuscated_email(message['From'])
@@ -186,10 +326,26 @@ def main():
                IODpeek = IOD_records[0]
                log.info("Found {} {} observations in message".format(len(IOD_records), IODpeek.IODType))
                
-               submit_time = date
+               try:
+                    date_parsed = datetime.strptime(date,"%Y-%m-%d %H:%M:%S%z")
+               except:
+                    date_parsed = datetime.strptime(date,"%Y-%m-%d %H:%M:%S")
 
-               if (email_address not in UserDict):
-                    UserDict.append(email_address)
+               if date_parsed.utcoffset():
+                    date_parsed = date_parsed - date_parsed.utcoffset()
+                    date_parsed = date_parsed.replace(tzinfo=None)
+               submit_time = date_parsed.strftime('%Y-%m-%d %H:%M:%S')
+
+               for line in body.split('\n'):
+                    if(find_cospar_mention(line)):
+                        line = line.strip()
+                        if (line not in COSPAR_Dict):
+                            COSPAR_Dict.append(line)
+                            writer_COSPAR_Dict.writerow( [IODpeek.Station, email_address, line])
+
+               if (IODpeek.Station not in UserDict):
+                    UserDict.append(IODpeek.Station)
+                    writer_UserFile.writerow( [email_address, name, IODpeek.Station, "mbox"])
           
                obsid = db.addParsedIOD(IOD_records, email_address, submit_time)
 
@@ -211,7 +367,6 @@ def main():
      # print('                                          ({}) UK records ({:4.2f} %)'.format(TotalCount_UK,100*TotalCount_UK/TotalObsCount))
      # print('                                          ({}) RDE records ({:4.2f} %)\n'.format(TotalCount_RDE, 100*TotalCount_RDE/TotalObsCount))
      # print("Elapsed time: {:.3f} seconds.".format(time()-app_start_time))
-
 
 if __name__ == '__main__':
     main()
