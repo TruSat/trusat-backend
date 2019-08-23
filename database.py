@@ -871,34 +871,41 @@ class Database:
         self.c.execute(self.selectTLEEpochNearestDate_query)
         return self.c.fetchone()
 
-
-
     def selectTLEEpochNearestDate(self, query_epoch_datetime, satellite_number):
         """Query to return the nearest TLE with epoch for a specific satellite for a specified date"""
         self.selectTLEEpochNearestDate_query = "SELECT *,ABS(TIMEDIFF(epoch,'{}')) as diff FROM TLE where satellite_number={} ORDER BY diff ASC LIMIT 1".format(query_epoch_datetime, satellite_number)
         self.c.execute(self.selectTLEEpochNearestDate_query)
         return self.c.fetchone()
 
-    def selectGlobalPriorities(self):
-        """Query to return priority observations.
-        
-        Since we don't have priorities in the database yet, just return a number for the column.
-        For now, this one is sorted on most recent observations to create something dynamic and interesting.
-
-        """
-        query_tmp = "select '3' as Priority, celestrak_SATCAT.name, ucs_SATDB.country_owner, ucs_SATDB.purpose, ucs_SATDB.purpose_detailed, ParsedIOD.obs_time, ParsedIOD.user_string from celestrak_SATCAT, ucs_SATDB, ParsedIOD where decay_date='0000-00-00' and celestrak_SATCAT.norad_num=ucs_SATDB.norad_number and celestrak_SATCAT.norad_num = ParsedIOD.object_number and valid_position=1 order by obs_time DESC limit 10"
-        self.c.execute(query_tmp)
-        return self.c.fetchall()
-
     def selectObservationHistory_JSON(self):
         # TODO Figure out from John if this is user-specific or what the history is in context of
-        query_tmp = "select Json_Object('time_submitted',ParsedIOD.obs_time,'object_name',celestrak_SATCAT.name, 'right_ascension', ParsedIOD.ra, 'declination', ParsedIOD.declination, 'conditions', ParsedIOD.remarks) from celestrak_SATCAT,ParsedIOD where celestrak_SATCAT.norad_num=ParsedIOD.object_number and valid_position=1	order by obs_time DESC limit 10;" 
+        query_tmp = """SELECT Json_Object('
+            time_submitted',ParsedIOD.obs_time,
+            'object_name',celestrak_SATCAT.name,
+            'right_ascension', ParsedIOD.ra,
+            'declination', ParsedIOD.declination,
+            'conditions', ParsedIOD.station_status_code)
+            FROM ParsedIOD
+            LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.norad_num 
+            WHERE valid_position=1
+            ORDER BY obs_time DESC LIMIT 10;"""
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
 
     def selectObjectsObserved_JSON(self):
         # TODO Figure out from John if this is user-specific or what the history is in context of
-        query_tmp = "select Json_Object('object_origin', ucs_SATDB.country_owner, 'primary_purpose', ucs_SATDB.purpose, 'object_type', ucs_SATDB.purpose_detailed, 'secondary_purpoase', 'Secondary purpose does not exist', 'observation_quality', ParsedIOD.remarks, 'time_last_tracked',ParsedIOD.obs_time,'username_last_tracked',ParsedIOD.user_string) from ucs_SATDB,ParsedIOD where ucs_SATDB.norad_number=ParsedIOD.object_number and valid_position=1 order by obs_time DESC limit 10;"
+        query_tmp = """SELECT Json_Object(
+            'object_origin', ucs_SATDB.country_owner,
+            'primary_purpose', ucs_SATDB.purpose,
+            'object_type', ucs_SATDB.purpose_detailed,
+            'secondary_purpoase', 'Secondary purpose does not exist, the variable is also misspelled.',
+            'observation_quality', ParsedIOD.station_status_code,
+            'time_last_tracked',ParsedIOD.obs_time,
+            'username_last_tracked',ParsedIOD.user_string) 
+            FROM ParsedIOD
+            LEFT JOIN ucs_SATDB ON ParsedIOD.object_number=ucs_SATDB.norad_number
+            WHERE valid_position=1
+            ORDER BY obs_time DESC limit 10;"""
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
 
@@ -918,9 +925,9 @@ class Database:
             /* Version using inner joins - which theoretically return values which aren't in ucs_SATDB */
             FROM ParsedIOD
             JOIN Station ON ParsedIOD.station_number = Station.station_num
-			JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
-			JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
 			JOIN Observer ON Station.user = Observer.id
+			LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
+			LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             WHERE ParsedIOD.valid_position = 1 
             ORDER BY obs_time DESC LIMIT 100;"""
 
@@ -947,13 +954,25 @@ class Database:
             'time_last_tracked', ParsedIOD.obs_time,
             'address_last_tracked', Observer.eth_addr,
             'username_last_tracked',Observer.name) 
-            FROM ucs_SATDB,celestrak_SATCAT,ParsedIOD,Observer,Station 
-            WHERE ParsedIOD.object_number = ucs_SATDB.norad_number
-            AND ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
-            AND ParsedIOD.station_number = Station.station_num
-            AND Station.user = Observer.id
+            FROM ParsedIOD
+            JOIN Station ON ParsedIOD.station_number = Station.station_num
+			JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
+			JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+			JOIN Observer ON Station.user = Observer.id
+            WHERE ParsedIOD.valid_position = 1 
             AND celestrak_SATCAT.orbit_status_code = 'NEA'
-            AND ParsedIOD.valid_position = 1 order by obs_time DESC limit 100;"""
+            GROUP BY ParsedIOD.object_number
+            ORDER BY obs_time DESC LIMIT 100;"""
+
+            ## Previous query format
+            # FROM ucs_SATDB,celestrak_SATCAT,ParsedIOD,Observer,Station 
+            # WHERE ParsedIOD.object_number = ucs_SATDB.norad_number
+            # AND ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+            # AND ParsedIOD.station_number = Station.station_num
+            # AND Station.user = Observer.id
+            # AND celestrak_SATCAT.orbit_status_code = 'NEA'
+            # AND ParsedIOD.valid_position = 1 order by obs_time DESC limit 100;"""
+
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
 
@@ -969,13 +988,15 @@ class Database:
             'time_last_tracked', ParsedIOD.obs_time,
             'address_last_tracked', Observer.eth_addr,
             'username_last_tracked',Observer.name) 
-            FROM ucs_SATDB,celestrak_SATCAT,ParsedIOD,Observer,Station 
-            WHERE ParsedIOD.object_number = ucs_SATDB.norad_number
-            AND ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
-            AND ParsedIOD.station_number = Station.station_num
-            AND Station.user = Observer.id
+            FROM ParsedIOD
+            JOIN Station ON ParsedIOD.station_number = Station.station_num
+            JOIN Observer ON Observer.id = Station.user
+            LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+            LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
+            WHERE ParsedIOD.valid_position = 1 
             AND celestrak_SATCAT.name LIKE '%DEB%'
-            AND ParsedIOD.valid_position = 1 order by obs_time DESC limit 100;"""
+            GROUP BY ParsedIOD.object_number
+            ORDER BY obs_time DESC LIMIT 100;"""
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
 
@@ -995,14 +1016,14 @@ class Database:
             'time_last_tracked', ParsedIOD.obs_time,
             'address_last_tracked', Observer.eth_addr,
             'username_last_tracked',Observer.name) 
-            FROM ucs_SATDB,celestrak_SATCAT,ParsedIOD,Observer,Station 
-            WHERE ParsedIOD.object_number = ucs_SATDB.norad_number
-            AND ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
-            AND ParsedIOD.station_number = Station.station_num
-            AND Station.user = Observer.id
+            FROM ParsedIOD
+            JOIN Station ON ParsedIOD.station_number = Station.station_num
+            JOIN Observer ON Observer.id = Station.user
+            LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+            LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
+            WHERE ParsedIOD.valid_position = 1 
             AND celestrak_SATCAT.launch_date > {}
-            AND ParsedIOD.valid_position = 1 order by obs_time DESC limit 100;""".format(launch_date_string)
-        print(query_tmp)
+            ORDER BY obs_time DESC LIMIT 100;""".format(launch_date_string)
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
 
@@ -1018,12 +1039,13 @@ class Database:
             'time_last_tracked', ParsedIOD.obs_time,
             'address_last_tracked', Observer.eth_addr,
             'username_last_tracked',Observer.name) 
-            FROM ucs_SATDB,celestrak_SATCAT,ParsedIOD,Observer,Station 
-            WHERE ParsedIOD.object_number = ucs_SATDB.norad_number
-            AND ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
-            AND ParsedIOD.station_number = Station.station_num
-            AND Station.user = Observer.id
-            AND ParsedIOD.valid_position = 1 order by obs_time DESC limit 100;"""
+            FROM ParsedIOD
+            JOIN Station ON ParsedIOD.station_number = Station.station_num
+            JOIN Observer ON Station.user = Observer.id
+            LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
+            LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+            WHERE ParsedIOD.valid_position = 1
+            ORDER BY obs_time DESC LIMIT 100;"""
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
 
@@ -1035,15 +1057,18 @@ class Database:
 
         # Get user-related info first
         query_tmp_count = """SELECT COUNT(Observer.id), Observer.eth_addr, Observer.name, ParsedIOD.obs_time
-            FROM ParsedIOD,Observer,Station
-            WHERE ParsedIOD.station_number = Station.station_num 
-            AND Station.user = Observer.id 
-            AND ParsedIOD.object_number = {}
+            FROM ParsedIOD
+            JOIN Station ON ParsedIOD.station_number = Station.station_num 
+            JOIN Observer ON Observer.id = Station.user 
+            WHERE ParsedIOD.object_number = {}
             GROUP BY Observer.id
             ORDER BY ParsedIOD.obs_time DESC
             LIMIT 1;""".format(norad_num)
         self.c.execute(query_tmp_count)
-        (user_count, eth_addr, name, last_tracked) = self.c.fetchone()
+        try:
+            (user_count, eth_addr, name, last_tracked) = self.c.fetchone()
+        except:
+            return None
 
         # Get object info and patch in user-info
         query_tmp = """select Json_Object(
@@ -1062,48 +1087,23 @@ class Database:
             'object_background', ucs_SATDB.detailed_comments,
             'heavens_above_url', '{URL}'
             ) 
-            FROM ucs_SATDB,celestrak_SATCAT,ParsedIOD 
+            FROM ParsedIOD 
+            LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
+            LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             WHERE ParsedIOD.object_number = {NORAD_NUM}
-            AND ParsedIOD.object_number = ucs_SATDB.norad_number
-            AND ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             AND ParsedIOD.valid_position = 1 
             LIMIT 1;""".format(COUNT=user_count, LAST_TRACKED=last_tracked, ETH_ADDR=eth_addr, NAME=name, QUALITY=quality, URL=info_url, NORAD_NUM=norad_num)
         self.c.execute(query_tmp)
-        result = self.c.fetchone()
-        
-        if (result):
-            return result
-        else: # Quick hack.  ucs_SATDB only has ~2000 objects, and joining with it might end in a null result.
-        # Get object info and patch in user-info
-            query_tmp = """select Json_Object(
-                'object_name', celestrak_SATCAT.name,
-                'object_origin', celestrak_SATCAT.source, 
-                'object_type', 'no info', 
-                'object_purpose', 'no info', 
-                'object_secondary_purpose', 'no info',
-                'year_launched', celestrak_SATCAT.launch_date,
-                'time_last_tracked', ParsedIOD.obs_time,
-                'number_users_tracked', '{COUNT}',
-                'time_last_tracked', '{LAST_TRACKED}',
-                'address_last_tracked', '{ETH_ADDR}',
-                'username_last_tracked', '{NAME}',
-                'observation_quality', '{QUALITY}',
-                'object_background', 'no info',
-                'heavens_above_url', '{URL}'
-                ) 
-                FROM celestrak_SATCAT,ParsedIOD 
-                WHERE ParsedIOD.object_number = {NORAD_NUM}
-                AND ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
-                AND ParsedIOD.valid_position = 1 
-                LIMIT 1;""".format(COUNT=user_count, LAST_TRACKED=last_tracked, ETH_ADDR=eth_addr, NAME=name, QUALITY=quality, URL=info_url, NORAD_NUM=norad_num)
-            self.c.execute(query_tmp)
-        return self.c.fetchone()
+        try:
+            return self.c.fetchone()
+        except:
+            return None
 
     # https://consensys-cpl.atlassian.net/browse/MVP-208
     # Create TLE endpoints
     # FIXME - This will output TLEs view route testing, but not a sorted, latest list.
     def selectTLE_Astriagraph(self):
-        query_tmp = """select line0, line1, line2, satellite_number
+        query_tmp = """SELECT line0, line1, line2, satellite_number
             FROM TLE 
             GROUP BY satellite_number;"""
         self.c.execute(query_tmp)
@@ -1116,7 +1116,7 @@ class Database:
     # Create TLE endpoints
     # FIXME - This will output TLEs view route testing, but not a sorted, latest list.
     def selectTLE_single(self, norad_num):
-        query_tmp = """select line0, line1, line2 
+        query_tmp = """SELECT line0, line1, line2 
             FROM TLE 
             WHERE satellite_number={}
             ORDER BY EPOCH DESC
