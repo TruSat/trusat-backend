@@ -5,61 +5,46 @@ if sys.version_info[0] != 3 or sys.version_info[1] < 6:
 	sys.exit(1)
 
 import os
-from eth_account import Account
-# from web3.auto import w3
-from eth_account.messages import defunct_hash_message
+import re
+import argparse
 from getpass import getpass
 from time import time
-import argparse
 from datetime import datetime
+from csv import writer 
+from dateutil import parser
 
 import logging
 log = logging.getLogger(__name__)
 
 import database
+
+# The following 5 lines are necessary until our modules are public
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+iod_path = os.path.join(parentdir, "sathunt-iod")
+sys.path.insert(1,iod_path) 
 import iod
 
+# Find COSPAR (case insensitive) followed by a space and a 1-4 digit number
+#cospar_format_re = re.compile('(?i)\bCOSPAR\b \d{1,4}') # pylint: disable=anomalous-backslash-in-string
+cospar_format_re = re.compile('COSPAR \d{1,4}') # pylint: disable=anomalous-backslash-in-string
+
+def find_cospar_mention(line=False):
+    match = cospar_format_re.search(line)
+    if match:
+        return True
+    else:
+        return False
+
+
 def get_submit_time_from_filename(filename):
-    """ Determine the submitted date from the filename string from John's hypermail scraper """
+    """ Return python datetime from the filename string produced by seesat_hypermail_process_filenames.py cleanup script """
     file_string = os.path.basename(filename)
     file_string = os.path.splitext(file_string)[0]
 
-    try:           
-        # Fri,_10_Jul_1998_14:11:27_+0200
-        (day_name, day, month_name,year,time,offset) = file_string.split('_')
-    except:
-        try:
-            (day, month_name,year,time,offset, TZ_string) = file_string.split('_')
-        except:
-            try:
-                # 'Fri,_11_Dec_1998_05:53:14_-0800_(PST)'
-                (day_name, day, month_name,year,time,offset, TZ_string) = file_string.split('_')
-            except:
-                try:
-                    # '8_Feb_99_17:27:56_MET'
-                    (day, month_name,year,time,TZ_string) = file_string.split('_')
-                    offset = '+0000'
-                    year = int(year)
-                    if (year >= 57 and year < 100):
-                        year = 1900 + year
-                    elif (year < 57):
-                        year = 2000 + year
-                except:
-                    pass
-
-    # FIXME: A bit messy, but gets the job done
-    try:
-        # This part needed to zero-pad the day
-        datestring = "{:02} {} {} {} {}".format(int(day), month_name, year, time, offset)
-
-        submit_datetime = datetime.strptime(datestring,"%d %b %Y %X %z")
-        if submit_datetime.utcoffset():
-            submit_datetime = submit_datetime - submit_datetime.utcoffset()
-            submit_datetime = submit_datetime.replace(tzinfo=None)
-        return submit_datetime.strftime('%Y-%m-%d %H:%M:%S')
-    except ValueError:
-        return "0000-00-00"
-
+    return datetime.strptime(file_string,'%Y%m%d_%H%M%S')
+ 
 
 if __name__ == '__main__':
     # Read commandline options
@@ -184,6 +169,14 @@ if __name__ == '__main__':
     FileCount_running = 0
     UserCount_running = 0
     UserDict = []
+    COSPAR_Dict = []
+
+    # Set up to write out what we learn about user records for external processing
+    UserFile =  open("seesat_hypermail_users.csv", 'w')
+    writer_UserFile = writer(UserFile, dialect='unix')
+
+    CosparFile = open("seesat_hypermail_cospar.csv", 'w')
+    writer_COSPAR_Dict = writer(CosparFile, dialect='unix')
 
     # Traverse the directory
     FileCount_total = sum([len(fileList) for dirName, subdirList, fileList in os.walk(root_dir)])
@@ -242,7 +235,7 @@ if __name__ == '__main__':
 
                 if (len(IOD_records)):
                     IODpeek = IOD_records[0]
-                    log.info("Found {} {} observations in file ({}/{}): {}".format(len(IOD_records), IODpeek.IODType, FileCount_running, FileCount_total, fileName))
+                    log.info("Found {:3} {:3} observations in file ({}/{}): {}".format(len(IOD_records), IODpeek.IODType, FileCount_running, FileCount_total, fileName))
                     # Go back into file to get observer information
                     with open(fileName) as file:
                         lines = file.readlines()
@@ -272,9 +265,17 @@ if __name__ == '__main__':
                         # Alternatively, some of the files have it in the second line
                         submit_time = get_submit_time_from_filename(fileName)
 
-                    if (sender not in UserDict):
-                        UserDict.append(sender)
-            
+                        for line in lines:
+                            if(find_cospar_mention(line)):
+                                line = line.strip()
+                                if (line not in COSPAR_Dict):
+                                    COSPAR_Dict.append(line)
+                                    writer_COSPAR_Dict.writerow( [IODpeek.Station, sender, line])
+
+                    if (IODpeek.Station not in UserDict):
+                        UserDict.append(IODpeek.Station)
+                        writer_UserFile.writerow( [sender, first_line, IODpeek.Station, "hypermail"])
+        
                     obsid = db.addParsedIOD(IOD_records, sender, submit_time)
 
                     if (dbtype != "INFILE"):
