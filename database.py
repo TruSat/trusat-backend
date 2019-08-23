@@ -980,6 +980,8 @@ class Database:
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
 
+    # /object/info/
+    # https://consensys-cpl.atlassian.net/browse/MVP-329
     def selectObjectInfo_JSON(self, norad_num):
         info_url = "https://www.heavens-above.com/SatInfo.aspx?satid={}".format(norad_num)
         quality = random.randint(1,99)
