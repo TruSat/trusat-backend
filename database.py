@@ -107,6 +107,7 @@ class Database:
             self.c_updateObserverNonce_query = self.conn.cursor(prepared=True)
             self.c_updateObserverJWT_query = self.conn.cursor(prepared=True)
             self.c_getObserverNonce_query = self.conn.cursor(prepared=True)
+            self.c_getObserverJWT_query = self.conn.cursor(prepared=True)
             self.c_getObservationCount_query = self.conn.cursor(prepared=True)
             self.c_getCommunityObservationByYear_query = self.conn.cursor(prepared=True)
             self.c_getCommunityObservationByMonth_query = self.conn.cursor(prepared=True)
@@ -139,6 +140,7 @@ class Database:
         self.updateObserverNonce_query = '''UPDATE Observer SET nonce=? WHERE id=?'''
         self.updateObserverJWT_query = '''UPDATE Observer SET jwt=?, password=?, WHERE id=?'''
         self.getObserverNonce_query = '''SELECT nonce FROM Observer WHERE id=?'''
+        self.getObserverJWT_query = '''SELECT jwt FROM Observer WHERE eth_addr=?'''
         self.getObservationCount_query = '''SELECT object_number, COUNT(object_number) as querycount from ParsedIOD where valid_position>0 GROUP BY object_number order by querycount DESC'''
         self.getCommunityObservationByYear_query = '''SELECT YEAR(obs_time), COUNT(*) as querycount from ParsedIOD where valid_position>0 GROUP BY YEAR(obs_time) order by YEAR(obs_time) ASC'''
         self.getCommunityObservationByMonth_query = '''SELECT MONTH(obs_time), COUNT(*) as querycount from ParsedIOD where valid_position>0 GROUP BY MONTH(obs_time) order by MONTH(obs_time) ASC'''
@@ -732,6 +734,22 @@ class Database:
         else:
             self.c_getObserverNonce_query.execute(self.getObserverNonce_query, [public_address])
             results = self.c_getObserverNonce_query.fetchone()
+        return results
+
+    def getObserverJWT(self, public_address):
+        """ GET OBSERVER NONCE """
+        if self._dbtype == "INFILE":
+            try:
+                results = (self.getObserverJWT_query, [public_address])
+            except KeyError:
+                results = None
+        elif self._dbtype == "sqlite":
+            self.c.execute(self.getObserverJWT_query, [public_address])
+            results = self.c.fetchone()
+        else:
+            self.c_getObserverJWT_query.execute(self.getObserverJWT_query, [public_address])
+            results = self.c_getObserverJWT_query.fetchone()
+            self.conn.commit()
         return results
 
     def getObservationCount(self):
