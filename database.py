@@ -323,6 +323,28 @@ class Database:
             )''' + self.charset_string
         self.c.execute(createquery)
 
+        create_trigger_query = """CREATE TRIGGER IF NOT EXISTS add_object_number
+            BEFORE INSERT ON ParsedIOD FOR EACH ROW 
+            BEGIN
+                IF NEW.object_number = 0 THEN 
+                    SET NEW.object_number = (
+                    SELECT celestrak_SATCAT.norad_num from celestrak_SATCAT
+                    WHERE NEW.international_designation = celestrak_SATCAT.intl_desg LIMIT 1);
+                END IF;
+            END;"""
+        self.c.execute(create_trigger_query)
+
+        create_trigger_query = """CREATE TRIGGER IF NOT EXISTS add_international_designation
+            BEFORE INSERT ON ParsedIOD FOR EACH ROW 
+            BEGIN
+                IF NEW.international_designation = "?" THEN 
+                    SET NEW.international_designation = (
+                    SELECT celestrak_SATCAT.intl_desg from celestrak_SATCAT
+                    WHERE NEW.object_number = celestrak_SATCAT.norad_num LIMIT 1);
+                END IF;
+            END;"""
+        self.c.execute(create_trigger_query)
+
         """ Station """
         createquery = """CREATE TABLE IF NOT EXISTS Station (
             station_num INT UNSIGNED NOT NULL,
