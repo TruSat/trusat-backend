@@ -337,7 +337,7 @@ class Database:
             source_url TINYTEXT,
             notes TINYTEXT,
             user INT,
-            KEY Station_station_num_idx (station_num) USING BTREE
+            KEY Station_station_num_idx (station_num) USING BTREE,
             KEY Station_user_idx (user) USING BTREE
             )""" + self.charset_string
         self.c.execute(createquery)
@@ -364,7 +364,7 @@ class Database:
         self.c.execute(insertquery)
 
         """ Observer """
-        createquery = '''CREATE TABLE IF NOT EXISTS Observer (
+        createquery = """CREATE TABLE IF NOT EXISTS Observer (
             id          INTEGER PRIMARY KEY''' + self.increment + ''',
             eth_addr    CHAR(42),
             verified    TEXT,
@@ -373,8 +373,11 @@ class Database:
             nonce       INTEGER,
             jwt         TEXT,
             password    TEXT,
-            jwt_secret  CHAR(78)
-            )''' + self.charset_string
+            jwt_secret  CHAR(78),
+            KEY `Observer_id_idx` (`id`) USING BTREE,
+            KEY `Observer_eth_addr_idx` (`eth_addr`) USING BTREE,
+            KEY `Observer_reputation_idx` (`reputation`) USING BTREE
+            )""" + self.charset_string
         self.c.execute(createquery)
         self.conn.commit()
 
