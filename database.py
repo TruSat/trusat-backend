@@ -429,7 +429,8 @@ class Database:
             file_id                 INTEGER PRIMARY KEY''' + self.increment + ''',
             file_fingerprint        CHAR(32) NOT NULL,
             source_filename         TINYTEXT,
-            import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+            import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            KEY `TLEFILE_file_fingerprint_33_idx` (`file_fingerprint`(33)) USING BTREE
         )''' + self.charset_string
         self.c.execute(createquery)
         self.conn.commit()
