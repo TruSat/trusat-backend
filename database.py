@@ -462,7 +462,9 @@ class Database:
             import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
             PRIMARY KEY (`satcat_id`),
             KEY `celestrak_SATCAT_intl_desg_idx` (`intl_desg`(11)) USING BTREE,
-            KEY `celestrak_SATCAT_norad_num_idx` (`norad_num`) USING BTREE
+            KEY `celestrak_SATCAT_norad_num_idx` (`norad_num`) USING BTREE,
+            KEY `celestrak_SATCAT_name_idx` (`name`) USING BTREE,
+            KEY `celestrak_SATCAT_orbit_status_code_idx` (`orbit_status_code`) USING BTREE
         )''' + self.charset_string
         self.c.execute(createquery)
 
