@@ -56,6 +56,7 @@ class Database:
         self._tle_fingerprintDict = {} # Used for INFILE method
         self._obsid = 0
         self._new_observerid = 0
+        self._iod_line_fingerprintDict = {} # Used for INFILE method
         self._tle_file_fingerprintDict = {} # Used for INFILE method
         self._SATCAT_file_fingerprintDict = {} # Used for INFILE method
         self._UCSDB_file_fingerprintDict = {} # Used for INFILE method
@@ -115,6 +116,7 @@ class Database:
             self.c_getRecentObservations_query = self.conn.cursor(prepared=True)
             self.c_selectTLEFile_query = self.conn.cursor(prepared=True)
             self.c_selectTLEFingerprint_query = self.conn.cursor(prepared=True)
+            self.c_selectIODFingerprint_query = self.conn.cursor(prepared=True)
             self.c_addTLE_query = self.conn.cursor(prepared=True)
             self.c_addTLEFile_query = self.conn.cursor(prepared=True)
             self.c_addSATCAT_query = self.conn.cursor(prepared=True)
@@ -148,6 +150,7 @@ class Database:
         self.getRecentObservations_query = '''SELECT * FROM ParsedIOD where valid_position>0 ORDER BY obs_time DESC LIMIT 5'''
         self.selectTLEFile_query = '''SELECT file_fingerprint FROM TLEFILE WHERE file_fingerprint LIKE ? LIMIT 1'''
         self.selectTLEFingerprint_query = '''SELECT tle_fingerprint FROM TLE WHERE tle_fingerprint LIKE ? LIMIT 1'''
+        self.selectIODFingerprint_query = '''SELECT obsFingerPrint FROM ParsedIOD WHERE obsFingerPrint LIKE ? LIMIT 1'''
         self.addParsedIOD_query = '''INSERT INTO ParsedIOD (
             submitted,
             user_string,
@@ -555,7 +558,7 @@ class Database:
         self.conn.commit()
 
 
-    def addParsedIOD(self, entryList, user_string, submit_time):
+    def addParsedIOD(self, entryList, user_string, submit_time, fast_import = False):
         """ Add an IOD entry to the database """
         for entry in entryList:
             # Create fingerprint string from the time and position data only
@@ -571,50 +574,60 @@ class Database:
                 log.error("unknown type specified to {}".format(__name__))
 
             obsFingerPrint = md5(obsFingerPrintString.encode('utf-8')).hexdigest()
-            newentryTuple = (
-                    submit_time,
-                    user_string,
-                    entry.ObjectNumber,
-                    entry.InternationalDesignation,
-                    entry.Station,
-                    entry.StationStatusCode,
-                    entry.DateTimeString,
-                    entry.DateTime,
-                    entry.TimeUncertainty,
-                    entry.TimeStandardCode,
-                    entry.AngleFormatCode,
-                    entry.EpochCode,
-                    entry.Epoch,
-                    entry.RA,
-                    entry.DEC,
-                    entry.AZ,
-                    entry.EL,
-                    entry.PositionUncertainty,
-                    entry.OpticalCode,
-                    entry.VisualMagnitude,
-                    entry.VisualMagnitude_high,
-                    entry.VisualMagnitude_low,
-                    entry.MagnitudeUncertainty,
-                    entry.FlashPeriod,
-                    entry.Remarks,
-                    entry.IODType,
-                    entry.line,
-                    entry.ValidPosition,
-                    entry.message_id,
-                    obsFingerPrint,
-                    )
 
-            if self._dbtype == "INFILE": # Make CSV files
-                self._writer_ParsedIOD.writerow(newentryTuple)
-            elif self._dbtype == "sqlite":
-                try:
-                    self.c.execute(self.addParsedIOD_query,newentryTuple)
-                except sqlite3.IntegrityError as e:
-                    log.error("{}".format(e))
+            if(self.selectIODFingerprint(obsFingerPrint)):     
+                log.warning("Skipping IOD - fingerprint {} already in database.".format(obsFingerPrint))   
+                if (fast_import):
+                    log.warning("Fast import set, skipping IODs in rest of message.")
+                    return False
+                else:
+                    continue # Already have the IOD
             else:
-                self._IODentryList.append(newentryTuple)
-        return self._obsid
-        # return self.c_addParsedIOD.lastrowid
+                newentryTuple = (
+                        submit_time,
+                        user_string,
+                        entry.ObjectNumber,
+                        entry.InternationalDesignation,
+                        entry.Station,
+                        entry.StationStatusCode,
+                        entry.DateTimeString,
+                        entry.DateTime,
+                        entry.TimeUncertainty,
+                        entry.TimeStandardCode,
+                        entry.AngleFormatCode,
+                        entry.EpochCode,
+                        entry.Epoch,
+                        entry.RA,
+                        entry.DEC,
+                        entry.AZ,
+                        entry.EL,
+                        entry.PositionUncertainty,
+                        entry.OpticalCode,
+                        entry.VisualMagnitude,
+                        entry.VisualMagnitude_high,
+                        entry.VisualMagnitude_low,
+                        entry.MagnitudeUncertainty,
+                        entry.FlashPeriod,
+                        entry.Remarks,
+                        entry.IODType,
+                        entry.line,
+                        entry.ValidPosition,
+                        entry.message_id,
+                        obsFingerPrint,
+                        )
+
+                if self._dbtype == "INFILE": # Make CSV files
+                    self._writer_ParsedIOD.writerow(newentryTuple)
+                elif self._dbtype == "sqlite":
+                    try:
+                        self.c.execute(self.addParsedIOD_query,newentryTuple)
+                    except sqlite3.IntegrityError as e:
+                        log.error("{}".format(e))
+                else:
+                    self._IODentryList.append(newentryTuple)
+
+                return self._obsid
+                # return self.c_addParsedIOD.lastrowid
 
 
     def addStation(self, station):
@@ -928,6 +941,22 @@ class Database:
             results = self.c_selectTLEFingerprint_query.fetchone()
         return results
 
+    def selectIODFingerprint(self, iod_fingerprint):
+        """Query to see if a specific IOD is already in the database"""
+        if self._dbtype == "INFILE": # Manage array
+            if (iod_fingerprint not in self._iod_line_fingerprintDict):
+                results = None
+            else:
+                results = self._iod_line_fingerprintDict[iod_fingerprint]
+        elif self._dbtype == "sqlite":
+            self.c.execute(self.selectIODFingerprint_query, [iod_fingerprint])
+            results = self.c.fetchone()
+        else:
+            self.c_selectIODFingerprint_query.execute(self.selectIODFingerprint_query, [iod_fingerprint])
+            results = self.c_selectIODFingerprint_query.fetchone()
+        return results
+
+
     def selectTLEEpochBeforeDate(self, query_epoch_datetime, satellite_number):
         """Query to return the first TLE with epoch prior to specified date for a specific satellite number"""
         self.selectTLEEpochBeforeDate_query = "SELECT * FROM TLE WHERE epoch <= '{}' AND satellite_number={} ORDER BY epoch DESC LIMIT 1".format(query_epoch_datetime, satellite_number)
@@ -1220,11 +1249,12 @@ class Database:
 
     def commit_IOD_db_writes(self):
         if (self._dbtype == "sqlserver"):
-            if(len(self._IODentryList) > 0):
+            while(len(self._IODentryList) > 0):
                 try: 
                     self.c_addParsedIOD.executemany(self.addParsedIOD_query,self._IODentryList)
                     self._IODentryList = []
                 except Exception as e:
+
                     log.error("MYSQL ERROR: {}".format(e))
         if (self._dbtype != "INFILE"):
             self.conn.commit()

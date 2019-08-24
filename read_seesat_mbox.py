@@ -13,6 +13,7 @@ from email.utils import parsedate_to_datetime,parseaddr
 from email import message_from_string
 from csv import writer 
 from datetime import datetime 
+from getpass import getpass
 
 import logging
 log = logging.getLogger(__name__)
@@ -138,6 +139,12 @@ def main():
      """
      # Read commandline options
      conf_parser = argparse.ArgumentParser(description='Utility to initalize IOD database from email file archive')
+     conf_parser.add_argument("-i", "--init", help="Initialize database datables (IF NOT EXIST)",
+                              dest='init',
+                              action="store_true")
+     conf_parser.add_argument("--fast", help="Fast import. Skip rest of record if duplicate is found.",
+                              dest='fast',
+                              action="store_true")
      conf_parser.add_argument("-f", "--file", 
                               help="read from directory FILE [default ./all_emails]",
                               dest='mbox_filename',
@@ -157,7 +164,7 @@ def main():
      conf_parser.add_argument("-H", "--hostname", 
                               help="database hostname",
                               dest='dbhostname',
-                              default='opensatcat.cvpypmmxjtv1.us-east-2.rds.amazonaws.com',
+                              default='db.consensys.space',
                               nargs='?',
                               const=1,
                               type=str,                             
@@ -192,6 +199,9 @@ def main():
                               type=int, 
                               nargs="?")
 
+     # Incremental import example
+     # python3 ./read_seesat_mbox.py -V --fast -f /Users/chris/Dropbox/code/MVP/seesat-gzip-emails/2019-08August.txt.gz --dbtype sqlserver --database opensatcat_dev --user chris.lewicki 
+
      args = conf_parser.parse_args()
      # Process commandline options and parse configuration
      mbox_filename = args.mbox_filename
@@ -200,6 +210,8 @@ def main():
      dbusername = args.dbusername
      dbpassword = args.dbpassword
      dbtype = args.dbtype
+     fast = args.fast
+     init = args.init
      verbose = args.verbose
      quiet = args.quiet
 
@@ -238,7 +250,7 @@ def main():
 
      # Set up database connection or files
      db = database.Database(dbname,dbtype,dbhostname,dbusername,dbpassword)
-     if (dbtype != "INFILE"):
+     if (dbtype != "INFILE" and init):
           try:
                db.createObsTables()
           except:
@@ -279,11 +291,13 @@ def main():
                date = str(parsedate_to_datetime(message['Date']))
           except:
                print("Could not parse date in string: '{}'".format(message['Date']))
+               date = None
 
           try:
                subject = str(make_header(decode_header(message['subject'])))       # Could possibly be None.
           except:
                print("Could not parse subject in string: '{}'".format(message['subject']))
+               subject = None
      
           msgID = parseaddr(message['Message-ID'])[1]
 
@@ -324,7 +338,7 @@ def main():
 
           if (len(IOD_records)):
                IODpeek = IOD_records[0]
-               log.info("Found {} {} observations in message".format(len(IOD_records), IODpeek.IODType))
+               log.info("Found {} {} observations in message Date: {} Subject:'{}'".format(len(IOD_records), IODpeek.IODType,date,subject))
                
                try:
                     date_parsed = datetime.strptime(date,"%Y-%m-%d %H:%M:%S%z")
@@ -347,7 +361,7 @@ def main():
                     UserDict.append(IODpeek.Station)
                     writer_UserFile.writerow( [email_address, name, IODpeek.Station, "mbox"])
           
-               obsid = db.addParsedIOD(IOD_records, email_address, submit_time)
+               obsid = db.addParsedIOD(IOD_records, email_address, submit_time, fast)
 
                if (dbtype != "INFILE"):
                     db.commit_IOD_db_writes()
