@@ -334,6 +334,27 @@ class Database:
         )''' + self.charset_string
         self.c.execute(createquery)
 
+        """ Station Status """
+        createquery = """CREATE TABLE IF NOT EXISTS station_status (
+            code                ENUM('B','C','E','F','G','O','P','T') NOT NULL,
+            short_description   TINYTEXT DEFAULT NULL,
+            description         TINYTEXT DEFAULT NULL,
+            KEY station_status_code_id (code) USING BTREE
+            )""" + self.charset_string
+        self.c.execute(createquery)
+
+        """ Station Status contents """
+        insertquery = """INSERT INTO station_status (code, short_description, description) VALUES 
+            ('E', 'excellent', 'no Moon/clouds, great seeing, minimal air/light pollution'),
+            ('G', 'good', 'no Moon/clouds, conditions could be better, but not much'),
+            ('F', 'fair     ', 'young/old Moon, some air/light pollution making fainter stars invisible'),
+            ('P', 'poor', 'gibbous Moon, haze, more air/light pollution making more stars invisible'),
+            ('B', 'bad', 'bright Moon, air/light pollution, some clouds; difficult'),
+            ('T', 'terrible', 'bright Moon, air/light pollution, looking through clouds'),
+            ('C', 'clouded out', 'station unavailable'),
+            ('O', 'sky clear, but observer not available', 'station unavailable');"""
+        self.c.execute(insertquery)
+
         """ Observer """
         createquery = '''CREATE TABLE IF NOT EXISTS Observer (
             id          INTEGER PRIMARY KEY''' + self.increment + ''',
@@ -884,9 +905,10 @@ class Database:
             'object_name',celestrak_SATCAT.name,
             'right_ascension', ParsedIOD.ra,
             'declination', ParsedIOD.declination,
-            'conditions', ParsedIOD.station_status_code)
+            'conditions', station_status.short_description)
             FROM ParsedIOD
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.norad_num 
+            LEFT JOIN station_status ON ParsedIOD.station_status_code = station_status.code
             WHERE valid_position = 1
             ORDER BY obs_time DESC LIMIT 10;"""
         self.c.execute(query_tmp)
