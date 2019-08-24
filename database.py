@@ -324,14 +324,22 @@ class Database:
         self.c.execute(createquery)
 
         """ Station """
-        createquery = '''CREATE TABLE IF NOT EXISTS Station (
-            id          INTEGER PRIMARY KEY''' + self.increment + ''',
-            station_id  SMALLINT(4) UNSIGNED NOT NULL,
-            eth_addr    CHAR(42),
-            latitude    DOUBLE,
-            longitude   DOUBLE,
-            altitude    SMALLINT
-        )''' + self.charset_string
+        createquery = """CREATE TABLE IF NOT EXISTS Station (
+            station_num INT UNSIGNED NOT NULL,
+            initial TINYTEXT,
+            latitude FLOAT,
+            longitude FLOAT,
+            elevation_m SMALLINT(4),
+            name TINYTEXT,
+            MPC TINYTEXT,
+            details TINYTEXT,
+            preferred_format TINYTEXT,
+            source_url TINYTEXT,
+            notes TINYTEXT,
+            user INT,
+            KEY Station_station_num_idx (station_num) USING BTREE
+            KEY Station_user_idx (user) USING BTREE
+            )""" + self.charset_string
         self.c.execute(createquery)
 
         """ Station Status """
