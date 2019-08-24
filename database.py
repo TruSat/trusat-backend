@@ -323,6 +323,9 @@ class Database:
             )''' + self.charset_string
         self.c.execute(createquery)
 
+        # Requires setting log_bin_trust_function_creators=1 on the AWS RDS instance
+        # https://stackoverflow.com/a/30874794
+        # Note we're counting on iod.py to set object_number to 0 if it is not available (UK/RDE formats)
         create_trigger_query = """CREATE TRIGGER IF NOT EXISTS add_object_number
             BEFORE INSERT ON ParsedIOD FOR EACH ROW 
             BEGIN
@@ -334,6 +337,7 @@ class Database:
             END;"""
         self.c.execute(create_trigger_query)
 
+        # Note we're counting on iod.py to set international designation to "?" if it's questionable
         create_trigger_query = """CREATE TRIGGER IF NOT EXISTS add_international_designation
             BEFORE INSERT ON ParsedIOD FOR EACH ROW 
             BEGIN
