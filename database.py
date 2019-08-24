@@ -393,20 +393,20 @@ class Database:
             line2                       TINYTEXT,
 
             sat_name                    TINYTEXT,
-            satellite_number            MEDIUMINT,
+            satellite_number            MEDIUMINT NOT NULL,
             classification              CHAR(1),
             designation                 CHAR(24),
-            epoch                       DATETIME,
+            epoch                       DATETIME NOT NULL,
             mean_motion_derivative      DOUBLE,
             mean_motion_sec_derivative  DOUBLE,
             bstar                       DOUBLE,
             ephemeris_type              TINYINT,
             element_set_number          MEDIUMINT,
-            inclination                 DOUBLE,
+            inclination                 DOUBLE NOT NULL,
             inclination_radians         DOUBLE,
             raan_degrees                DOUBLE,
             raan_radians                DOUBLE,
-            eccentricity                DOUBLE,
+            eccentricity                DOUBLE NOT NULL,
             arg_perigee_degrees         DOUBLE,
             arg_perigee_radians         DOUBLE,
             mean_anomaly_degrees        DOUBLE,
@@ -420,7 +420,12 @@ class Database:
             strict_import               BOOL,
             tle_fingerprint             CHAR(32) NOT NULL,
             file_fingerprint            CHAR(32),
-            import_timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+            import_timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            KEY `TLE_epoch_idx` (`epoch`) USING BTREE,
+            KEY `TLE_sat_name_idx` (`sat_name`(24)) USING BTREE,
+            KEY `TLE_tle_fingerprint_idx` (`tle_fingerprint`(33)) USING BTREE,
+            KEY `TLE_file_fingerprint_idx` (`file_fingerprint`(33)) USING BTREE,
+            KEY `TLE_norad_idx` (`satellite_number`) USING BTREE
         )''' + self.charset_string
         self.c.execute(createquery)
         self.conn.commit()
