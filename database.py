@@ -514,7 +514,10 @@ class Database:
             source_7 text DEFAULT NULL,
             line_fingerprint        CHAR(32) NOT NULL,
             file_fingerprint        CHAR(32) NOT NULL,
-            import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+            import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            KEY `ucs_SATDB_satdb_id_idx` (`satdb_id`) USING BTREE,
+            KEY `ucs_SATDB_norad_number_idx` (`norad_number`) USING BTREE,
+            KEY `ucs_SATDB_international_designator_idx` (`international_designator`(11)) USING BTREE
         )''' + self.charset_string
         self.c.execute(createquery)
         self.conn.commit()
