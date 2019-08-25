@@ -29,6 +29,11 @@ def stringArrayToJSONArray(string_array):
         json_array.append(json.loads(item[0]))
     return json_array
 
+def datetime_from_sqldatetime(sql_date_string):
+    """ The 4 digit sub-seconds are not the standard 3 or 6, which creates problems with datetime.fromisoformat """
+    date_format = '%Y-%m-%d %H:%M:%S.%f'
+    return datetime.strptime(sql_date_string, date_format)
+
 # TODO: Add index statements to the appropriate fields when creating the tables
 class Database:
     """ Database class opens and stores connection to the database, and performs database operations.
@@ -1253,8 +1258,19 @@ class Database:
                     self.c_addParsedIOD.executemany(self.addParsedIOD_query,self._IODentryList)
                     self._IODentryList = []
                 except Exception as e:
-
                     log.error("MYSQL ERROR: {}".format(e))
+                    # FIXME - (Work in progress) - try to get rid of duplicate entry in a executemany list
+                    if ("Duplicate Entry" in e):
+                        mysql_error_tuple = e.split(' ')
+                        # FIXME - This is fragile
+                        duplicate_fingerprint = mysql_error_tuple[6].strip("'")
+                        row = 0
+                        # FIXME - Don't know if this will work for the whole tuple, or if I have to find the element
+                        for entry in observerTuple:
+                            if duplicate_fingerprint in entry:
+                                observerTuple.remove(row)
+                            row += 1
+
         if (self._dbtype != "INFILE"):
             self.conn.commit()
 
