@@ -576,9 +576,9 @@ class Database:
             obsFingerPrint = md5(obsFingerPrintString.encode('utf-8')).hexdigest()
 
             if(self.selectIODFingerprint(obsFingerPrint)):     
-                log.warning("Skipping IOD - fingerprint {} already in database.".format(obsFingerPrint))   
+                log.warning(" Skipping IOD - fingerprint {} already in database.".format(obsFingerPrint))   
                 if (fast_import):
-                    log.warning("Fast import set, skipping IODs in rest of message.")
+                    log.warning(" ...fast import set, skipping IODs in rest of message.")
                     return False
                 else:
                     continue # Already have the IOD
@@ -625,9 +625,8 @@ class Database:
                         log.error("{}".format(e))
                 else:
                     self._IODentryList.append(newentryTuple)
-
-                return self._obsid
-                # return self.c_addParsedIOD.lastrowid
+        return len(self._IODentryList)
+        # return self.c_addParsedIOD.lastrowid
 
 
     def addStation(self, station):

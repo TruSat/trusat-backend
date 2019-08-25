@@ -7,3 +7,4 @@
 database-ref-commands.sql
 db_login_variables.py
 update_data.sh
+lastMSGID
