@@ -189,6 +189,12 @@ def main():
                               default='INFILE',
                               type=str,                             
                               metavar="TYPE")
+     conf_parser.add_argument("-m", "--message", 
+                              help="Message ID to start at",
+                              dest='message_resume',
+                              nargs='?',
+                              type=str,                             
+                              metavar="MsgID")
      conf_parser.add_argument("-q", "--quiet", help="Suppress console output",
                               dest='quiet',
                               action="store_true")
@@ -200,6 +206,7 @@ def main():
                               nargs="?")
 
      # Incremental import example
+     # http://mailman.satobs.org/mailman/private/seesat-l/
      # python3 ./read_seesat_mbox.py -V --fast -f /Users/chris/Dropbox/code/MVP/seesat-gzip-emails/2019-08August.txt.gz --dbtype sqlserver --database opensatcat_dev --user chris.lewicki 
 
      args = conf_parser.parse_args()
@@ -212,6 +219,7 @@ def main():
      dbtype = args.dbtype
      fast = args.fast
      init = args.init
+     message_resume = args.message_resume
      verbose = args.verbose
      quiet = args.quiet
 
@@ -301,6 +309,14 @@ def main():
      
           msgID = parseaddr(message['Message-ID'])[1]
 
+          # If set, read up to, and skip past the specified message ID before processing
+          if (message_resume):
+               if (message_resume in msgID):
+                    log.info("Resuming at message {}".format(message_resume))
+                    message_resume = False
+                    continue          
+               else:
+                    continue
           body = getbodyfromemail(message)
 
           fileIODCount = 0
@@ -338,7 +354,7 @@ def main():
 
           if (len(IOD_records)):
                IODpeek = IOD_records[0]
-               log.info("Found {} {} observations in message Date: {} Subject:'{}'".format(len(IOD_records), IODpeek.IODType,date,subject))
+               log.info("Found {} {} observations in message: {} {}".format(len(IOD_records), IODpeek.IODType,date,subject))
                
                try:
                     date_parsed = datetime.strptime(date,"%Y-%m-%d %H:%M:%S%z")
@@ -361,10 +377,11 @@ def main():
                     UserDict.append(IODpeek.Station)
                     writer_UserFile.writerow( [email_address, name, IODpeek.Station, "mbox"])
           
-               obsid = db.addParsedIOD(IOD_records, email_address, submit_time, fast)
+               db_obs_count = db.addParsedIOD(IOD_records, email_address, submit_time, fast)
 
-               if (dbtype != "INFILE"):
+               if (dbtype != "INFILE" and db_obs_count):
                     db.commit_IOD_db_writes()
+                    last_msgID = msgID
 #               log.debug(' File ({}/{}) in dir "{}" contained'.format(dirfileCount,dirfileTotal,dirName))
                # log.debug('                                    ({}/{}) IOD records'.format(fileIODCount,TotalCount_IOD))
                # log.debug('                                    ({}/{}) UK records'.format(fileUKCount,TotalCount_UK))
@@ -381,6 +398,7 @@ def main():
      # print('                                          ({}) UK records ({:4.2f} %)'.format(TotalCount_UK,100*TotalCount_UK/TotalObsCount))
      # print('                                          ({}) RDE records ({:4.2f} %)\n'.format(TotalCount_RDE, 100*TotalCount_RDE/TotalObsCount))
      # print("Elapsed time: {:.3f} seconds.".format(time()-app_start_time))
+     log.info("Last messageID imported from: {}".format(last_msgID))
 
 if __name__ == '__main__':
     main()
