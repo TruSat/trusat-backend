@@ -1202,6 +1202,44 @@ class Database:
         except:
             return None
 
+    # /objectUserSightings
+    # https://consensys-cpl.atlassian.net/browse/MVP-335
+    # Note here for optimization on pagination https://mariadb.com/kb/en/library/pagination-optimization/
+    def selectObjectUserSightings_JSON(self, norad_num, eth_addr, fetch_row_count=100, offset_row_count=0):
+        quality = random.randint(1,99)
+        time_difference = random.uniform(-5,5)
+        obs_weight = random.random()
+
+        query_tmp = """SELECT Json_Object(
+            'observation_time', obs_time, 
+            'object_origin', celestrak_SATCAT.source, 
+            'user_location', 'need user location privacy feature', 
+            'username', Observer.name, 
+            'observation_quality', '{QUALITY}', 
+            'observation_time_difference', '{TIME_DIFF}', 
+            'observation_weight', '{OBS_WEIGHT}')
+            FROM ParsedIOD
+            LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+            JOIN Station ON ParsedIOD.station_number = Station.station_num 
+            JOIN Observer ON Observer.id = Station.user 
+            WHERE ParsedIOD.object_number = {NORAD_NUM}
+            AND eth_addr = '{ETH_ADDR}'
+            ORDER BY obs_time DESC
+            LIMIT {OFFSET},{FETCH};""".format(
+                QUALITY=quality, 
+                TIME_DIFF=time_difference, 
+                OBS_WEIGHT=obs_weight, 
+                NORAD_NUM=norad_num, 
+                ETH_ADDR=eth_addr,
+                OFFSET=offset_row_count,
+                FETCH=fetch_row_count
+                )
+        self.c.execute(query_tmp)
+        try:
+            return stringArrayToJSONArray(self.c.fetchall())
+        except:
+            return None
+
     # https://consensys-cpl.atlassian.net/browse/MVP-208
     # Create TLE endpoints
     # FIXME - This is the latest of everything in the catalog - but some will be old from McCants stuff because they were dropped from classfd.tle
