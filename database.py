@@ -1180,7 +1180,7 @@ class Database:
             'object_type', ucs_SATDB.purpose, 
             'object_purpose', ucs_SATDB.purpose_detailed, 
             'object_secondary_purpose', ucs_SATDB.comments,
-            'year_launched', celestrak_SATCAT.launch_date,
+            'year_launched', YEAR(celestrak_SATCAT.launch_date),
             'time_last_tracked', ParsedIOD.obs_time,
             'number_users_tracked', '{COUNT}',
             'time_last_tracked', '{LAST_TRACKED}',
