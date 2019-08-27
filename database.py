@@ -979,7 +979,7 @@ class Database:
         self.c.execute(self.selectTLEEpochNearestDate_query)
         return self.c.fetchone()
 
-    def selectObservationHistory_JSON(self):
+    def selectObservationHistory_JSON(self, fetch_row_count=10, offset_row_count=0):
         # TODO Figure out from John if this is user-specific or what the history is in context of
         query_tmp = """SELECT Json_Object('
             time_submitted',ParsedIOD.obs_time,
@@ -991,11 +991,14 @@ class Database:
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.norad_num 
             LEFT JOIN station_status ON ParsedIOD.station_status_code = station_status.code
             WHERE valid_position = 1
-            ORDER BY obs_time DESC LIMIT 10;"""
+            ORDER BY obs_time DESC
+            LIMIT {OFFSET},{FETCH};""".format(
+                OFFSET=offset_row_count,
+                FETCH=fetch_row_count)
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
 
-    def selectObjectsObserved_JSON(self):
+    def selectObjectsObserved_JSON(self, fetch_row_count=10, offset_row_count=0):
         # TODO Figure out from John if this is user-specific or what the history is in context of
         query_tmp = """SELECT Json_Object(
             'object_origin', ucs_SATDB.country_owner,
@@ -1008,14 +1011,19 @@ class Database:
             FROM ParsedIOD
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number=ucs_SATDB.norad_number
             WHERE valid_position = 1
-            ORDER BY obs_time DESC limit 10;"""
+            ORDER BY obs_time DESC
+            LIMIT {OFFSET},{FETCH};""".format(
+                OFFSET=offset_row_count,
+                FETCH=fetch_row_count)
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
 
     # /catalog/priorities
     # https://consensys-cpl.atlassian.net/browse/MVP-323
-    def selectCatalog_Priorities_JSON(self):
+    # FIXME: Optimization - this query is slow, because of the Join to Observer not using the index
+    def selectCatalog_Priorities_JSON(self, fetch_row_count=100, offset_row_count=0):
         # TODO: No priorities in database yet, just sort by reverse obs order for something interesting/different to look at
+        # Note: Version using inner joins - which returns null for values which aren't in ucs_SATDB or celestrak_SATCAT
         query_tmp = """select Json_Object(
             'object_norad_number', ParsedIOD.object_number, 
             'object_name', celestrak_SATCAT.name,
@@ -1025,29 +1033,24 @@ class Database:
             'time_last_tracked', ParsedIOD.obs_time,
             'address_last_tracked', Observer.eth_addr,
             'username_last_tracked',Observer.name) 
-            /* Version using inner joins - which theoretically return values which aren't in ucs_SATDB */
             FROM ParsedIOD
             JOIN Station ON ParsedIOD.station_number = Station.station_num
 			JOIN Observer ON Station.user = Observer.id
 			LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
 			LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             WHERE ParsedIOD.valid_position = 1 
-            ORDER BY obs_time DESC LIMIT 100;"""
-
-            # Original version:
-            # FROM ucs_SATDB,celestrak_SATCAT,ParsedIOD,Observer,Station 
-            # WHERE ParsedIOD.object_number = ucs_SATDB.norad_number
-            # AND ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
-            # AND ParsedIOD.station_number = Station.station_num
-            # AND Station.user = Observer.id
-            # AND ParsedIOD.valid_position = 1 order by obs_time ASC limit 100;"""
+            ORDER BY obs_time DESC
+            LIMIT {OFFSET},{FETCH};""".format(
+                OFFSET=offset_row_count,
+                FETCH=fetch_row_count)
 
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
 
     # /catalog/undisclosed
     # https://consensys-cpl.atlassian.net/browse/MVP-324
-    def selectCatalog_Undisclosed_JSON(self):
+    # FIXME: Optimization - this query is slow, because of the Join to Observer not using the index
+    def selectCatalog_Undisclosed_JSON(self, fetch_row_count=100, offset_row_count=0):
         query_tmp = """select Json_Object(
             'object_norad_number', ParsedIOD.object_number, 
             'object_name', celestrak_SATCAT.name,
@@ -1065,23 +1068,17 @@ class Database:
             WHERE ParsedIOD.valid_position = 1 
             AND celestrak_SATCAT.orbit_status_code = 'NEA'
             GROUP BY ParsedIOD.object_number
-            ORDER BY obs_time DESC LIMIT 100;"""
-
-            ## Previous query format
-            # FROM ucs_SATDB,celestrak_SATCAT,ParsedIOD,Observer,Station 
-            # WHERE ParsedIOD.object_number = ucs_SATDB.norad_number
-            # AND ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
-            # AND ParsedIOD.station_number = Station.station_num
-            # AND Station.user = Observer.id
-            # AND celestrak_SATCAT.orbit_status_code = 'NEA'
-            # AND ParsedIOD.valid_position = 1 order by obs_time DESC limit 100;"""
+            ORDER BY obs_time DESC
+            LIMIT {OFFSET},{FETCH};""".format(
+                OFFSET=offset_row_count,
+                FETCH=fetch_row_count)
 
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
 
     # /catalog/debris
     # https://consensys-cpl.atlassian.net/browse/MVP-325
-    def selectCatalog_Debris_JSON(self):
+    def selectCatalog_Debris_JSON(self, fetch_row_count=100, offset_row_count=0):
         query_tmp = """select Json_Object(
             'object_norad_number', ParsedIOD.object_number, 
             'object_name', celestrak_SATCAT.name,
@@ -1099,13 +1096,16 @@ class Database:
             WHERE ParsedIOD.valid_position = 1 
             AND celestrak_SATCAT.name LIKE '%DEB%'
             GROUP BY ParsedIOD.object_number
-            ORDER BY obs_time DESC LIMIT 100;"""
+            ORDER BY obs_time DESC
+            LIMIT {OFFSET},{FETCH};""".format(
+                OFFSET=offset_row_count,
+                FETCH=fetch_row_count)
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
 
     # /catalog/latest
     # https://consensys-cpl.atlassian.net/browse/MVP-326
-    def selectCatalog_Latest_JSON(self):
+    def selectCatalog_Latest_JSON(self, fetch_row_count=100, offset_row_count=0):
         now = datetime.utcnow()
         date_delta = now - timedelta(days=365)
         launch_date_string  = date_delta.strftime("%Y-%m-%d")
@@ -1125,14 +1125,19 @@ class Database:
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
             WHERE ParsedIOD.valid_position = 1 
-            AND celestrak_SATCAT.launch_date > {}
-            ORDER BY obs_time DESC LIMIT 100;""".format(launch_date_string)
+            AND celestrak_SATCAT.launch_date > {LAUNCH_DATE}
+            ORDER BY obs_time DESC 
+            LIMIT {OFFSET},{FETCH};""".format(
+                LAUNCH_DATE=launch_date_string,
+                OFFSET=offset_row_count,
+                FETCH=fetch_row_count)
+
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
 
     # /catalog/all 
     # https://consensys-cpl.atlassian.net/browse/MVP-327
-    def selectCatalog_All_JSON(self):
+    def selectCatalog_All_JSON(self, fetch_row_count=100, offset_row_count=0):
         query_tmp = """select Json_Object(
             'object_norad_number', ParsedIOD.object_number, 
             'object_name', celestrak_SATCAT.name,
@@ -1148,7 +1153,10 @@ class Database:
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             WHERE ParsedIOD.valid_position = 1
-            ORDER BY obs_time DESC LIMIT 100;"""
+            ORDER BY obs_time DESC 
+            LIMIT {OFFSET},{FETCH};""".format(
+                OFFSET=offset_row_count,
+                FETCH=fetch_row_count)
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
 
@@ -1268,9 +1276,7 @@ class Database:
             (line0, line1, line2) = self.c.fetchone()
             return "{}r\n{}\n{}\n".format(line0,line1,line2)
         except:
-            return None;
-
-
+            return None
 
     def commit_TLE_db_writes(self):
         """Process a stored query batch for all the TLEs in a file at once.
