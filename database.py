@@ -381,7 +381,8 @@ class Database:
             notes TINYTEXT,
             user INT,
             KEY Station_station_num_idx (station_num) USING BTREE,
-            KEY Station_user_idx (user) USING BTREE
+            KEY Station_user_idx (user) USING BTREE,
+            KEY Station_user_station_idx (user, station_num)
             )""" + self.charset_string
         self.c.execute(createquery)
 
@@ -1108,15 +1109,22 @@ class Database:
             'object_name',celestrak_SATCAT.name,
             'right_ascension', ParsedIOD.ra,
             'declination', ParsedIOD.declination,
-            'station_number', Station.station_num,
+            'station_number', Obs.station_num,
             'conditions', station_status.short_description)
             FROM ParsedIOD
-            JOIN Station ON ParsedIOD.station_number = Station.station_num
-			JOIN Observer ON Station.user = Observer.id
+            JOIN (SELECT 
+                    Station.station_num as station_num, 
+                    Station.user as station_user, 
+                    Observer.id as obs_id, 
+                    Observer.eth_addr as eth_addr, 
+                    Observer.name as user_name 
+                    FROM Station,Observer 
+                    WHERE Station.user = Observer.id 
+                    AND Observer.eth_addr = '{ETH_ADDR}'
+                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.norad_num 
             LEFT JOIN station_status ON ParsedIOD.station_status_code = station_status.code
             WHERE valid_position = 1
-            AND Observer.eth_addr = '{ETH_ADDR}'
             ORDER BY obs_time DESC
             LIMIT {OFFSET},{FETCH};""".format(
                 ETH_ADDR=eth_addr,
@@ -1135,11 +1143,18 @@ class Database:
             'time_last_tracked',ParsedIOD.obs_time,
             'username_last_tracked',ParsedIOD.user_string) 
             FROM ParsedIOD
-            JOIN Station ON ParsedIOD.station_number = Station.station_num
-			JOIN Observer ON Station.user = Observer.id
+            JOIN (SELECT 
+                    Station.station_num as station_num, 
+                    Station.user as station_user, 
+                    Observer.id as obs_id, 
+                    Observer.eth_addr as eth_addr, 
+                    Observer.name as user_name 
+                    FROM Station,Observer 
+                    WHERE Station.user = Observer.id 
+                    AND Observer.eth_addr = '{ETH_ADDR}'
+                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number=ucs_SATDB.norad_number
             WHERE valid_position = 1
-            AND Observer.eth_addr = '{ETH_ADDR}'
             ORDER BY obs_time DESC
             LIMIT {OFFSET},{FETCH};""".format(
                 ETH_ADDR=eth_addr,
@@ -1203,11 +1218,18 @@ class Database:
             'object_type', ucs_SATDB.purpose, 
             'object_purpose', ucs_SATDB.purpose_detailed, 
             'time_last_tracked', ParsedIOD.obs_time,
-            'address_last_tracked', Observer.eth_addr,
-            'username_last_tracked',Observer.name) 
+            'address_last_tracked', Obs.eth_addr,
+            'username_last_tracked',Obs.user_name) 
             FROM ParsedIOD
-            JOIN Station ON ParsedIOD.station_number = Station.station_num
-			JOIN Observer ON Station.user = Observer.id
+            JOIN (SELECT 
+                    Station.station_num as station_num, 
+                    Station.user as station_user, 
+                    Observer.id as obs_id, 
+                    Observer.eth_addr as eth_addr, 
+                    Observer.name as user_name 
+                    FROM Station,Observer 
+                    WHERE Station.user = Observer.id 
+                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
 			LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
 			LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             WHERE ParsedIOD.valid_position = 1 
@@ -1230,13 +1252,20 @@ class Database:
             'object_type', ucs_SATDB.purpose, 
             'object_purpose', ucs_SATDB.purpose_detailed, 
             'time_last_tracked', ParsedIOD.obs_time,
-            'address_last_tracked', Observer.eth_addr,
-            'username_last_tracked',Observer.name) 
+            'address_last_tracked', Obs.eth_addr,
+            'username_last_tracked',Obs.user_name) 
             FROM ParsedIOD
-            JOIN Station ON ParsedIOD.station_number = Station.station_num
+            JOIN (SELECT 
+                    Station.station_num as station_num, 
+                    Station.user as station_user, 
+                    Observer.id as obs_id, 
+                    Observer.eth_addr as eth_addr, 
+                    Observer.name as user_name 
+                    FROM Station,Observer 
+                    WHERE Station.user = Observer.id 
+                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
 			JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
 			JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
-			JOIN Observer ON Station.user = Observer.id
             WHERE ParsedIOD.valid_position = 1 
             AND celestrak_SATCAT.orbit_status_code = 'NEA'
             GROUP BY ParsedIOD.object_number
@@ -1258,11 +1287,18 @@ class Database:
             'object_type', ucs_SATDB.purpose, 
             'object_purpose', ucs_SATDB.purpose_detailed, 
             'time_last_tracked', ParsedIOD.obs_time,
-            'address_last_tracked', Observer.eth_addr,
-            'username_last_tracked',Observer.name) 
+            'address_last_tracked', Obs.eth_addr,
+            'username_last_tracked',Obs.user_name) 
             FROM ParsedIOD
-            JOIN Station ON ParsedIOD.station_number = Station.station_num
-            JOIN Observer ON Observer.id = Station.user
+            JOIN (SELECT 
+                    Station.station_num as station_num, 
+                    Station.user as station_user, 
+                    Observer.id as obs_id, 
+                    Observer.eth_addr as eth_addr, 
+                    Observer.name as user_name 
+                    FROM Station,Observer 
+                    WHERE Station.user = Observer.id 
+                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
             WHERE ParsedIOD.valid_position = 1 
@@ -1289,11 +1325,18 @@ class Database:
             'object_type', ucs_SATDB.purpose, 
             'object_purpose', ucs_SATDB.purpose_detailed, 
             'time_last_tracked', ParsedIOD.obs_time,
-            'address_last_tracked', Observer.eth_addr,
-            'username_last_tracked',Observer.name) 
+            'address_last_tracked', Obs.eth_addr,
+            'username_last_tracked',Obs.user_name) 
             FROM ParsedIOD
-            JOIN Station ON ParsedIOD.station_number = Station.station_num
-            JOIN Observer ON Observer.id = Station.user
+            JOIN (SELECT 
+                    Station.station_num as station_num, 
+                    Station.user as station_user, 
+                    Observer.id as obs_id, 
+                    Observer.eth_addr as eth_addr, 
+                    Observer.name as user_name 
+                    FROM Station,Observer 
+                    WHERE Station.user = Observer.id 
+                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
             WHERE ParsedIOD.valid_position = 1 
@@ -1310,18 +1353,25 @@ class Database:
     # /catalog/all 
     # https://consensys-cpl.atlassian.net/browse/MVP-327
     def selectCatalog_All_JSON(self, fetch_row_count=100, offset_row_count=0):
-        query_tmp = """select Json_Object(
+        query_tmp = """SELECT Json_Object(
             'object_norad_number', ParsedIOD.object_number, 
             'object_name', celestrak_SATCAT.name,
             'object_origin', ucs_SATDB.country_owner, 
             'object_type', ucs_SATDB.purpose, 
             'object_purpose', ucs_SATDB.purpose_detailed, 
             'time_last_tracked', ParsedIOD.obs_time,
-            'address_last_tracked', Observer.eth_addr,
-            'username_last_tracked',Observer.name) 
+            'address_last_tracked', Obs.eth_addr,
+            'username_last_tracked',Obs.user_name) 
             FROM ParsedIOD
-            JOIN Station ON ParsedIOD.station_number = Station.station_num
-            JOIN Observer ON Station.user = Observer.id
+            JOIN (SELECT 
+                    Station.station_num as station_num, 
+                    Station.user as station_user, 
+                    Observer.id as obs_id, 
+                    Observer.eth_addr as eth_addr, 
+                    Observer.name as user_name 
+                    FROM Station,Observer 
+                    WHERE Station.user = Observer.id 
+                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             WHERE ParsedIOD.valid_position = 1
@@ -1393,18 +1443,26 @@ class Database:
         query_tmp = """SELECT Json_Object(
             'observation_time', obs_time, 
             'object_origin', celestrak_SATCAT.source, 
-            'user_location', 'need user location privacy feature', 
-            'username', Observer.name, 
-            'user_address', Observer.eth_addr,
+            'user_location', Obs.location, 
+            'username', Obs.user_name, 
+            'user_address', Obs.eth_addr,
             'observation_quality', '{QUALITY}', 
             'observation_time_difference', '{TIME_DIFF}', 
             'observation_weight', '{OBS_WEIGHT}')
             FROM ParsedIOD
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
-            JOIN Station ON ParsedIOD.station_number = Station.station_num 
-            JOIN Observer ON Observer.id = Station.user 
+            JOIN (SELECT 
+                    Station.station_num as station_num, 
+                    Station.user as station_user, 
+                    Observer.id as obs_id, 
+                    Observer.eth_addr as eth_addr, 
+                    Observer.name as user_name,
+                    Observer.location as location 
+                    FROM Station,Observer 
+                    WHERE Station.user = Observer.id 
+                    AND Observer.eth_addr = '{ETH_ADDR}'
+                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
             WHERE ParsedIOD.object_number = {NORAD_NUM}
-            AND eth_addr = '{ETH_ADDR}'
             ORDER BY obs_time DESC
             LIMIT {OFFSET},{FETCH};""".format(
                 QUALITY=quality, 
@@ -1432,15 +1490,23 @@ class Database:
         query_tmp = """SELECT Json_Object(
             'observation_time', obs_time, 
             'object_origin', celestrak_SATCAT.source, 
-            'user_location', 'need user location privacy feature', 
-            'username', Observer.name, 
+            'user_location', Obs.location, 
+            'username', Obs.user_name, 
             'observation_quality', '{QUALITY}', 
             'observation_time_difference', '{TIME_DIFF}', 
             'observation_weight', '{OBS_WEIGHT}')
             FROM ParsedIOD
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
-            JOIN Station ON ParsedIOD.station_number = Station.station_num 
-            JOIN Observer ON Observer.id = Station.user 
+            JOIN (SELECT 
+                    Station.station_num as station_num, 
+                    Station.user as station_user, 
+                    Observer.id as obs_id, 
+                    Observer.eth_addr as eth_addr, 
+                    Observer.name as user_name,
+                    Observer.location as location 
+                    FROM Station,Observer 
+                    WHERE Station.user = Observer.id 
+                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
             WHERE ParsedIOD.object_number = {NORAD_NUM}
             ORDER BY obs_time DESC
             LIMIT {OFFSET},{FETCH};""".format(
