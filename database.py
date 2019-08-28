@@ -1048,6 +1048,7 @@ class Database:
     # FIXME: Optimization - this query is slow, because of the Join to Observer not using the index
     def selectCatalog_Priorities_JSON(self, fetch_row_count=100, offset_row_count=0):
         # TODO: No priorities in database yet, just sort by reverse obs order for something interesting/different to look at
+        # https://consensys-cpl.atlassian.net/browse/MVP-389
         # Note: Version using inner joins - which returns null for values which aren't in ucs_SATDB or celestrak_SATCAT
         query_tmp = """select Json_Object(
             'object_norad_number', ParsedIOD.object_number, 
@@ -1238,6 +1239,7 @@ class Database:
     # /objectUserSightings
     # https://consensys-cpl.atlassian.net/browse/MVP-335
     def selectObjectUserSightings_JSON(self, norad_num, eth_addr, fetch_row_count=100, offset_row_count=0):
+        # TODO: Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
         quality = random.randint(1,99)
         time_difference = random.uniform(-5,5)
         obs_weight = random.random()
@@ -1309,13 +1311,42 @@ class Database:
             return None
 
 
-
     # FIXME - This is the latest of everything in the catalog - but some will be old from McCants stuff because they were dropped from classfd.tle
     def selectTLE_Astriagraph(self):
         query_tmp = """SELECT line0, line1, line2, satellite_number
             FROM TLE 
             GROUP BY satellite_number
             ORDER BY TLE.epoch DESC;"""
+        self.c.execute(query_tmp)
+        result = ""
+        for (line0, line1, line2, _) in self.c.fetchall():
+            result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
+        return result
+
+    # https://consensys-cpl.atlassian.net/browse/MVP-286
+    def selectTLE_priorities(self):
+        # TODO: Replace with real priority sort. https://consensys-cpl.atlassian.net/browse/MVP-389
+        # In the meantime, return TLEs older than 30 days
+        query_tmp = """SELECT line0, line1, line2, satellite_number
+            FROM TLE 
+			WHERE DATEDIFF(NOW(),epoch) > 30
+            GROUP BY satellite_number
+            ORDER BY TLE.epoch DESC;"""
+        self.c.execute(query_tmp)
+        result = ""
+        for (line0, line1, line2, _) in self.c.fetchall():
+            result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
+        return result
+
+    # https://consensys-cpl.atlassian.net/browse/MVP-287
+    def selectTLE_high_confidence(self):
+        # TODO: Replace with real confidence sort. https://consensys-cpl.atlassian.net/browse/MVP-390
+        # In the meantime, return TLEs younger than 30 days, newest first
+        query_tmp = """SELECT line0, line1, line2, satellite_number
+            FROM TLE 
+			WHERE DATEDIFF(NOW(),epoch) < 30
+            GROUP BY satellite_number
+            ORDER BY TLE.epoch ASC;"""
         self.c.execute(query_tmp)
         result = ""
         for (line0, line1, line2, _) in self.c.fetchall():
