@@ -23,11 +23,20 @@ def generate_object_id():
     """ Generate 256-bit random number as a string """
     return str(randbits(256))
 
+def QueryRowToJSON(var):
+    return json.dumps(
+        json.loads(var[0]),
+        sort_keys=False, 
+        indent=4)
+
 def stringArrayToJSONArray(string_array):
     json_array = []
     for item in string_array:
         json_array.append(json.loads(item[0]))
-    return json_array
+    return json.dumps(
+        json_array,
+        sort_keys=False, 
+        indent=4)
 
 def datetime_from_sqldatetime(sql_date_string):
     """ The 4 digit sub-seconds are not the standard 3 or 6, which creates problems with datetime.fromisoformat """
@@ -983,9 +992,10 @@ class Database:
         self.c.execute(self.selectTLEEpochNearestDate_query)
         return self.c.fetchone()
 
+
     def selectObservationHistory_JSON(self, fetch_row_count=10, offset_row_count=0):
-        query_tmp = """SELECT Json_Object('
-            time_submitted',ParsedIOD.obs_time,
+        query_tmp = """SELECT Json_Object(
+            'time_submitted',ParsedIOD.obs_time,
             'object_name',celestrak_SATCAT.name,
             'right_ascension', ParsedIOD.ra,
             'declination', ParsedIOD.declination,
@@ -1019,11 +1029,82 @@ class Database:
             return self.c.fetchall()
         except:
             return None
+
+    def selectUserStations_JSON(self, eth_addr):
+        query_tmp = """SELECT Json_Object(
+            'station_number', Station.station_num,
+            'station_observation_count', '1', /* FIXME:  Add a station observation count to this list */
+            'station_initials', Station.initial,
+            'station_latitude', Station.latitude,
+            'station_longitude', Station.longitude,
+            'station_elevation_m', Station.elevation_m,
+            'station_name', Station.name,
+            'station_details', Station.details)
+            FROM Station
+            JOIN Observer ON Observer.id = Station.user 
+            WHERE Observer.eth_addr = '{ETH_ADDR}'
+            ORDER BY Station.station_num ASC;""".format(
+                ETH_ADDR=eth_addr)
+        try:
+            self.c.execute(query_tmp)
+            return stringArrayToJSONArray(self.c.fetchall())
+        except:
+            return None
+
+
+    def selectProfileInfo_JSON(self, eth_addr):
+        # TODO: Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
+        avg_obs_quality = random.randint(1,99) # FIXME: Replace with real data: 
+
+        # Get unique list of observed objects for this user
+        # TODO: Seems like there's a way to get a count in the query instead of counting the result in python
+        query_tmp_num_obj_tracked = """SELECT ParsedIOD.object_number
+            FROM ParsedIOD
+            JOIN Station ON ParsedIOD.station_number = Station.station_num 
+            JOIN Observer ON Observer.id = Station.user 
+            WHERE Observer.eth_addr = '{ETH_ADDR}'
+            GROUP BY ParsedIOD.object_number;""".format(ETH_ADDR=eth_addr)
+        self.c.execute(query_tmp_num_obj_tracked)
+        try:
+            obj_tracked = self.c.fetchall()
+            num_obj_tracked = len(obj_tracked)
+        except:
+            num_obj_tracked = 0
+
+        # Get count of observations for this user
+        query_tmp_obs_count = """SELECT COUNT(ParsedIOD.object_number) as obs_count
+            FROM ParsedIOD
+            JOIN Station ON ParsedIOD.station_number = Station.station_num 
+            JOIN Observer ON Observer.id = Station.user 
+            WHERE Observer.eth_addr = '{ETH_ADDR}';""".format(ETH_ADDR=eth_addr)
+        self.c.execute(query_tmp_obs_count)
+        try:
+            [(obs_count)] = self.c.fetchone()
+        except:
+            obs_count = 0
+
+        query_tmp = """SELECT Json_Object(
+            'user_address', Observer.eth_addr,
+            'user_location', Observer.location,
+            'number_objects_tracked', '{NUM_OBJ_TRACKED}',
+            'observation_count', '{OBS_COUNT}',
+            'average_observation_quality', '{AVG_OBS_QUALITY}',
+            'user_bio', Observer.bio,
+            'user_image', Observer.url_image)
+            FROM Observer
+            WHERE Observer.eth_addr = '{ETH_ADDR}'
+            LIMIT 1;""".format(
+                NUM_OBJ_TRACKED=num_obj_tracked, 
+                OBS_COUNT=obs_count, 
+                AVG_OBS_QUALITY=avg_obs_quality,
+                ETH_ADDR=eth_addr)
+        self.c.execute(query_tmp)
+        return QueryRowToJSON(self.c.fetchone())
             
     # Supports user profile https://consensys-cpl.atlassian.net/browse/MVP-311
     def selectUserObservationHistory_JSON(self, eth_addr, fetch_row_count=10, offset_row_count=0):
-        query_tmp = """SELECT Json_Object('
-            time_submitted',ParsedIOD.obs_time,
+        query_tmp = """SELECT Json_Object(
+            'time_submitted',ParsedIOD.obs_time,
             'object_name',celestrak_SATCAT.name,
             'right_ascension', ParsedIOD.ra,
             'declination', ParsedIOD.declination,
@@ -1043,6 +1124,48 @@ class Database:
                 FETCH=fetch_row_count)
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
+
+    def selectUserObjectsObserved_JSON(self, eth_addr, fetch_row_count=10, offset_row_count=0):
+        # FIXME: Fancier query logic needed to get the last user to track in the summary of a selected-users observations.
+        query_tmp = """SELECT Json_Object(
+            'object_origin', ucs_SATDB.country_owner,
+            'object_type', ucs_SATDB.purpose, 
+            'object_purpose', ucs_SATDB.purpose_detailed, 
+            'observation_quality', ParsedIOD.station_status_code,
+            'time_last_tracked',ParsedIOD.obs_time,
+            'username_last_tracked',ParsedIOD.user_string) 
+            FROM ParsedIOD
+            JOIN Station ON ParsedIOD.station_number = Station.station_num
+			JOIN Observer ON Station.user = Observer.id
+            LEFT JOIN ucs_SATDB ON ParsedIOD.object_number=ucs_SATDB.norad_number
+            WHERE valid_position = 1
+            AND Observer.eth_addr = '{ETH_ADDR}'
+            ORDER BY obs_time DESC
+            LIMIT {OFFSET},{FETCH};""".format(
+                ETH_ADDR=eth_addr,
+                OFFSET=offset_row_count,
+                FETCH=fetch_row_count)
+        self.c.execute(query_tmp)
+        return stringArrayToJSONArray(self.c.fetchall())
+
+    # https://consensys-cpl.atlassian.net/browse/MVP-311
+    # /profile endpoint for a logged-in user
+    def selectUserProfile(self, eth_addr):
+        user_profile_info = self.selectProfileInfo_JSON(eth_addr)
+        user_stations = self.selectUserStations_JSON(eth_addr)
+        user_objects_observered = self.selectUserObjectsObserved_JSON(eth_addr)
+        user_observation_history = self.selectUserObservationHistory_JSON(eth_addr)
+
+        json_dict = {}
+        json_dict["user_profile_info"] = user_profile_info
+        json_dict["user_stations"] = user_stations
+        json_dict["user_objects_observered"] = user_objects_observered
+        json_dict["user_observation_history"] = user_observation_history 
+
+        return json.dumps(
+            json_dict,
+            sort_keys=False, 
+            indent=4)
 
 
     def selectObjectsObserved_JSON(self, fetch_row_count=10, offset_row_count=0):
@@ -1255,7 +1378,7 @@ class Database:
             LIMIT 1;""".format(COUNT=user_count, LAST_TRACKED=last_tracked, ETH_ADDR=eth_addr, NAME=name, QUALITY=quality, URL=info_url, NORAD_NUM=norad_num)
         self.c.execute(query_tmp)
         try:
-            return self.c.fetchone()
+            return QueryRowToJSON(self.c.fetchone())
         except:
             return None
 
