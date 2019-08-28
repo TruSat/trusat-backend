@@ -1007,7 +1007,7 @@ class Database:
             FROM ParsedIOD
             WHERE object_number = {NORAD_NUM}
             AND valid_position=1
-            GROUP BY observation_year, observation_month
+            GROUP BY observation_year, observation_month, observation_day
             ORDER BY observation_year DESC, observation_month ASC, observation_day ASC;""".format(
                 NORAD_NUM=norad_num)
         self.c.execute(query_tmp)
