@@ -1323,6 +1323,19 @@ class Database:
             result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
         return result
 
+    # https://consensys-cpl.atlassian.net/browse/MVP-285
+    def selectTLE_all(self):
+        query_tmp = """SELECT line0, line1, line2, satellite_number
+            FROM TLE 
+            GROUP BY satellite_number
+            ORDER BY satellite_number ASC;"""
+        self.c.execute(query_tmp)
+        result = ""
+        for (line0, line1, line2, _) in self.c.fetchall():
+            result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
+        return result
+
+
     # https://consensys-cpl.atlassian.net/browse/MVP-286
     def selectTLE_priorities(self):
         # TODO: Replace with real priority sort. https://consensys-cpl.atlassian.net/browse/MVP-389
