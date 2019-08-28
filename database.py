@@ -1457,6 +1457,34 @@ class Database:
         except:
             return None
 
+    # https://consensys-cpl.atlassian.net/browse/MVP-393
+    # /findObject endpoint
+    def selectFindObject(self, partial_string):
+        if (type(partial_string) == int):
+            query_tmp = """SELECT DISTINCT Json_Object(
+                'norad_number', norad_num,
+                'name', name)
+                FROM celestrak_SATCAT
+                WHERE norad_num LIKE '{PARTIAL}%'
+                ORDER by norad_num ASC;
+                """.format(
+                    PARTIAL=partial_string)
+        else:
+            query_tmp = """SELECT DISTINCT Json_Object(
+                'norad_number', norad_num,
+                'name', name)
+                FROM celestrak_SATCAT
+                WHERE name LIKE '{PARTIAL}%'
+                ORDER by name ASC;
+                """.format(
+                    PARTIAL=partial_string)
+        print(query_tmp)
+        self.c.execute(query_tmp)
+        try:
+            return stringArrayToJSONArray(self.c.fetchall())
+        except:
+            return None
+
 
     # FIXME - This is the latest of everything in the catalog - but some will be old from McCants stuff because they were dropped from classfd.tle
     def selectTLE_Astriagraph(self):
