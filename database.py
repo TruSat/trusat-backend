@@ -410,6 +410,8 @@ class Database:
             jwt_secret  CHAR(78),
             location    TINYTEXT, /* User-specified (publicly visible) location */
             bio         TEXT,     /* User-specified (publicly visible) bio */
+            url_profile TEXT, /* Profile URL - notionally gravitar or similar. FIXME: need to protect for exploits */
+            url_image   TEXT, /* Profile Image URL - notionally gravitar or similar. FIXME: need to protect for exploits */
             KEY `Observer_id_idx` (`id`) USING BTREE,
             KEY `Observer_eth_addr_idx` (`eth_addr`) USING BTREE,
             KEY `Observer_reputation_idx` (`reputation`) USING BTREE
