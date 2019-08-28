@@ -998,6 +998,25 @@ class Database:
         return stringArrayToJSONArray(self.c.fetchall())
 
     # Supports user profile https://consensys-cpl.atlassian.net/browse/MVP-311
+    # /object/history https://consensys-cpl.atlassian.net/browse/MVP-334
+    def selectObjectHistory_summary(self, norad_num):
+        query_tmp = """SELECT 
+            YEAR(obs_time) as observation_year,
+            MONTH(obs_time) as observation_month,
+            DAYOFMONTH(obs_time) as observation_day
+            FROM ParsedIOD
+            WHERE object_number = {NORAD_NUM}
+            AND valid_position=1
+            GROUP BY observation_year, observation_month
+            ORDER BY observation_year DESC, observation_month ASC, observation_day ASC;""".format(
+                NORAD_NUM=norad_num)
+        self.c.execute(query_tmp)
+        try:
+            return self.c.fetchall()
+        except:
+            return None
+            
+    # Supports user profile https://consensys-cpl.atlassian.net/browse/MVP-311
     def selectUserObservationHistory_JSON(self, eth_addr, fetch_row_count=10, offset_row_count=0):
         query_tmp = """SELECT Json_Object('
             time_submitted',ParsedIOD.obs_time,
