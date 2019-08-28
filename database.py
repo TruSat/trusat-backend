@@ -980,7 +980,6 @@ class Database:
         return self.c.fetchone()
 
     def selectObservationHistory_JSON(self, fetch_row_count=10, offset_row_count=0):
-        # TODO Figure out from John if this is user-specific or what the history is in context of
         query_tmp = """SELECT Json_Object('
             time_submitted',ParsedIOD.obs_time,
             'object_name',celestrak_SATCAT.name,
@@ -997,6 +996,31 @@ class Database:
                 FETCH=fetch_row_count)
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
+
+    # Supports user profile https://consensys-cpl.atlassian.net/browse/MVP-311
+    def selectUserObservationHistory_JSON(self, eth_addr, fetch_row_count=10, offset_row_count=0):
+        query_tmp = """SELECT Json_Object('
+            time_submitted',ParsedIOD.obs_time,
+            'object_name',celestrak_SATCAT.name,
+            'right_ascension', ParsedIOD.ra,
+            'declination', ParsedIOD.declination,
+            'station_number', Station.station_num,
+            'conditions', station_status.short_description)
+            FROM ParsedIOD
+            JOIN Station ON ParsedIOD.station_number = Station.station_num
+			JOIN Observer ON Station.user = Observer.id
+            LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.norad_num 
+            LEFT JOIN station_status ON ParsedIOD.station_status_code = station_status.code
+            WHERE valid_position = 1
+            AND Observer.eth_addr = '{ETH_ADDR}'
+            ORDER BY obs_time DESC
+            LIMIT {OFFSET},{FETCH};""".format(
+                ETH_ADDR=eth_addr,
+                OFFSET=offset_row_count,
+                FETCH=fetch_row_count)
+        self.c.execute(query_tmp)
+        return stringArrayToJSONArray(self.c.fetchall())
+
 
     def selectObjectsObserved_JSON(self, fetch_row_count=10, offset_row_count=0):
         # TODO Figure out from John if this is user-specific or what the history is in context of
@@ -1017,6 +1041,7 @@ class Database:
                 FETCH=fetch_row_count)
         self.c.execute(query_tmp)
         return stringArrayToJSONArray(self.c.fetchall())
+
 
     # /catalog/priorities
     # https://consensys-cpl.atlassian.net/browse/MVP-323
@@ -1161,7 +1186,7 @@ class Database:
         return stringArrayToJSONArray(self.c.fetchall())
 
     # /object/info/
-    # https://consensys-cpl.atlassian.net/browse/MVP-329
+    # https://consensys-cpl.atlassian.net/browse/MVP-379
     def selectObjectInfo_JSON(self, norad_num):
         info_url = "https://www.heavens-above.com/SatInfo.aspx?satid={}".format(norad_num)
         quality = random.randint(1,99)
@@ -1212,7 +1237,6 @@ class Database:
 
     # /objectUserSightings
     # https://consensys-cpl.atlassian.net/browse/MVP-335
-    # Note here for optimization on pagination https://mariadb.com/kb/en/library/pagination-optimization/
     def selectObjectUserSightings_JSON(self, norad_num, eth_addr, fetch_row_count=100, offset_row_count=0):
         quality = random.randint(1,99)
         time_difference = random.uniform(-5,5)
@@ -1248,8 +1272,44 @@ class Database:
         except:
             return None
 
-    # https://consensys-cpl.atlassian.net/browse/MVP-208
-    # Create TLE endpoints
+    # /object/influence
+    # https://consensys-cpl.atlassian.net/browse/MVP-380
+    def selectObjectInfluence_JSON(self, norad_num, fetch_row_count=100, offset_row_count=0):
+        # TODO: Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
+        quality = random.randint(1,99)
+        time_difference = random.uniform(-5,5)
+        obs_weight = random.random()
+
+        query_tmp = """SELECT Json_Object(
+            'observation_time', obs_time, 
+            'object_origin', celestrak_SATCAT.source, 
+            'user_location', 'need user location privacy feature', 
+            'username', Observer.name, 
+            'observation_quality', '{QUALITY}', 
+            'observation_time_difference', '{TIME_DIFF}', 
+            'observation_weight', '{OBS_WEIGHT}')
+            FROM ParsedIOD
+            LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+            JOIN Station ON ParsedIOD.station_number = Station.station_num 
+            JOIN Observer ON Observer.id = Station.user 
+            WHERE ParsedIOD.object_number = {NORAD_NUM}
+            ORDER BY obs_time DESC
+            LIMIT {OFFSET},{FETCH};""".format(
+                QUALITY=quality, 
+                TIME_DIFF=time_difference, 
+                OBS_WEIGHT=obs_weight, 
+                NORAD_NUM=norad_num, 
+                OFFSET=offset_row_count,
+                FETCH=fetch_row_count
+                )
+        self.c.execute(query_tmp)
+        try:
+            return stringArrayToJSONArray(self.c.fetchall())
+        except:
+            return None
+
+
+
     # FIXME - This is the latest of everything in the catalog - but some will be old from McCants stuff because they were dropped from classfd.tle
     def selectTLE_Astriagraph(self):
         query_tmp = """SELECT line0, line1, line2, satellite_number
@@ -1262,15 +1322,13 @@ class Database:
             result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
         return result
 
-    # https://consensys-cpl.atlassian.net/browse/MVP-208
-    # Create TLE endpoints
-    # FIXME - This will output TLEs view route testing, but not a sorted, latest list.
+    # https://consensys-cpl.atlassian.net/browse/MVP-385
     def selectTLE_single(self, norad_num):
         query_tmp = """SELECT line0, line1, line2 
             FROM TLE 
-            WHERE satellite_number={}
+            WHERE satellite_number={NORAD_NUM}
             ORDER BY EPOCH DESC
-            LIMIT 1;""".format(norad_num)
+            LIMIT 1;""".format(NORAD_NUM=norad_num)
         self.c.execute(query_tmp)
         try:
             (line0, line1, line2) = self.c.fetchone()
