@@ -1256,7 +1256,7 @@ class Database:
             return None
 
     # /objectUserSightings
-    # https://consensys-cpl.atlassian.net/browse/MVP-335
+    # https://consensys-cpl.atlassian.net/browse/MVP-381
     def selectObjectUserSightings_JSON(self, norad_num, eth_addr, fetch_row_count=100, offset_row_count=0):
         # TODO: Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
         quality = random.randint(1,99)
@@ -1268,6 +1268,7 @@ class Database:
             'object_origin', celestrak_SATCAT.source, 
             'user_location', 'need user location privacy feature', 
             'username', Observer.name, 
+            'user_address', Observer.eth_addr,
             'observation_quality', '{QUALITY}', 
             'observation_time_difference', '{TIME_DIFF}', 
             'observation_weight', '{OBS_WEIGHT}')
