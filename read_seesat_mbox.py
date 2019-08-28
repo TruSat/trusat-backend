@@ -312,7 +312,7 @@ def main():
           # If set, read up to, and skip past the specified message ID before processing
           if (message_resume):
                if (message_resume in msgID):
-                    log.info("Resuming at message {}".format(message_resume))
+                    log.info("Resuming after message {}".format(message_resume))
                     message_resume = False
                     continue          
                else:
@@ -354,7 +354,7 @@ def main():
 
           if (len(IOD_records)):
                IODpeek = IOD_records[0]
-               log.info("Found {} {} observations in message: {} {}".format(len(IOD_records), IODpeek.IODType,date,subject))
+               log.info("Found {:3d} {:3s} obs in msg: {} {}".format(len(IOD_records), IODpeek.IODType,date,subject))
                
                try:
                     date_parsed = datetime.strptime(date,"%Y-%m-%d %H:%M:%S%z")
