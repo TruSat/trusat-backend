@@ -399,15 +399,17 @@ class Database:
 
         """ Observer """
         createquery = """CREATE TABLE IF NOT EXISTS Observer (
-            id          INTEGER PRIMARY KEY''' + self.increment + ''',
-            eth_addr    CHAR(42),
-            verified    TEXT,
+            id          INTEGER PRIMARY KEY''' + self.increment + ''', /* Internal ID  */
+            eth_addr    CHAR(42), /* Ethereum address for user */
+            verified    TEXT,     /* FIXME: Deprecated? Move to Observer_email table? */
             reputation  INTEGER,
-            reference   TEXT,
+            reference   TEXT,     /* Internal user ref notes for SeeSat archive */
             nonce       INTEGER,
             jwt         TEXT,
             password    TEXT,
             jwt_secret  CHAR(78),
+            location    TINYTEXT, /* User-specified (publicly visible) location */
+            bio         TEXT,     /* User-specified (publicly visible) bio */
             KEY `Observer_id_idx` (`id`) USING BTREE,
             KEY `Observer_eth_addr_idx` (`eth_addr`) USING BTREE,
             KEY `Observer_reputation_idx` (`reputation`) USING BTREE
