@@ -112,6 +112,7 @@ class Database:
                 use_unicode=True
                 )
             self.c = self.conn.cursor()
+            self.cdict = self.conn.cursor(dictionary=True)
 
             # Need a cursor for each prepared statement
             # TODO: Probably don't need prepared statements for all of these
@@ -1103,14 +1104,23 @@ class Database:
         return QueryRowToJSON(self.c.fetchone())
             
     # Supports user profile https://consensys-cpl.atlassian.net/browse/MVP-311
+    # Notes about endpoint https://consensys-cpl.atlassian.net/browse/MVP-328
     def selectUserObservationHistory_JSON(self, eth_addr, fetch_row_count=10, offset_row_count=0):
+        # TODO: Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
+        quality = random.randint(1,99)
+        time_difference = random.uniform(-5,5)
+        obs_weight = random.random()
+
         query_tmp = """SELECT Json_Object(
-            'time_submitted',ParsedIOD.obs_time,
+            'observation_time',ParsedIOD.obs_time,
             'object_name',celestrak_SATCAT.name,
-            'right_ascension', ParsedIOD.ra,
-            'declination', ParsedIOD.declination,
             'station_number', Obs.station_num,
-            'conditions', station_status.short_description)
+            'object_norad_number', ParsedIOD.object_number,
+            'observation_quality', '{QUALITY}', 
+            'observation_time_difference', '{TIME_DIFF}', 
+            'observation_weight', '{OBS_WEIGHT}'),
+            'observation_iod', ParsedIOD.iod_string
+            )
             FROM ParsedIOD
             JOIN (SELECT 
                     Station.station_num as station_num, 
@@ -1127,6 +1137,9 @@ class Database:
             WHERE valid_position = 1
             ORDER BY obs_time DESC
             LIMIT {OFFSET},{FETCH};""".format(
+                QUALITY=quality, 
+                TIME_DIFF=time_difference, 
+                OBS_WEIGHT=obs_weight, 
                 ETH_ADDR=eth_addr,
                 OFFSET=offset_row_count,
                 FETCH=fetch_row_count)
@@ -1134,14 +1147,18 @@ class Database:
         return stringArrayToJSONArray(self.c.fetchall())
 
     def selectUserObjectsObserved_JSON(self, eth_addr, fetch_row_count=10, offset_row_count=0):
-        # FIXME: Fancier query logic needed to get the last user to track in the summary of a selected-users observations.
+        # FIXME: Fancier query logic needed to get the last eth_addr to track in the summary of a selected-users observations.
         query_tmp = """SELECT Json_Object(
             'object_origin', ucs_SATDB.country_owner,
             'object_type', ucs_SATDB.purpose, 
-            'object_purpose', ucs_SATDB.purpose_detailed, 
+            'object_primary_purpose', ucs_SATDB.purpose_detailed, 
+            'object_secondary_purpose', 'Michael to define type, primary and secondary purpose', 
             'observation_quality', ParsedIOD.station_status_code,
+            'object_name',celestrak_SATCAT.name,
+            'object_norad_number', ParsedIOD.object_number,
             'time_last_tracked',ParsedIOD.obs_time,
-            'username_last_tracked',ParsedIOD.user_string) 
+            'username_last_tracked', Obs.user_name,
+            'address_last_tracked', Obs.eth_addr) 
             FROM ParsedIOD
             JOIN (SELECT 
                     Station.station_num as station_num, 
@@ -1154,6 +1171,7 @@ class Database:
                     AND Observer.eth_addr = '{ETH_ADDR}'
                     LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number=ucs_SATDB.norad_number
+            LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             WHERE valid_position = 1
             ORDER BY obs_time DESC
             LIMIT {OFFSET},{FETCH};""".format(
