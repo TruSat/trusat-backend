@@ -18,12 +18,9 @@ def create_message(sender, to, subject, message_text):
     return {'raw': base64.urlsafe_b64encode(message.as_string().encode('utf-8'))}
 
 def send_message(service, user_id, message):
-    print("HERE")
-    print(message)
     message["raw"] = message["raw"].decode('utf-8')
     try:
         message = (service.users().messages().send(userId=user_id, body=message).execute())
-        print('Message Id: %s' % message['id'])
         return message
     except Exception as error:
         print('An error occurred: %s' % error)
