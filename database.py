@@ -1,11 +1,14 @@
 import sqlite3
 import mysql.connector as mariadb
 from secrets import randbelow, randbits
-from datetime import datetime
+from datetime import datetime, timedelta
 from hashlib import md5
 from csv import writer 
+import json
 import logging
 log = logging.getLogger(__name__)
+
+import random # Temporary for faking some results in DEV
 
 """
 database.py: Does database interactions for the Open Satellite Catalog
@@ -19,6 +22,26 @@ def generate_user_id():
 def generate_object_id():
     """ Generate 256-bit random number as a string """
     return str(randbits(256))
+
+def QueryRowToJSON(var):
+    return json.dumps(
+        json.loads(var[0]),
+        sort_keys=False, 
+        indent=4)
+
+def stringArrayToJSONArray(string_array):
+    json_array = []
+    for item in string_array:
+        json_array.append(json.loads(item[0]))
+    return json.dumps(
+        json_array,
+        sort_keys=False, 
+        indent=4)
+
+def datetime_from_sqldatetime(sql_date_string):
+    """ The 4 digit sub-seconds are not the standard 3 or 6, which creates problems with datetime.fromisoformat """
+    date_format = '%Y-%m-%d %H:%M:%S.%f'
+    return datetime.strptime(sql_date_string, date_format)
 
 # TODO: Add index statements to the appropriate fields when creating the tables
 class Database:
@@ -42,11 +65,12 @@ class Database:
         self._last_observer_id = None
         self._IODentryList = []
         self._TLEentryList = []
-        self._TLEFileDict = {}
+        self._TLEFileDict = {} # Used for INFILE method
         self._observerDict = {} # Used for INFILE method
         self._tle_fingerprintDict = {} # Used for INFILE method
         self._obsid = 0
         self._new_observerid = 0
+        self._iod_line_fingerprintDict = {} # Used for INFILE method
         self._tle_file_fingerprintDict = {} # Used for INFILE method
         self._SATCAT_file_fingerprintDict = {} # Used for INFILE method
         self._UCSDB_file_fingerprintDict = {} # Used for INFILE method
@@ -88,6 +112,7 @@ class Database:
                 use_unicode=True
                 )
             self.c = self.conn.cursor()
+            self.cdict = self.conn.cursor(dictionary=True)
 
             # Need a cursor for each prepared statement
             # TODO: Probably don't need prepared statements for all of these
@@ -97,6 +122,11 @@ class Database:
             self.c_selectObserver_query = self.conn.cursor(prepared=True)
             self.c_updateObserverNonce_query = self.conn.cursor(prepared=True)
             self.c_updateObserverJWT_query = self.conn.cursor(prepared=True)
+            self.c_updateObserverUsername_query = self.conn.cursor(prepared=True)
+            self.c_updateObserverEmail_query = self.conn.cursor(prepared=True)
+            self.c_updateObserverBio_query = self.conn.cursor(prepared=True)
+            self.c_updateObserverLocation_query = self.conn.cursor(prepared=True)
+            self.c_updateObserverprivate_query = self.conn.cursor(prepared=True)
             self.c_getObserverNonce_query = self.conn.cursor(prepared=True)
             self.c_getObserverJWT_query = self.conn.cursor(prepared=True)
             self.c_getObservationCount_query = self.conn.cursor(prepared=True)
@@ -104,9 +134,9 @@ class Database:
             self.c_getCommunityObservationByMonth_query = self.conn.cursor(prepared=True)
             self.c_getObserverCountByID_query = self.conn.cursor(prepared=True)
             self.c_getRecentObservations_query = self.conn.cursor(prepared=True)
-            self.c_getPriorityObservations_query = self.conn.cursor(prepared=True)
             self.c_selectTLEFile_query = self.conn.cursor(prepared=True)
             self.c_selectTLEFingerprint_query = self.conn.cursor(prepared=True)
+            self.c_selectIODFingerprint_query = self.conn.cursor(prepared=True)
             self.c_addTLE_query = self.conn.cursor(prepared=True)
             self.c_addTLEFile_query = self.conn.cursor(prepared=True)
             self.c_addSATCAT_query = self.conn.cursor(prepared=True)
@@ -116,7 +146,6 @@ class Database:
             try:
                 self.c_selectObserverID_query.execute(self.selectObserverID_query, [])
                 self._new_observerid = self.c_selectObserverID_query.fetchone()[0]
-                print(self._new_observerid)
             except Exception as e:
                 log.error("Could not get ObserverID: {}".format(e))
                 self._new_observerid = 0
@@ -128,28 +157,23 @@ class Database:
         # Predefined queries - In the case of sqlserver, prepared statements accelerate / secure import queries
         #  %s only works for sqlserver, ? works for both sqlite and sqlserver
         self.addStation_query = None
-        self.addObserver_query = '''INSERT INTO Observer(
-            id,
-            eth_addr,
-            verified,
-            reputation,
-            reference
-        ) VALUES(?,?,?,?,?)'''
+        self.addObserver_query = '''INSERT INTO Observer(id, eth_addr, name, reputation, reference) VALUES(?,?,?,?,?)'''
         self.selectObserver_query = '''SELECT id FROM Observer WHERE verified LIKE ? LIMIT 1'''
         self.updateObserverNonce_query = '''UPDATE Observer SET nonce=? WHERE eth_addr=?'''
         self.updateObserverJWT_query = '''UPDATE Observer SET jwt=?, password=? WHERE eth_addr=?'''
+        self.updateObserverUsername_query = '''UPDATE Observer SET name=? WHERE eth_addr=?'''
+        self.updateObserverEmail_query = '''UPDATE Observer SET reference=? WHERE eth_addr=?'''
+        self.updateObserverBio_query = '''UPDATE Observer SET bio=? WHERE eth_addr=?'''
         self.getObserverNonce_query = '''SELECT nonce FROM Observer WHERE eth_addr=?'''
         self.getObserverJWT_query = '''SELECT jwt FROM Observer WHERE eth_addr=?'''
-        self.getObservationCount_query = '''SELECT object_number, COUNT(object_number) as querycount from ParsedIOD GROUP BY object_number order by querycount DESC'''
-        self.getObserverProfile_query = '''SELECT '''
-        self.getObserverObservationCount_query = '''SELECT COUNT(id) FROM ParsedIOD WHERE obs_id=?'''
-        self.getCommunityObservationByYear_query = '''SELECT YEAR(obs_time), COUNT(*) as querycount from ParsedIOD GROUP BY YEAR(obs_time) order by YEAR(obs_time) ASC'''
-        self.getCommunityObservationByMonth_query = '''SELECT MONTH(obs_time), COUNT(*) as querycount from ParsedIOD GROUP BY MONTH(obs_time) order by MONTH(obs_time) ASC'''
-        self.getObserverCountByID_query = '''SELECT id, COUNT(*)from Observer WHERE eth_addr=?'''
-        self.getRecentObservations_query = '''SELECT * FROM ParsedIOD ORDER BY obs_time DESC LIMIT 5'''
-        self.getPriorityObservations_query = '''SELECT obs_time, user_string FROM ParsedIOD ORDER BY obs_time ASC LIMIT 10'''
+        self.getObservationCount_query = '''SELECT object_number, COUNT(object_number) as querycount from ParsedIOD where valid_position>0 GROUP BY object_number order by querycount DESC'''
+        self.getCommunityObservationByYear_query = '''SELECT YEAR(obs_time), COUNT(*) as querycount from ParsedIOD where valid_position>0 GROUP BY YEAR(obs_time) order by YEAR(obs_time) ASC'''
+        self.getCommunityObservationByMonth_query = '''SELECT MONTH(obs_time), COUNT(*) as querycount from ParsedIOD where valid_position>0 GROUP BY MONTH(obs_time) order by MONTH(obs_time) ASC'''
+        self.getObserverCountByID_query = '''SELECT id, COUNT(*) from Observer WHERE eth_addr=?'''
+        self.getRecentObservations_query = '''SELECT * FROM ParsedIOD where valid_position>0 ORDER BY obs_time DESC LIMIT 5'''
         self.selectTLEFile_query = '''SELECT file_fingerprint FROM TLEFILE WHERE file_fingerprint LIKE ? LIMIT 1'''
         self.selectTLEFingerprint_query = '''SELECT tle_fingerprint FROM TLE WHERE tle_fingerprint LIKE ? LIMIT 1'''
+        self.selectIODFingerprint_query = '''SELECT obsFingerPrint FROM ParsedIOD WHERE obsFingerPrint LIKE ? LIMIT 1'''
         self.addParsedIOD_query = '''INSERT INTO ParsedIOD (
             submitted,
             user_string,
@@ -282,7 +306,7 @@ class Database:
 
         """ ParsedIOD """
         createquery = '''CREATE TABLE IF NOT EXISTS ParsedIOD (
-            obs_id                      INT NOT NULL  PRIMARY KEY ''' + self.increment + ''',
+            obs_id                      INT NOT NULL ''' + self.increment + ''',
             submitted                   DATETIME,   
             user_string                 TEXT, 
             object_number               MEDIUMINT(5) UNSIGNED,
@@ -313,33 +337,104 @@ class Database:
             valid_position              BOOL,
             message_id                  TEXT,
             obsFingerPrint              CHAR(32) NOT NULL UNIQUE,
-            import_timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+            import_timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            PRIMARY KEY (`obs_id`),
+            UNIQUE KEY `ParsedIOD_obsFingerPrint_idx` (`obsFingerPrint`),
+            KEY `ParsedIOD_user_string_40_idx` (`user_string`(40)) USING BTREE,
+            KEY `ParsedIOD_object_number_idx` (`object_number`) USING BTREE,
+            KEY `ParsedIOD_international_designation_idx` (`international_designation` (14)) USING BTREE,
+            KEY `ParsedIOD_station_number_idx` (`station_number`) USING BTREE,
+            KEY `ParsedIOD_obs_time_idx` (`obs_time`) USING BTREE,
+            KEY `ParsedIOD_valid_position_idx` (`valid_position`) USING BTREE
             )''' + self.charset_string
         self.c.execute(createquery)
 
+        # Requires setting log_bin_trust_function_creators=1 on the AWS RDS instance
+        # https://stackoverflow.com/a/30874794
+        # Note we're counting on iod.py to set object_number to 0 if it is not available (UK/RDE formats)
+        create_trigger_query = """CREATE TRIGGER IF NOT EXISTS add_object_number
+            BEFORE INSERT ON ParsedIOD FOR EACH ROW 
+            BEGIN
+                IF NEW.object_number = 0 THEN 
+                    SET NEW.object_number = (
+                    SELECT celestrak_SATCAT.norad_num from celestrak_SATCAT
+                    WHERE NEW.international_designation = celestrak_SATCAT.intl_desg LIMIT 1);
+                END IF;
+            END;"""
+        self.c.execute(create_trigger_query)
+
+        # Note we're counting on iod.py to set international designation to "?" if it's questionable
+        create_trigger_query = """CREATE TRIGGER IF NOT EXISTS add_international_designation
+            BEFORE INSERT ON ParsedIOD FOR EACH ROW 
+            BEGIN
+                IF NEW.international_designation = "?" THEN 
+                    SET NEW.international_designation = (
+                    SELECT celestrak_SATCAT.intl_desg from celestrak_SATCAT
+                    WHERE NEW.object_number = celestrak_SATCAT.norad_num LIMIT 1);
+                END IF;
+            END;"""
+        self.c.execute(create_trigger_query)
+
         """ Station """
-        createquery = '''CREATE TABLE IF NOT EXISTS Station (
-            id          INTEGER PRIMARY KEY''' + self.increment + ''',
-            station_id  SMALLINT(4) UNSIGNED NOT NULL,
-            eth_addr    CHAR(42),
-            latitude    DOUBLE,
-            longitude   DOUBLE,
-            altitude    SMALLINT
-        )''' + self.charset_string
+        createquery = """CREATE TABLE IF NOT EXISTS Station (
+            station_num INT UNSIGNED NOT NULL,
+            initial TINYTEXT,
+            latitude FLOAT,
+            longitude FLOAT,
+            elevation_m SMALLINT(4),
+            name TINYTEXT,
+            MPC TINYTEXT,
+            details TINYTEXT,
+            preferred_format TINYTEXT,
+            source_url TINYTEXT,
+            notes TINYTEXT,
+            user INT,
+            KEY Station_station_num_idx (station_num) USING BTREE,
+            KEY Station_user_idx (user) USING BTREE,
+            KEY Station_user_station_idx (user, station_num)
+            )""" + self.charset_string
         self.c.execute(createquery)
 
+        """ Station Status """
+        createquery = """CREATE TABLE IF NOT EXISTS station_status (
+            code                ENUM('B','C','E','F','G','O','P','T') NOT NULL,
+            short_description   TINYTEXT DEFAULT NULL,
+            description         TINYTEXT DEFAULT NULL,
+            KEY station_status_code_id (code) USING BTREE
+            )""" + self.charset_string
+        self.c.execute(createquery)
+
+        """ Station Status contents """
+        insertquery = """INSERT INTO station_status (code, short_description, description) VALUES 
+            ('E', 'excellent', 'no Moon/clouds, great seeing, minimal air/light pollution'),
+            ('G', 'good', 'no Moon/clouds, conditions could be better, but not much'),
+            ('F', 'fair     ', 'young/old Moon, some air/light pollution making fainter stars invisible'),
+            ('P', 'poor', 'gibbous Moon, haze, more air/light pollution making more stars invisible'),
+            ('B', 'bad', 'bright Moon, air/light pollution, some clouds; difficult'),
+            ('T', 'terrible', 'bright Moon, air/light pollution, looking through clouds'),
+            ('C', 'clouded out', 'station unavailable'),
+            ('O', 'sky clear, but observer not available', 'station unavailable');"""
+        self.c.execute(insertquery)
+
         """ Observer """
-        createquery = '''CREATE TABLE IF NOT EXISTS Observer (
-            id          INTEGER PRIMARY KEY''' + self.increment + ''',
-            eth_addr    CHAR(42),
-            verified    TEXT,
+        createquery = """CREATE TABLE IF NOT EXISTS Observer (
+            id          INTEGER PRIMARY KEY''' + self.increment + ''', /* Internal ID  */
+            eth_addr    CHAR(42), /* Ethereum address for user */
+            verified    TEXT,     /* FIXME: Deprecated? Move to Observer_email table? */
             reputation  INTEGER,
-            reference   TEXT,
+            reference   TEXT,     /* Internal user ref notes for SeeSat archive */
             nonce       INTEGER,
             jwt         TEXT,
             password    TEXT,
-            jwt_secret  CHAR(78)
-            )''' + self.charset_string
+            jwt_secret  CHAR(78),
+            location    TINYTEXT, /* User-specified (publicly visible) location */
+            bio         TEXT,     /* User-specified (publicly visible) bio */
+            url_profile TEXT, /* Profile URL - notionally gravitar or similar. FIXME: need to protect for exploits */
+            url_image   TEXT, /* Profile Image URL - notionally gravitar or similar. FIXME: need to protect for exploits */
+            KEY `Observer_id_idx` (`id`) USING BTREE,
+            KEY `Observer_eth_addr_idx` (`eth_addr`) USING BTREE,
+            KEY `Observer_reputation_idx` (`reputation`) USING BTREE
+            )""" + self.charset_string
         self.c.execute(createquery)
         self.conn.commit()
 
@@ -355,20 +450,20 @@ class Database:
             line2                       TINYTEXT,
 
             sat_name                    TINYTEXT,
-            satellite_number            MEDIUMINT,
+            satellite_number            MEDIUMINT NOT NULL,
             classification              CHAR(1),
             designation                 CHAR(24),
-            epoch                       DATETIME,
+            epoch                       DATETIME NOT NULL,
             mean_motion_derivative      DOUBLE,
             mean_motion_sec_derivative  DOUBLE,
             bstar                       DOUBLE,
             ephemeris_type              TINYINT,
             element_set_number          MEDIUMINT,
-            inclination                 DOUBLE,
+            inclination                 DOUBLE NOT NULL,
             inclination_radians         DOUBLE,
             raan_degrees                DOUBLE,
             raan_radians                DOUBLE,
-            eccentricity                DOUBLE,
+            eccentricity                DOUBLE NOT NULL,
             arg_perigee_degrees         DOUBLE,
             arg_perigee_radians         DOUBLE,
             mean_anomaly_degrees        DOUBLE,
@@ -382,7 +477,12 @@ class Database:
             strict_import               BOOL,
             tle_fingerprint             CHAR(32) NOT NULL,
             file_fingerprint            CHAR(32),
-            import_timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+            import_timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            KEY `TLE_epoch_idx` (`epoch`) USING BTREE,
+            KEY `TLE_sat_name_idx` (`sat_name`(24)) USING BTREE,
+            KEY `TLE_tle_fingerprint_idx` (`tle_fingerprint`(33)) USING BTREE,
+            KEY `TLE_file_fingerprint_idx` (`file_fingerprint`(33)) USING BTREE,
+            KEY `TLE_norad_idx` (`satellite_number`) USING BTREE
         )''' + self.charset_string
         self.c.execute(createquery)
         self.conn.commit()
@@ -391,7 +491,8 @@ class Database:
             file_id                 INTEGER PRIMARY KEY''' + self.increment + ''',
             file_fingerprint        CHAR(32) NOT NULL,
             source_filename         TINYTEXT,
-            import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+            import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            KEY `TLEFILE_file_fingerprint_33_idx` (`file_fingerprint`(33)) USING BTREE
         )''' + self.charset_string
         self.c.execute(createquery)
         self.conn.commit()
@@ -403,7 +504,7 @@ class Database:
 
         # TODO: make another table from the multiple_name_flag data in https://celestrak.com/pub/satcat-annex.txt
         createquery = '''CREATE TABLE IF NOT EXISTS celestrak_SATCAT (
-            satcat_id              INTEGER ''' + self.increment + ''',
+            satcat_id               INTEGER ''' + self.increment + ''',
             intl_desg               VARCHAR(11) NOT NULL,
             norad_num               MEDIUMINT UNSIGNED NOT NULL,
             multiple_name_flag      TINYINT(1) UNSIGNED NOT NULL,
@@ -421,7 +522,12 @@ class Database:
             orbit_status_code       CHAR(3),
             line_fingerprint        CHAR(32) NOT NULL,
             file_fingerprint        CHAR(32) NOT NULL,
-            import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+            import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            PRIMARY KEY (`satcat_id`),
+            KEY `celestrak_SATCAT_intl_desg_idx` (`intl_desg`(11)) USING BTREE,
+            KEY `celestrak_SATCAT_norad_num_idx` (`norad_num`) USING BTREE,
+            KEY `celestrak_SATCAT_name_idx` (`name`) USING BTREE,
+            KEY `celestrak_SATCAT_orbit_status_code_idx` (`orbit_status_code`) USING BTREE
         )''' + self.charset_string
         self.c.execute(createquery)
 
@@ -471,13 +577,16 @@ class Database:
             source_7 text DEFAULT NULL,
             line_fingerprint        CHAR(32) NOT NULL,
             file_fingerprint        CHAR(32) NOT NULL,
-            import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+            import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            KEY `ucs_SATDB_satdb_id_idx` (`satdb_id`) USING BTREE,
+            KEY `ucs_SATDB_norad_number_idx` (`norad_number`) USING BTREE,
+            KEY `ucs_SATDB_international_designator_idx` (`international_designator`(11)) USING BTREE
         )''' + self.charset_string
         self.c.execute(createquery)
         self.conn.commit()
 
 
-    def addParsedIOD(self, entryList, user_string, submit_time):
+    def addParsedIOD(self, entryList, user_string, submit_time, fast_import = False):
         """ Add an IOD entry to the database """
         for entry in entryList:
             # Create fingerprint string from the time and position data only
@@ -493,49 +602,58 @@ class Database:
                 log.error("unknown type specified to {}".format(__name__))
 
             obsFingerPrint = md5(obsFingerPrintString.encode('utf-8')).hexdigest()
-            newentryTuple = (
-                    submit_time,
-                    user_string,
-                    entry.ObjectNumber,
-                    entry.InternationalDesignation,
-                    entry.Station,
-                    entry.StationStatusCode,
-                    entry.DateTimeString,
-                    entry.DateTime,
-                    entry.TimeUncertainty,
-                    entry.TimeStandardCode,
-                    entry.AngleFormatCode,
-                    entry.EpochCode,
-                    entry.Epoch,
-                    entry.RA,
-                    entry.DEC,
-                    entry.AZ,
-                    entry.EL,
-                    entry.PositionUncertainty,
-                    entry.OpticalCode,
-                    entry.VisualMagnitude,
-                    entry.VisualMagnitude_high,
-                    entry.VisualMagnitude_low,
-                    entry.MagnitudeUncertainty,
-                    entry.FlashPeriod,
-                    entry.Remarks,
-                    entry.IODType,
-                    entry.line,
-                    entry.ValidPosition,
-                    entry.message_id,
-                    obsFingerPrint,
-                    )
 
-            if self._dbtype == "INFILE": # Make CSV files
-                self._writer_ParsedIOD.writerow(newentryTuple)
-            elif self._dbtype == "sqlite":
-                try:
-                    self.c.execute(self.addParsedIOD_query,newentryTuple)
-                except sqlite3.IntegrityError as e:
-                    log.error("{}".format(e))
+            if(self.selectIODFingerprint(obsFingerPrint)):     
+                log.warning(" Skipping IOD - fingerprint {} already in database.".format(obsFingerPrint))   
+                if (fast_import):
+                    log.warning(" ...fast import set, skipping IODs in rest of message.")
+                    return False
+                else:
+                    continue # Already have the IOD
             else:
-                self._IODentryList.append(newentryTuple)
-        return self._obsid
+                newentryTuple = (
+                        submit_time,
+                        user_string,
+                        entry.ObjectNumber,
+                        entry.InternationalDesignation,
+                        entry.Station,
+                        entry.StationStatusCode,
+                        entry.DateTimeString,
+                        entry.DateTime,
+                        entry.TimeUncertainty,
+                        entry.TimeStandardCode,
+                        entry.AngleFormatCode,
+                        entry.EpochCode,
+                        entry.Epoch,
+                        entry.RA,
+                        entry.DEC,
+                        entry.AZ,
+                        entry.EL,
+                        entry.PositionUncertainty,
+                        entry.OpticalCode,
+                        entry.VisualMagnitude,
+                        entry.VisualMagnitude_high,
+                        entry.VisualMagnitude_low,
+                        entry.MagnitudeUncertainty,
+                        entry.FlashPeriod,
+                        entry.Remarks,
+                        entry.IODType,
+                        entry.line,
+                        entry.ValidPosition,
+                        entry.message_id,
+                        obsFingerPrint,
+                        )
+
+                if self._dbtype == "INFILE": # Make CSV files
+                    self._writer_ParsedIOD.writerow(newentryTuple)
+                elif self._dbtype == "sqlite":
+                    try:
+                        self.c.execute(self.addParsedIOD_query,newentryTuple)
+                    except sqlite3.IntegrityError as e:
+                        log.error("{}".format(e))
+                else:
+                    self._IODentryList.append(newentryTuple)
+        return len(self._IODentryList)
         # return self.c_addParsedIOD.lastrowid
 
 
@@ -547,7 +665,7 @@ class Database:
             eth_addr, 
             verification,
             reputation,
-            reference):
+            first_line):
 
         self._new_observerid += 1
 
@@ -556,7 +674,7 @@ class Database:
             eth_addr,
             verification,
             reputation,
-            reference
+            first_line
             )
     
         if self._dbtype == "INFILE": # Make CSV files
@@ -697,6 +815,75 @@ class Database:
                 log.error("MYSQL ERROR: {}".format(e))
         return True
 
+    def updateObserverNonce(self, nonce, public_address):
+        if self._dbtype == "INFILE":
+            try:
+                results = (self.updateObserverNonce_query, [nonce, public_address])
+            except KeyError:
+                results = None
+        elif self._dbtype == "sqlite":
+            self.c.execute(self.updateObserverNonce_query, [nonce, public_address])
+            results = self.c.fetchone()
+        else:
+            self.c_updateObserverNonce_query.execute(self.updateObserverNonce_query, [nonce, public_address])
+            self.conn.commit()
+        return True
+
+    def updateObserverJWT(self, jwt, password, public_address):
+        if self._dbtype == "INFILE":
+            try:
+                results = (self.updateObserverJWT_query, [jwt, password, public_address])
+            except KeyError:
+                results = None
+        elif self._dbtype == "sqlite":
+            self.c.execute(self.updateObserverJWT_query, [jwt, password, public_address])
+            results = self.c.fetchone()
+        else:
+            self.c_updateObserverJWT_query.execute(self.updateObserverJWT_query, [jwt, password, public_address])
+            self.conn.commit()
+        return True
+
+    def updateObserverUsername(self, username, public_address):
+        if self._dbtype == "INFILE":
+            try:
+                results = (self.updateObserverUsername_query, [username, public_address])
+            except KeyError:
+                results = None
+        elif self._dbtype == "sqlite":
+            self.c.execute(self.updateObserverUsername_query, [username, public_address])
+            results = self.c.fetchone()
+        else:
+            self.c_updateObserverUsername_query.execute(self.updateObserverUsername_query, [username, public_address])
+            self.conn.commit()
+
+    def updateObserverEmail(self, email, public_address):
+        if self._dbtype == "INFILE":
+            try:
+                results = (self.updateObserverEmail_query, [email, public_address])
+            except KeyError:
+                results = None
+        elif self._dbtype == "sqlite":
+            self.c.execute(self.updateObserverEmail_query, [email, public_address])
+            results = self.c.fetchone()
+        else:
+            self.c_updateObserverEmail_query.execute(self.updateObserverEmail_query, [email, public_address])
+            self.conn.commit()
+        return True
+
+    def updateObserverBio(self, bio, public_address):
+        if self._dbtype == "INFILE":
+            try:
+                results = (self.updateObserverBio_query, [bio, public_address])
+            except KeyError:
+                results = None
+        elif self._dbtype == "sqlite":
+            self.c.execute(self.updateObserverBio_query, [bio, public_address])
+            results = self.c.fetchone()
+        else:
+            self.c_updateObserverBio_query.execute(self.updateObserverBio_query, [bio, public_address])
+            self.conn.commit()
+        return True
+
 
     def selectObserver(self, observer_name):
         """ Look up an observer by (name/email string) in database or internal dictionary"""
@@ -713,37 +900,6 @@ class Database:
             results = self.c_selectObserver_query.fetchone()
         return results
 
-    def updateObserverNonce(self, nonce, public_address):
-        """ GET OBSERVER NONCE """
-        if self._dbtype == "INFILE":
-            try:
-                results = (self.updateObserverNonce_query, [nonce, public_address])
-            except KeyError:
-                results = None
-        elif self._dbtype == "sqlite":
-            self.c.execute(self.updateObserverNonce_query, [nonce, public_address])
-            results = self.c.fetchone()
-        else:
-            self.c_updateObserverNonce_query.execute(self.updateObserverNonce_query, [nonce, public_address])
-            results = self.c_updateObserverNonce_query.fetchone()
-            self.conn.commit()
-        return results
-
-    def updateObserverJWT(self, jwt, password, eth_addr):
-        if self._dbtype == "INFILE":
-            try:
-                results = (self.updateObserverJWT_query, [jwt, password, eth_addr])
-            except KeyError:
-                results = None
-        elif self._dbtype == "sqlite":
-            self.c.execute(self.updateObserverNonce_query, [jwt, password, eth_addr])
-            results = self.c.fetchone()
-        else:
-            self.c_updateObserverJWT_query.execute(self.updateObserverJWT_query, [jwt, password, eth_addr])
-            results = self.c_updateObserverJWT_query.fetchone()
-            self.conn.commit()
-        return results
-
     def getObserverNonce(self, public_address):
         """ GET OBSERVER NONCE """
         if self._dbtype == "INFILE":
@@ -757,7 +913,6 @@ class Database:
         else:
             self.c_getObserverNonce_query.execute(self.getObserverNonce_query, [public_address])
             results = self.c_getObserverNonce_query.fetchone()
-            self.conn.commit()
         return results
 
     def getObserverJWT(self, public_address):
@@ -851,20 +1006,6 @@ class Database:
             results = self.c_getRecentObservations_query.fetchall()
         return results        
 
-    def getPriorityObservations(self):
-        """ GET PRIORITY OBSERVATIONS """
-        if self._dbtype == "INFILE":
-            try:
-                results = (self.getPriorityObservations_query, [])
-            except KeyError:
-                results = None
-        elif self._dbtype == "sqlite":
-            self.c.execute(self.getPriorityObservations_query, [])
-            results = self.c.fetchall()
-        else:
-            self.c_getPriorityObservations_query.execute(self.getPriorityObservations_query, [])
-            results = self.c_getPriorityObservations_query.fetchall()
-        return results        
 
     def selectTLEFile(self, tle_file_fingerprint):
         """Query to see if a TLE file is already in the database."""
@@ -897,6 +1038,22 @@ class Database:
             results = self.c_selectTLEFingerprint_query.fetchone()
         return results
 
+    def selectIODFingerprint(self, iod_fingerprint):
+        """Query to see if a specific IOD is already in the database"""
+        if self._dbtype == "INFILE": # Manage array
+            if (iod_fingerprint not in self._iod_line_fingerprintDict):
+                results = None
+            else:
+                results = self._iod_line_fingerprintDict[iod_fingerprint]
+        elif self._dbtype == "sqlite":
+            self.c.execute(self.selectIODFingerprint_query, [iod_fingerprint])
+            results = self.c.fetchone()
+        else:
+            self.c_selectIODFingerprint_query.execute(self.selectIODFingerprint_query, [iod_fingerprint])
+            results = self.c_selectIODFingerprint_query.fetchone()
+        return results
+
+
     def selectTLEEpochBeforeDate(self, query_epoch_datetime, satellite_number):
         """Query to return the first TLE with epoch prior to specified date for a specific satellite number"""
         self.selectTLEEpochBeforeDate_query = "SELECT * FROM TLE WHERE epoch <= '{}' AND satellite_number={} ORDER BY epoch DESC LIMIT 1".format(query_epoch_datetime, satellite_number)
@@ -915,39 +1072,672 @@ class Database:
         self.c.execute(self.selectTLEEpochNearestDate_query)
         return self.c.fetchone()
 
-    def selectGlobalPriorities(self):
-        """Query to return priority observations.
 
-        Since we don't have priorities in the database yet, just return a number for the column.
-        For now, this one is sorted on most recent observations to create something dynamic and interesting.
-
-        """
-        query_tmp = "select '3' as Priority, celestrak_SATCAT.name, ucs_SATDB.country_owner, ucs_SATDB.purpose, ucs_SATDB.purpose_detailed, ParsedIOD.obs_time, ParsedIOD.user_string from celestrak_SATCAT, ucs_SATDB, ParsedIOD where decay_date='0000-00-00' and celestrak_SATCAT.norad_num=ucs_SATDB.norad_number and celestrak_SATCAT.norad_num = ParsedIOD.object_number and valid_position=1 order by obs_time DESC limit 10"
+    def selectObservationHistory_JSON(self, fetch_row_count=10, offset_row_count=0):
+        query_tmp = """SELECT Json_Object(
+            'time_submitted',ParsedIOD.obs_time,
+            'object_name',celestrak_SATCAT.name,
+            'right_ascension', ParsedIOD.ra,
+            'declination', ParsedIOD.declination,
+            'conditions', station_status.short_description)
+            FROM ParsedIOD
+            LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.norad_num 
+            LEFT JOIN station_status ON ParsedIOD.station_status_code = station_status.code
+            WHERE valid_position = 1
+            ORDER BY obs_time DESC
+            LIMIT {OFFSET},{FETCH};""".format(
+                OFFSET=offset_row_count,
+                FETCH=fetch_row_count)
         self.c.execute(query_tmp)
-        return self.c.fetchall()
+        return stringArrayToJSONArray(self.c.fetchall())
 
-    def selectGlobalPriorities_JSON(self):
-        """Query to return priority observations in JSON format.
-
-        Since we don't have priorities in the database yet, just return a number for the column.
-        For now, this one is sorted on most recent observations to create something dynamic and interesting.
-
-        """
-        query_tmp = "select Json_Array('3' as Priority, celestrak_SATCAT.name, ucs_SATDB.country_owner, ucs_SATDB.purpose, ucs_SATDB.purpose_detailed, ParsedIOD.obs_time, ParsedIOD.user_string) from celestrak_SATCAT, ucs_SATDB, ParsedIOD where decay_date='0000-00-00' and celestrak_SATCAT.norad_num=ucs_SATDB.norad_number and celestrak_SATCAT.norad_num = ParsedIOD.object_number and valid_position=1 order by obs_time DESC limit 10"
+    def selectObjectHistoryByMonth_JSON(self, norad_number, year, month):
+        query_tmp = """SELECT Json_Object(
+            'observation_time', UNIX_TIMESTAMP(obs_time),
+            'username', user_string,
+            'user_address', 'FILLER',
+            'user_location', station_number,
+            'observation_quality', station_status_code,
+            'observation_time_difference', '1.42',
+            'observation_weight', '5')
+            FROM ParsedIOD
+            WHERE object_number={NORAD_NUMBER}
+            AND Year(obs_time)={YEAR}
+            AND Month(obs_time)={MONTH}
+            ORDER BY obs_time DESC""".format(
+                    NORAD_NUMBER=norad_number,
+                    YEAR=year,
+                    MONTH=month)
         self.c.execute(query_tmp)
-        return self.c.fetchall()
+        return stringArrayToJSONArray(self.c.fetchall())
 
-    def selectObservationHistory_JSON(self):
+    # Supports user profile https://consensys-cpl.atlassian.net/browse/MVP-311
+    # /object/history https://consensys-cpl.atlassian.net/browse/MVP-334
+    def selectObjectHistory_summary(self, norad_num):
+        query_tmp = """SELECT 
+            YEAR(obs_time) as observation_year,
+            MONTH(obs_time) as observation_month,
+            DAYOFMONTH(obs_time) as observation_day
+            FROM ParsedIOD
+            WHERE object_number = {NORAD_NUM}
+            AND valid_position=1
+            GROUP BY observation_year, observation_month, observation_day
+            ORDER BY observation_year DESC, observation_month ASC, observation_day ASC;""".format(
+                NORAD_NUM=norad_num)
+        self.c.execute(query_tmp)
+        try:
+            return self.c.fetchall()
+        except:
+            return None
+
+    def selectUserStations_JSON(self, eth_addr):
+        query_tmp = """SELECT Json_Object(
+            'station_number', Station.station_num,
+            'station_observation_count', '1', /* FIXME:  Add a station observation count to this list */
+            'station_initials', Station.initial,
+            'station_latitude', Station.latitude,
+            'station_longitude', Station.longitude,
+            'station_elevation_m', Station.elevation_m,
+            'station_name', Station.name,
+            'station_details', Station.details)
+            FROM Station
+            JOIN Observer ON Observer.id = Station.user 
+            WHERE Observer.eth_addr = '{ETH_ADDR}'
+            ORDER BY Station.station_num ASC;""".format(
+                ETH_ADDR=eth_addr)
+        try:
+            self.c.execute(query_tmp)
+            return stringArrayToJSONArray(self.c.fetchall())
+        except:
+            return None
+
+
+    def selectProfileInfo_JSON(self, eth_addr):
+        # TODO: Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
+        avg_obs_quality = random.randint(1,99) # FIXME: Replace with real data: 
+
+        # Get unique list of observed objects for this user
+        # TODO: Seems like there's a way to get a count in the query instead of counting the result in python
+        query_tmp_num_obj_tracked = """SELECT ParsedIOD.object_number
+            FROM ParsedIOD
+            JOIN Station ON ParsedIOD.station_number = Station.station_num 
+            JOIN Observer ON Observer.id = Station.user 
+            WHERE Observer.eth_addr = '{ETH_ADDR}'
+            GROUP BY ParsedIOD.object_number;""".format(ETH_ADDR=eth_addr)
+        self.c.execute(query_tmp_num_obj_tracked)
+        try:
+            obj_tracked = self.c.fetchall()
+            num_obj_tracked = len(obj_tracked)
+        except:
+            num_obj_tracked = 0
+
+        # Get count of observations for this user
+        query_tmp_obs_count = """SELECT COUNT(ParsedIOD.object_number) as obs_count
+            FROM ParsedIOD
+            JOIN Station ON ParsedIOD.station_number = Station.station_num 
+            JOIN Observer ON Observer.id = Station.user 
+            WHERE Observer.eth_addr = '{ETH_ADDR}';""".format(ETH_ADDR=eth_addr)
+        self.c.execute(query_tmp_obs_count)
+        try:
+            [(obs_count)] = self.c.fetchone()
+        except:
+            obs_count = 0
+
+        query_tmp = """SELECT Json_Object(
+            'user_name', Observer.name,
+            'email', Observer.reference,
+            'user_address', Observer.eth_addr,
+            'user_location', Observer.location,
+            'number_objects_tracked', '{NUM_OBJ_TRACKED}',
+            'observation_count', '{OBS_COUNT}',
+            'average_observation_quality', '{AVG_OBS_QUALITY}',
+            'user_bio', Observer.bio,
+            'user_image', Observer.url_image)
+            FROM Observer
+            WHERE Observer.eth_addr = '{ETH_ADDR}'
+            LIMIT 1;""".format(
+                NUM_OBJ_TRACKED=num_obj_tracked, 
+                OBS_COUNT=obs_count, 
+                AVG_OBS_QUALITY=avg_obs_quality,
+                ETH_ADDR=eth_addr)
+        self.c.execute(query_tmp)
+        return QueryRowToJSON(self.c.fetchone())
+            
+    # Supports user profile https://consensys-cpl.atlassian.net/browse/MVP-311
+    # Notes about endpoint https://consensys-cpl.atlassian.net/browse/MVP-328
+    def selectUserObservationHistory_JSON(self, eth_addr, fetch_row_count=10, offset_row_count=0):
+        # TODO: Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
+        quality = random.randint(1,99)
+        time_difference = random.uniform(-5,5)
+        obs_weight = random.random()
+
+        query_tmp = """SELECT Json_Object(
+            'observation_time',ParsedIOD.obs_time,
+            'object_name',celestrak_SATCAT.name,
+            'station_number', Obs.station_num,
+            'object_norad_number', ParsedIOD.object_number,
+            'observation_quality', '{QUALITY}', 
+            'observation_time_difference', '{TIME_DIFF}', 
+            'observation_weight', '{OBS_WEIGHT}'),
+            'observation_iod', ParsedIOD.iod_string
+            )
+            FROM ParsedIOD
+            JOIN (SELECT 
+                    Station.station_num as station_num, 
+                    Station.user as station_user, 
+                    Observer.id as obs_id, 
+                    Observer.eth_addr as eth_addr, 
+                    Observer.name as user_name 
+                    FROM Station,Observer 
+                    WHERE Station.user = Observer.id 
+                    AND Observer.eth_addr = '{ETH_ADDR}'
+                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
+            LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.norad_num 
+            LEFT JOIN station_status ON ParsedIOD.station_status_code = station_status.code
+            WHERE valid_position = 1
+            ORDER BY obs_time DESC
+            LIMIT {OFFSET},{FETCH};""".format(
+                QUALITY=quality, 
+                TIME_DIFF=time_difference, 
+                OBS_WEIGHT=obs_weight, 
+                ETH_ADDR=eth_addr,
+                OFFSET=offset_row_count,
+                FETCH=fetch_row_count)
+        self.c.execute(query_tmp)
+        return stringArrayToJSONArray(self.c.fetchall())
+
+    def selectUserObjectsObserved_JSON(self, eth_addr, fetch_row_count=10, offset_row_count=0):
+        # FIXME: Fancier query logic needed to get the last eth_addr to track in the summary of a selected-users observations.
+        query_tmp = """SELECT Json_Object(
+            'object_origin', ucs_SATDB.country_owner,
+            'object_type', ucs_SATDB.purpose, 
+            'object_primary_purpose', ucs_SATDB.purpose_detailed, 
+            'object_secondary_purpose', 'Michael to define type, primary and secondary purpose', 
+            'observation_quality', ParsedIOD.station_status_code,
+            'object_name',celestrak_SATCAT.name,
+            'object_norad_number', ParsedIOD.object_number,
+            'time_last_tracked',ParsedIOD.obs_time,
+            'username_last_tracked', Obs.user_name,
+            'address_last_tracked', Obs.eth_addr) 
+            FROM ParsedIOD
+            JOIN (SELECT 
+                    Station.station_num as station_num, 
+                    Station.user as station_user, 
+                    Observer.id as obs_id, 
+                    Observer.eth_addr as eth_addr, 
+                    Observer.name as user_name 
+                    FROM Station,Observer 
+                    WHERE Station.user = Observer.id 
+                    AND Observer.eth_addr = '{ETH_ADDR}'
+                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
+            LEFT JOIN ucs_SATDB ON ParsedIOD.object_number=ucs_SATDB.norad_number
+            LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+            WHERE valid_position = 1
+            ORDER BY obs_time DESC
+            LIMIT {OFFSET},{FETCH};""".format(
+                ETH_ADDR=eth_addr,
+                OFFSET=offset_row_count,
+                FETCH=fetch_row_count)
+        self.c.execute(query_tmp)
+        return stringArrayToJSONArray(self.c.fetchall())
+
+    # https://consensys-cpl.atlassian.net/browse/MVP-311
+    # /profile endpoint for a logged-in user
+    def selectUserProfile(self, eth_addr):
+        user_profile_info = self.selectProfileInfo_JSON(eth_addr)
+        user_stations = self.selectUserStations_JSON(eth_addr)
+        user_objects_observered = self.selectUserObjectsObserved_JSON(eth_addr)
+        user_observation_history = self.selectUserObservationHistory_JSON(eth_addr)
+
+        json_dict = {}
+        json_dict["user_profile_info"] = user_profile_info
+        json_dict["user_stations"] = user_stations
+        json_dict["user_objects_observered"] = user_objects_observered
+        json_dict["user_observation_history"] = user_observation_history 
+
+        return json.dumps(
+            json_dict,
+            sort_keys=False, 
+            indent=4)
+
+
+    def selectObjectsObserved_JSON(self, fetch_row_count=10, offset_row_count=0):
         # TODO Figure out from John if this is user-specific or what the history is in context of
-        query_tmp = "select Json_Object('time_submitted',ParsedIOD.obs_time,'object_name',celestrak_SATCAT.name, 'right_ascension', ParsedIOD.ra, 'declination', ParsedIOD.declination, 'conditions', ParsedIOD.remarks) from celestrak_SATCAT,ParsedIOD where celestrak_SATCAT.norad_num=ParsedIOD.object_number and valid_position=1  order by obs_time DESC limit 10;" 
+        query_tmp = """SELECT Json_Object(
+            'object_origin', ucs_SATDB.country_owner,
+            'primary_purpose', ucs_SATDB.purpose,
+            'object_type', ucs_SATDB.purpose_detailed,
+            'secondary_purpoase', 'Secondary purpose does not exist, the variable is also misspelled.',
+            'observation_quality', ParsedIOD.station_status_code,
+            'time_last_tracked',ParsedIOD.obs_time,
+            'username_last_tracked',ParsedIOD.user_string) 
+            FROM ParsedIOD
+            LEFT JOIN ucs_SATDB ON ParsedIOD.object_number=ucs_SATDB.norad_number
+            WHERE valid_position = 1
+            ORDER BY obs_time DESC
+            LIMIT {OFFSET},{FETCH};""".format(
+                OFFSET=offset_row_count,
+                FETCH=fetch_row_count)
         self.c.execute(query_tmp)
-        return self.c.fetchall()
+        return stringArrayToJSONArray(self.c.fetchall())
 
-    def selectObjectsObserved_JSON(self):
-        # TODO Figure out from John if this is user-specific or what the history is in context of
-        query_tmp = "select Json_Object('object_origin', ucs_SATDB.country_owner, 'primary_purpose', ucs_SATDB.purpose, 'object_type', ucs_SATDB.purpose_detailed, 'secondary_purpoase', 'Secondary purpose does not exist', 'observation_quality', ParsedIOD.remarks, 'time_last_tracked',ParsedIOD.obs_time,'username_last_tracked',ParsedIOD.user_string) from ucs_SATDB,ParsedIOD where ucs_SATDB.norad_number=ParsedIOD.object_number and valid_position=1 order by obs_time DESC limit 10;"
+
+    # /catalog/priorities
+    # https://consensys-cpl.atlassian.net/browse/MVP-323
+    # FIXME: Optimization - this query is slow, because of the Join to Observer not using the index
+    def selectCatalog_Priorities_JSON(self, fetch_row_count=100, offset_row_count=0):
+        # TODO: No priorities in database yet, just sort by reverse obs order for something interesting/different to look at
+        # https://consensys-cpl.atlassian.net/browse/MVP-389
+        # Note: Version using inner joins - which returns null for values which aren't in ucs_SATDB or celestrak_SATCAT
+        query_tmp = """select Json_Object(
+            'object_norad_number', ParsedIOD.object_number, 
+            'object_name', celestrak_SATCAT.name,
+            'object_origin', ucs_SATDB.country_owner, 
+            'object_type', ucs_SATDB.purpose, 
+            'object_purpose', ucs_SATDB.purpose_detailed, 
+            'time_last_tracked', ParsedIOD.obs_time,
+            'address_last_tracked', Obs.eth_addr,
+            'username_last_tracked',Obs.user_name) 
+            FROM ParsedIOD
+            JOIN (SELECT 
+                    Station.station_num as station_num, 
+                    Station.user as station_user, 
+                    Observer.id as obs_id, 
+                    Observer.eth_addr as eth_addr, 
+                    Observer.name as user_name 
+                    FROM Station,Observer 
+                    WHERE Station.user = Observer.id 
+                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
+			LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
+			LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+            WHERE ParsedIOD.valid_position = 1 
+            ORDER BY obs_time DESC
+            LIMIT {OFFSET},{FETCH};""".format(
+                OFFSET=offset_row_count,
+                FETCH=fetch_row_count)
+
         self.c.execute(query_tmp)
-        return self.c.fetchall()
+        return stringArrayToJSONArray(self.c.fetchall())
+
+    # /catalog/undisclosed
+    # https://consensys-cpl.atlassian.net/browse/MVP-324
+    # FIXME: Optimization - this query is slow, because of the Join to Observer not using the index
+    def selectCatalog_Undisclosed_JSON(self, fetch_row_count=100, offset_row_count=0):
+        query_tmp = """select Json_Object(
+            'object_norad_number', ParsedIOD.object_number, 
+            'object_name', celestrak_SATCAT.name,
+            'object_origin', ucs_SATDB.country_owner, 
+            'object_type', ucs_SATDB.purpose, 
+            'object_purpose', ucs_SATDB.purpose_detailed, 
+            'time_last_tracked', ParsedIOD.obs_time,
+            'address_last_tracked', Obs.eth_addr,
+            'username_last_tracked',Obs.user_name) 
+            FROM ParsedIOD
+            JOIN (SELECT 
+                    Station.station_num as station_num, 
+                    Station.user as station_user, 
+                    Observer.id as obs_id, 
+                    Observer.eth_addr as eth_addr, 
+                    Observer.name as user_name 
+                    FROM Station,Observer 
+                    WHERE Station.user = Observer.id 
+                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
+			JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
+			JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+            WHERE ParsedIOD.valid_position = 1 
+            AND celestrak_SATCAT.orbit_status_code = 'NEA'
+            GROUP BY ParsedIOD.object_number
+            ORDER BY obs_time DESC
+            LIMIT {OFFSET},{FETCH};""".format(
+                OFFSET=offset_row_count,
+                FETCH=fetch_row_count)
+
+        self.c.execute(query_tmp)
+        return stringArrayToJSONArray(self.c.fetchall())
+
+    # /catalog/debris
+    # https://consensys-cpl.atlassian.net/browse/MVP-325
+    def selectCatalog_Debris_JSON(self, fetch_row_count=100, offset_row_count=0):
+        query_tmp = """select Json_Object(
+            'object_norad_number', ParsedIOD.object_number, 
+            'object_name', celestrak_SATCAT.name,
+            'object_origin', ucs_SATDB.country_owner, 
+            'object_type', ucs_SATDB.purpose, 
+            'object_purpose', ucs_SATDB.purpose_detailed, 
+            'time_last_tracked', ParsedIOD.obs_time,
+            'address_last_tracked', Obs.eth_addr,
+            'username_last_tracked',Obs.user_name) 
+            FROM ParsedIOD
+            JOIN (SELECT 
+                    Station.station_num as station_num, 
+                    Station.user as station_user, 
+                    Observer.id as obs_id, 
+                    Observer.eth_addr as eth_addr, 
+                    Observer.name as user_name 
+                    FROM Station,Observer 
+                    WHERE Station.user = Observer.id 
+                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
+            LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+            LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
+            WHERE ParsedIOD.valid_position = 1 
+            AND celestrak_SATCAT.name LIKE '%DEB%'
+            GROUP BY ParsedIOD.object_number
+            ORDER BY obs_time DESC
+            LIMIT {OFFSET},{FETCH};""".format(
+                OFFSET=offset_row_count,
+                FETCH=fetch_row_count)
+        self.c.execute(query_tmp)
+        return stringArrayToJSONArray(self.c.fetchall())
+
+    # /catalog/latest
+    # https://consensys-cpl.atlassian.net/browse/MVP-326
+    def selectCatalog_Latest_JSON(self, fetch_row_count=100, offset_row_count=0):
+        now = datetime.utcnow()
+        date_delta = now - timedelta(days=365)
+        launch_date_string  = date_delta.strftime("%Y-%m-%d")
+
+        query_tmp = """select Json_Object(
+            'object_norad_number', ParsedIOD.object_number, 
+            'object_name', celestrak_SATCAT.name,
+            'object_origin', ucs_SATDB.country_owner, 
+            'object_type', ucs_SATDB.purpose, 
+            'object_purpose', ucs_SATDB.purpose_detailed, 
+            'time_last_tracked', ParsedIOD.obs_time,
+            'address_last_tracked', Obs.eth_addr,
+            'username_last_tracked',Obs.user_name) 
+            FROM ParsedIOD
+            JOIN (SELECT 
+                    Station.station_num as station_num, 
+                    Station.user as station_user, 
+                    Observer.id as obs_id, 
+                    Observer.eth_addr as eth_addr, 
+                    Observer.name as user_name 
+                    FROM Station,Observer 
+                    WHERE Station.user = Observer.id 
+                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
+            LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+            LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
+            WHERE ParsedIOD.valid_position = 1 
+            AND celestrak_SATCAT.launch_date > {LAUNCH_DATE}
+            ORDER BY obs_time DESC 
+            LIMIT {OFFSET},{FETCH};""".format(
+                LAUNCH_DATE=launch_date_string,
+                OFFSET=offset_row_count,
+                FETCH=fetch_row_count)
+
+        self.c.execute(query_tmp)
+        return stringArrayToJSONArray(self.c.fetchall())
+
+    # /catalog/all 
+    # https://consensys-cpl.atlassian.net/browse/MVP-327
+    def selectCatalog_All_JSON(self, fetch_row_count=100, offset_row_count=0):
+        query_tmp = """SELECT Json_Object(
+            'object_norad_number', ParsedIOD.object_number, 
+            'object_name', celestrak_SATCAT.name,
+            'object_origin', ucs_SATDB.country_owner, 
+            'object_type', ucs_SATDB.purpose, 
+            'object_purpose', ucs_SATDB.purpose_detailed, 
+            'time_last_tracked', ParsedIOD.obs_time,
+            'address_last_tracked', Obs.eth_addr,
+            'username_last_tracked',Obs.user_name) 
+            FROM ParsedIOD
+            JOIN (SELECT 
+                    Station.station_num as station_num, 
+                    Station.user as station_user, 
+                    Observer.id as obs_id, 
+                    Observer.eth_addr as eth_addr, 
+                    Observer.name as user_name 
+                    FROM Station,Observer 
+                    WHERE Station.user = Observer.id 
+                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
+            LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
+            LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+            WHERE ParsedIOD.valid_position = 1
+            ORDER BY obs_time DESC 
+            LIMIT {OFFSET},{FETCH};""".format(
+                OFFSET=offset_row_count,
+                FETCH=fetch_row_count)
+        self.c.execute(query_tmp)
+        return stringArrayToJSONArray(self.c.fetchall())
+
+    # /object/info/
+    # https://consensys-cpl.atlassian.net/browse/MVP-379
+    def selectObjectInfo_JSON(self, norad_num):
+        info_url = "https://www.heavens-above.com/SatInfo.aspx?satid={}".format(norad_num)
+        quality = random.randint(1,99)
+
+        # Get user-related info first
+        query_tmp_count = """SELECT COUNT(Observer.id), Observer.eth_addr, Observer.name, ParsedIOD.obs_time
+            FROM ParsedIOD
+            JOIN Station ON ParsedIOD.station_number = Station.station_num 
+            JOIN Observer ON Observer.id = Station.user 
+            WHERE ParsedIOD.object_number = {}
+            GROUP BY Observer.id
+            ORDER BY ParsedIOD.obs_time DESC
+            LIMIT 1;""".format(norad_num)
+        self.c.execute(query_tmp_count)
+        try:
+            (user_count, eth_addr, name, last_tracked) = self.c.fetchone()
+        except:
+            return None
+
+        # Get object info and patch in user-info
+        query_tmp = """select Json_Object(
+            'object_name', celestrak_SATCAT.name,
+            'object_origin', ucs_SATDB.country_owner, 
+            'object_type', ucs_SATDB.purpose, 
+            'object_purpose', ucs_SATDB.purpose_detailed, 
+            'object_secondary_purpose', ucs_SATDB.comments,
+            'year_launched', YEAR(celestrak_SATCAT.launch_date),
+            'time_last_tracked', ParsedIOD.obs_time,
+            'number_users_tracked', '{COUNT}',
+            'time_last_tracked', '{LAST_TRACKED}',
+            'address_last_tracked', '{ETH_ADDR}',
+            'username_last_tracked', '{NAME}',
+            'observation_quality', '{QUALITY}',
+            'object_background', ucs_SATDB.detailed_comments,
+            'heavens_above_url', '{URL}'
+            ) 
+            FROM ParsedIOD 
+            LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
+            LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+            WHERE ParsedIOD.valid_position = 1 
+            AND ParsedIOD.object_number = {NORAD_NUM}
+            LIMIT 1;""".format(COUNT=user_count, LAST_TRACKED=last_tracked, ETH_ADDR=eth_addr, NAME=name, QUALITY=quality, URL=info_url, NORAD_NUM=norad_num)
+        self.c.execute(query_tmp)
+        try:
+            return QueryRowToJSON(self.c.fetchone())
+        except:
+            return None
+
+    # /objectUserSightings
+    # https://consensys-cpl.atlassian.net/browse/MVP-381
+    def selectObjectUserSightings_JSON(self, norad_num, eth_addr, fetch_row_count=100, offset_row_count=0):
+        # TODO: Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
+        quality = random.randint(1,99)
+        time_difference = random.uniform(-5,5)
+        obs_weight = random.random()
+
+        query_tmp = """SELECT Json_Object(
+            'observation_time', obs_time, 
+            'object_origin', celestrak_SATCAT.source, 
+            'user_location', Obs.location, 
+            'username', Obs.user_name, 
+            'user_address', Obs.eth_addr,
+            'observation_quality', '{QUALITY}', 
+            'observation_time_difference', '{TIME_DIFF}', 
+            'observation_weight', '{OBS_WEIGHT}')
+            FROM ParsedIOD
+            LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+            JOIN (SELECT 
+                    Station.station_num as station_num, 
+                    Station.user as station_user, 
+                    Observer.id as obs_id, 
+                    Observer.eth_addr as eth_addr, 
+                    Observer.name as user_name,
+                    Observer.location as location 
+                    FROM Station,Observer 
+                    WHERE Station.user = Observer.id 
+                    AND Observer.eth_addr = '{ETH_ADDR}'
+                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
+            WHERE ParsedIOD.object_number = {NORAD_NUM}
+            ORDER BY obs_time DESC
+            LIMIT {OFFSET},{FETCH};""".format(
+                QUALITY=quality, 
+                TIME_DIFF=time_difference, 
+                OBS_WEIGHT=obs_weight, 
+                NORAD_NUM=norad_num, 
+                ETH_ADDR=eth_addr,
+                OFFSET=offset_row_count,
+                FETCH=fetch_row_count
+                )
+        self.c.execute(query_tmp)
+        try:
+            return stringArrayToJSONArray(self.c.fetchall())
+        except:
+            return None
+
+    # /object/influence
+    # https://consensys-cpl.atlassian.net/browse/MVP-380
+    def selectObjectInfluence_JSON(self, norad_num, fetch_row_count=100, offset_row_count=0):
+        # TODO: Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
+        quality = random.randint(1,99)
+        time_difference = random.uniform(-5,5)
+        obs_weight = random.random()
+
+        query_tmp = """SELECT Json_Object(
+            'observation_time', obs_time, 
+            'object_origin', celestrak_SATCAT.source, 
+            'user_location', Obs.location, 
+            'username', Obs.user_name, 
+            'observation_quality', '{QUALITY}', 
+            'observation_time_difference', '{TIME_DIFF}', 
+            'observation_weight', '{OBS_WEIGHT}')
+            FROM ParsedIOD
+            LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+            JOIN (SELECT 
+                    Station.station_num as station_num, 
+                    Station.user as station_user, 
+                    Observer.id as obs_id, 
+                    Observer.eth_addr as eth_addr, 
+                    Observer.name as user_name,
+                    Observer.location as location 
+                    FROM Station,Observer 
+                    WHERE Station.user = Observer.id 
+                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
+            WHERE ParsedIOD.object_number = {NORAD_NUM}
+            ORDER BY obs_time DESC
+            LIMIT {OFFSET},{FETCH};""".format(
+                QUALITY=quality, 
+                TIME_DIFF=time_difference, 
+                OBS_WEIGHT=obs_weight, 
+                NORAD_NUM=norad_num, 
+                OFFSET=offset_row_count,
+                FETCH=fetch_row_count
+                )
+        self.c.execute(query_tmp)
+        try:
+            return stringArrayToJSONArray(self.c.fetchall())
+        except:
+            return None
+
+    # https://consensys-cpl.atlassian.net/browse/MVP-393
+    # /findObject endpoint
+    def selectFindObject(self, partial_string):
+        if (type(partial_string) == int):
+            query_tmp = """SELECT DISTINCT Json_Object(
+                'norad_number', norad_num,
+                'name', name)
+                FROM celestrak_SATCAT
+                WHERE norad_num LIKE '{PARTIAL}%'
+                ORDER by norad_num ASC;
+                """.format(
+                    PARTIAL=partial_string)
+        else:
+            query_tmp = """SELECT DISTINCT Json_Object(
+                'norad_number', norad_num,
+                'name', name)
+                FROM celestrak_SATCAT
+                WHERE name LIKE '{PARTIAL}%'
+                ORDER by name ASC;
+                """.format(
+                    PARTIAL=partial_string)
+        print(query_tmp)
+        self.c.execute(query_tmp)
+        try:
+            return stringArrayToJSONArray(self.c.fetchall())
+        except:
+            return None
+
+
+    # FIXME - This is the latest of everything in the catalog - but some will be old from McCants stuff because they were dropped from classfd.tle
+    def selectTLE_Astriagraph(self):
+        query_tmp = """SELECT line0, line1, line2, satellite_number
+            FROM TLE 
+            GROUP BY satellite_number
+            ORDER BY TLE.epoch DESC;"""
+        self.c.execute(query_tmp)
+        result = ""
+        for (line0, line1, line2, _) in self.c.fetchall():
+            result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
+        return result
+
+    # https://consensys-cpl.atlassian.net/browse/MVP-285
+    def selectTLE_all(self):
+        query_tmp = """SELECT line0, line1, line2, satellite_number
+            FROM TLE 
+            GROUP BY satellite_number
+            ORDER BY satellite_number ASC;"""
+        self.c.execute(query_tmp)
+        result = ""
+        for (line0, line1, line2, _) in self.c.fetchall():
+            result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
+        return result
+
+
+    # https://consensys-cpl.atlassian.net/browse/MVP-286
+    def selectTLE_priorities(self):
+        # TODO: Replace with real priority sort. https://consensys-cpl.atlassian.net/browse/MVP-389
+        # In the meantime, return TLEs older than 30 days
+        query_tmp = """SELECT line0, line1, line2, satellite_number
+            FROM TLE 
+			WHERE DATEDIFF(NOW(),epoch) > 30
+            GROUP BY satellite_number
+            ORDER BY TLE.epoch DESC;"""
+        self.c.execute(query_tmp)
+        result = ""
+        for (line0, line1, line2, _) in self.c.fetchall():
+            result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
+        return result
+
+    # https://consensys-cpl.atlassian.net/browse/MVP-287
+    def selectTLE_high_confidence(self):
+        # TODO: Replace with real confidence sort. https://consensys-cpl.atlassian.net/browse/MVP-390
+        # In the meantime, return TLEs younger than 30 days, newest first
+        query_tmp = """SELECT line0, line1, line2, satellite_number
+            FROM TLE 
+			WHERE DATEDIFF(NOW(),epoch) < 30
+            GROUP BY satellite_number
+            ORDER BY TLE.epoch ASC;"""
+        self.c.execute(query_tmp)
+        result = ""
+        for (line0, line1, line2, _) in self.c.fetchall():
+            result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
+        return result
+
+    # https://consensys-cpl.atlassian.net/browse/MVP-385
+    def selectTLE_single(self, norad_num):
+        query_tmp = """SELECT line0, line1, line2 
+            FROM TLE 
+            WHERE satellite_number={NORAD_NUM}
+            ORDER BY EPOCH DESC
+            LIMIT 1;""".format(NORAD_NUM=norad_num)
+        self.c.execute(query_tmp)
+        try:
+            (line0, line1, line2) = self.c.fetchone()
+            return "{}r\n{}\n{}\n".format(line0,line1,line2)
+        except:
+            return None
 
     def commit_TLE_db_writes(self):
         """Process a stored query batch for all the TLEs in a file at once.
@@ -968,12 +1758,24 @@ class Database:
 
     def commit_IOD_db_writes(self):
         if (self._dbtype == "sqlserver"):
-            if(len(self._IODentryList) > 0):
+            while(len(self._IODentryList) > 0):
                 try: 
                     self.c_addParsedIOD.executemany(self.addParsedIOD_query,self._IODentryList)
                     self._IODentryList = []
                 except Exception as e:
                     log.error("MYSQL ERROR: {}".format(e))
+                    # FIXME - (Work in progress) - try to get rid of duplicate entry in a executemany list
+                    if ("Duplicate Entry" in e):
+                        mysql_error_tuple = e.split(' ')
+                        # FIXME - This is fragile
+                        duplicate_fingerprint = mysql_error_tuple[6].strip("'")
+                        row = 0
+                        # FIXME - Don't know if this will work for the whole tuple, or if I have to find the element
+                        for entry in observerTuple:
+                            if duplicate_fingerprint in entry:
+                                observerTuple.remove(row)
+                            row += 1
+
         if (self._dbtype != "INFILE"):
             self.conn.commit()
 
