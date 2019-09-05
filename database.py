@@ -4,6 +4,7 @@ from secrets import randbelow, randbits
 from datetime import datetime, timedelta
 from hashlib import md5
 from csv import writer 
+import pycountry
 import json
 import logging
 log = logging.getLogger(__name__)
@@ -29,6 +30,9 @@ def QueryRowToJSON(var):
         sort_keys=False, 
         indent=4)
 
+def QueryRowToJSON_JSON(var):
+    return json.loads(var[0])
+
 def stringArrayToJSONArray(string_array):
     json_array = []
     for item in string_array:
@@ -38,10 +42,74 @@ def stringArrayToJSONArray(string_array):
         sort_keys=False, 
         indent=4)
 
+def stringArrayToJSONArray_JSON(string_array):
+    json_array = []
+    for item in string_array:
+        json_array.append(json.loads(item[0]))
+    return json_array
+
 def datetime_from_sqldatetime(sql_date_string):
     """ The 4 digit sub-seconds are not the standard 3 or 6, which creates problems with datetime.fromisoformat """
     date_format = '%Y-%m-%d %H:%M:%S.%f'
     return datetime.strptime(sql_date_string, date_format)
+
+def datetime_from_sqldatetime(sql_date_string):
+    """ The 4 digit sub-seconds are not the standard 3 or 6, which creates problems with datetime.fromisoformat """
+    date_format = '%Y-%m-%d %H:%M:%S.%f'
+    return datetime.strptime(sql_date_string, date_format)
+
+def convert_country_names(object_observed):
+    for observation in object_observed:
+        countries_two_letters = ''
+        country_count = 0
+        try:
+            countries = observation["object_origin"].split("/")
+            for country in countries:
+                c = pycountry.countries.get(name=country)
+                if c == None:
+                    c = pycountry.countries.get(alpha_3=country)
+                    if c:
+                        if country_count == 0:
+                            country_count = 1
+                            countries_two_letters = c.alpha_2
+                        else:
+                            countries_two_letters = countries_two_letters + '/' + c.alpha_2
+                else:
+                    if country_count == 0:
+                        country_count = 1
+                        countries_two_letters = c.alpha_2
+                    else:
+                        countries_two_letters = countries_two_letters + '/' + c.alpha_2
+            observation["object_origin"] = countries_two_letters
+        except:
+            observation["object_origin"] = ''
+    return
+
+def convert_country_names_single(observation):
+    countries_two_letters = ''
+    country_count = 0
+    try:
+        countries = observation["object_origin"].split("/")
+        for country in countries:
+            c = pycountry.countries.get(name=country)
+            if c == None:
+                c = pycountry.countries.get(alpha_3=country)
+                if c:
+                    if country_count == 0:
+                        country_count = 1
+                        countries_two_letters = c.alpha_2
+                    else:
+                        countries_two_letters = countries_two_letters + '/' + c.alpha_2
+            else:
+                if country_count == 0:
+                    country_count = 1
+                    countries_two_letters = c.alpha_2
+                else:
+                    countries_two_letters = countries_two_letters + '/' + c.alpha_2
+        observation["object_origin"] = countries_two_letters
+    except:
+        observation["object_origin"] = ''
+    return
 
 # TODO: Add index statements to the appropriate fields when creating the tables
 class Database:
@@ -126,7 +194,7 @@ class Database:
             self.c_updateObserverEmail_query = self.conn.cursor(prepared=True)
             self.c_updateObserverBio_query = self.conn.cursor(prepared=True)
             self.c_updateObserverLocation_query = self.conn.cursor(prepared=True)
-            self.c_updateObserverprivate_query = self.conn.cursor(prepared=True)
+            self.c_updateObserverPrivate_query = self.conn.cursor(prepared=True)
             self.c_getObserverNonce_query = self.conn.cursor(prepared=True)
             self.c_getObserverJWT_query = self.conn.cursor(prepared=True)
             self.c_getObservationCount_query = self.conn.cursor(prepared=True)
@@ -163,6 +231,7 @@ class Database:
         self.updateObserverJWT_query = '''UPDATE Observer SET jwt=?, password=? WHERE eth_addr=?'''
         self.updateObserverUsername_query = '''UPDATE Observer SET name=? WHERE eth_addr=?'''
         self.updateObserverEmail_query = '''UPDATE Observer SET reference=? WHERE eth_addr=?'''
+        self.updateObserverLocation_query = '''UPDATE Observer SET location=? WHERE eth_addr=?'''
         self.updateObserverBio_query = '''UPDATE Observer SET bio=? WHERE eth_addr=?'''
         self.getObserverNonce_query = '''SELECT nonce FROM Observer WHERE eth_addr=?'''
         self.getObserverJWT_query = '''SELECT jwt FROM Observer WHERE eth_addr=?'''
@@ -884,6 +953,20 @@ class Database:
             self.conn.commit()
         return True
 
+    def updateObserverLocation(self, location, public_address):
+        if self._dbtype == "INFILE":
+            try:
+                results = (self.updateObserverLocation_query, [location, public_address])
+            except KeyError:
+                results = None
+        elif self._dbtype == "sqlite":
+            self.c.execute(self.updateObserverLocation_query, [location, public_address])
+            results = self.c.fetchone()
+        else:
+            self.c_updateObserverLocation_query.execute(self.updateObserverLocation_query, [location, public_address])
+            self.conn.commit()
+        return True
+
 
     def selectObserver(self, observer_name):
         """ Look up an observer by (name/email string) in database or internal dictionary"""
@@ -930,6 +1013,11 @@ class Database:
             results = self.c_getObserverJWT_query.fetchone()
             self.conn.commit()
         return results
+
+    def getObserverFromJWT(self, jwt):
+        query_tmp = '''SELECT eth_addr FROM Observer WHERE jwt="{JWT}"'''.format(JWT=jwt)
+        self.c.execute(query_tmp)
+        return self.c.fetchone()[0]
 
     def getObservationCount(self):
         """ GET OBSERVATION COUNT """
@@ -1075,7 +1163,7 @@ class Database:
 
     def selectObservationHistory_JSON(self, fetch_row_count=10, offset_row_count=0):
         query_tmp = """SELECT Json_Object(
-            'time_submitted',ParsedIOD.obs_time,
+            'time_submitted',date_format(ParsedIOD.obs_time, '%M %d, %Y'),
             'object_name',celestrak_SATCAT.name,
             'right_ascension', ParsedIOD.ra,
             'declination', ParsedIOD.declination,
@@ -1093,7 +1181,7 @@ class Database:
 
     def selectObjectHistoryByMonth_JSON(self, norad_number, year, month):
         query_tmp = """SELECT Json_Object(
-            'observation_time', UNIX_TIMESTAMP(obs_time),
+            'observation_time', UNIX_TIMESTAMP(ParsedIOD.obs_time),
             'username', user_string,
             'user_address', 'FILLER',
             'user_location', station_number,
@@ -1109,11 +1197,12 @@ class Database:
                     YEAR=year,
                     MONTH=month)
         self.c.execute(query_tmp)
-        return stringArrayToJSONArray(self.c.fetchall())
+        return stringArrayToJSONArray_JSON(self.c.fetchall())
 
     # Supports user profile https://consensys-cpl.atlassian.net/browse/MVP-311
     # /object/history https://consensys-cpl.atlassian.net/browse/MVP-334
     def selectObjectHistory_summary(self, norad_num):
+        quality = random.randint(1,99)
         query_tmp = """SELECT 
             YEAR(obs_time) as observation_year,
             MONTH(obs_time) as observation_month,
@@ -1212,13 +1301,13 @@ class Database:
         obs_weight = random.random()
 
         query_tmp = """SELECT Json_Object(
-            'observation_time',ParsedIOD.obs_time,
+            'observation_time',date_format(ParsedIOD.obs_time, '%M %d, %Y'),
             'object_name',celestrak_SATCAT.name,
             'station_number', Obs.station_num,
             'object_norad_number', ParsedIOD.object_number,
             'observation_quality', '{QUALITY}', 
             'observation_time_difference', '{TIME_DIFF}', 
-            'observation_weight', '{OBS_WEIGHT}'),
+            'observation_weight', '{OBS_WEIGHT}',
             'observation_iod', ParsedIOD.iod_string
             )
             FROM ParsedIOD
@@ -1244,7 +1333,7 @@ class Database:
                 OFFSET=offset_row_count,
                 FETCH=fetch_row_count)
         self.c.execute(query_tmp)
-        return stringArrayToJSONArray(self.c.fetchall())
+        return stringArrayToJSONArray_JSON(self.c.fetchall())
 
     def selectUserObjectsObserved_JSON(self, eth_addr, fetch_row_count=10, offset_row_count=0):
         # FIXME: Fancier query logic needed to get the last eth_addr to track in the summary of a selected-users observations.
@@ -1256,7 +1345,7 @@ class Database:
             'observation_quality', ParsedIOD.station_status_code,
             'object_name',celestrak_SATCAT.name,
             'object_norad_number', ParsedIOD.object_number,
-            'time_last_tracked',ParsedIOD.obs_time,
+            'time_last_tracked',date_format(ParsedIOD.obs_time, '%M %d, %Y'),
             'username_last_tracked', Obs.user_name,
             'address_last_tracked', Obs.eth_addr) 
             FROM ParsedIOD
@@ -1279,7 +1368,9 @@ class Database:
                 OFFSET=offset_row_count,
                 FETCH=fetch_row_count)
         self.c.execute(query_tmp)
-        return stringArrayToJSONArray(self.c.fetchall())
+        object_observed = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(object_observed)
+        return object_observed
 
     # https://consensys-cpl.atlassian.net/browse/MVP-311
     # /profile endpoint for a logged-in user
@@ -1307,9 +1398,9 @@ class Database:
             'object_origin', ucs_SATDB.country_owner,
             'primary_purpose', ucs_SATDB.purpose,
             'object_type', ucs_SATDB.purpose_detailed,
-            'secondary_purpoase', 'Secondary purpose does not exist, the variable is also misspelled.',
+            'secondary_purpose', 'Secondary purpose does not exist, the variable is also misspelled.',
             'observation_quality', ParsedIOD.station_status_code,
-            'time_last_tracked',ParsedIOD.obs_time,
+            'time_last_tracked',date_format(ParsedIOD.obs_time, '%M %d, %Y'),
             'username_last_tracked',ParsedIOD.user_string) 
             FROM ParsedIOD
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number=ucs_SATDB.norad_number
@@ -1319,13 +1410,16 @@ class Database:
                 OFFSET=offset_row_count,
                 FETCH=fetch_row_count)
         self.c.execute(query_tmp)
-        return stringArrayToJSONArray(self.c.fetchall())
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
 
 
     # /catalog/priorities
     # https://consensys-cpl.atlassian.net/browse/MVP-323
     # FIXME: Optimization - this query is slow, because of the Join to Observer not using the index
     def selectCatalog_Priorities_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = random.randint(1,99)
         # TODO: No priorities in database yet, just sort by reverse obs order for something interesting/different to look at
         # https://consensys-cpl.atlassian.net/browse/MVP-389
         # Note: Version using inner joins - which returns null for values which aren't in ucs_SATDB or celestrak_SATCAT
@@ -1334,8 +1428,10 @@ class Database:
             'object_name', celestrak_SATCAT.name,
             'object_origin', ucs_SATDB.country_owner, 
             'object_type', ucs_SATDB.purpose, 
-            'object_purpose', ucs_SATDB.purpose_detailed, 
-            'time_last_tracked', ParsedIOD.obs_time,
+            'object_primary_purpose', ucs_SATDB.purpose_detailed, 
+            'object_secondary_purpose', ucs_SATDB.comments,
+            'object_observation_quality', '{QUALITY}',
+            'time_last_tracked', date_format(ParsedIOD.obs_time, '%M %d, %Y'),
             'address_last_tracked', Obs.eth_addr,
             'username_last_tracked',Obs.user_name) 
             FROM ParsedIOD
@@ -1354,22 +1450,28 @@ class Database:
             ORDER BY obs_time DESC
             LIMIT {OFFSET},{FETCH};""".format(
                 OFFSET=offset_row_count,
-                FETCH=fetch_row_count)
+                FETCH=fetch_row_count,
+                QUALITY=quality)
 
         self.c.execute(query_tmp)
-        return stringArrayToJSONArray(self.c.fetchall())
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
 
     # /catalog/undisclosed
     # https://consensys-cpl.atlassian.net/browse/MVP-324
     # FIXME: Optimization - this query is slow, because of the Join to Observer not using the index
     def selectCatalog_Undisclosed_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = random.randint(1,99)
         query_tmp = """select Json_Object(
             'object_norad_number', ParsedIOD.object_number, 
             'object_name', celestrak_SATCAT.name,
             'object_origin', ucs_SATDB.country_owner, 
             'object_type', ucs_SATDB.purpose, 
-            'object_purpose', ucs_SATDB.purpose_detailed, 
-            'time_last_tracked', ParsedIOD.obs_time,
+            'object_primary_purpose', ucs_SATDB.purpose_detailed, 
+            'object_secondary_purpose', ucs_SATDB.comments,
+            'object_observation_quality', '{QUALITY}',
+            'time_last_tracked', date_format(ParsedIOD.obs_time, '%M %d, %Y'),
             'address_last_tracked', Obs.eth_addr,
             'username_last_tracked',Obs.user_name) 
             FROM ParsedIOD
@@ -1390,21 +1492,26 @@ class Database:
             ORDER BY obs_time DESC
             LIMIT {OFFSET},{FETCH};""".format(
                 OFFSET=offset_row_count,
-                FETCH=fetch_row_count)
+                FETCH=fetch_row_count,
+                QUALITY=quality)
 
         self.c.execute(query_tmp)
-        return stringArrayToJSONArray(self.c.fetchall())
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
 
     # /catalog/debris
     # https://consensys-cpl.atlassian.net/browse/MVP-325
     def selectCatalog_Debris_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = random.randint(1,99)
         query_tmp = """select Json_Object(
             'object_norad_number', ParsedIOD.object_number, 
             'object_name', celestrak_SATCAT.name,
             'object_origin', ucs_SATDB.country_owner, 
-            'object_type', ucs_SATDB.purpose, 
-            'object_purpose', ucs_SATDB.purpose_detailed, 
-            'time_last_tracked', ParsedIOD.obs_time,
+            'object_primary_purpose', ucs_SATDB.purpose_detailed, 
+            'object_secondary_purpose', ucs_SATDB.comments,
+            'object_observation_quality', '{QUALITY}',
+            'time_last_tracked', date_format(ParsedIOD.obs_time, '%M %d, %Y'),
             'address_last_tracked', Obs.eth_addr,
             'username_last_tracked',Obs.user_name) 
             FROM ParsedIOD
@@ -1425,13 +1532,17 @@ class Database:
             ORDER BY obs_time DESC
             LIMIT {OFFSET},{FETCH};""".format(
                 OFFSET=offset_row_count,
-                FETCH=fetch_row_count)
+                FETCH=fetch_row_count,
+                QUALITY=quality)
         self.c.execute(query_tmp)
-        return stringArrayToJSONArray(self.c.fetchall())
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
 
     # /catalog/latest
     # https://consensys-cpl.atlassian.net/browse/MVP-326
     def selectCatalog_Latest_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = random.randint(1,99)
         now = datetime.utcnow()
         date_delta = now - timedelta(days=365)
         launch_date_string  = date_delta.strftime("%Y-%m-%d")
@@ -1441,8 +1552,10 @@ class Database:
             'object_name', celestrak_SATCAT.name,
             'object_origin', ucs_SATDB.country_owner, 
             'object_type', ucs_SATDB.purpose, 
-            'object_purpose', ucs_SATDB.purpose_detailed, 
-            'time_last_tracked', ParsedIOD.obs_time,
+            'object_primary_purpose', ucs_SATDB.purpose_detailed, 
+            'object_secondary_purpose', ucs_SATDB.comments,
+            'object_observation_quality', '{QUALITY}',
+            'time_last_tracked', date_format(ParsedIOD.obs_time, '%M %d, %Y'),
             'address_last_tracked', Obs.eth_addr,
             'username_last_tracked',Obs.user_name) 
             FROM ParsedIOD
@@ -1463,21 +1576,27 @@ class Database:
             LIMIT {OFFSET},{FETCH};""".format(
                 LAUNCH_DATE=launch_date_string,
                 OFFSET=offset_row_count,
-                FETCH=fetch_row_count)
+                FETCH=fetch_row_count,
+                QUALITY=quality)
 
         self.c.execute(query_tmp)
-        return stringArrayToJSONArray(self.c.fetchall())
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
 
     # /catalog/all 
     # https://consensys-cpl.atlassian.net/browse/MVP-327
     def selectCatalog_All_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = random.randint(1,99)
         query_tmp = """SELECT Json_Object(
             'object_norad_number', ParsedIOD.object_number, 
             'object_name', celestrak_SATCAT.name,
             'object_origin', ucs_SATDB.country_owner, 
             'object_type', ucs_SATDB.purpose, 
-            'object_purpose', ucs_SATDB.purpose_detailed, 
-            'time_last_tracked', ParsedIOD.obs_time,
+            'object_primary_purpose', ucs_SATDB.purpose_detailed, 
+            'object_secondary_purpose', ucs_SATDB.comments,
+            'object_observation_quality', '{QUALITY}',
+            'time_last_tracked', date_format(ParsedIOD.obs_time, '%M %d, %Y'),
             'address_last_tracked', Obs.eth_addr,
             'username_last_tracked',Obs.user_name) 
             FROM ParsedIOD
@@ -1496,9 +1615,12 @@ class Database:
             ORDER BY obs_time DESC 
             LIMIT {OFFSET},{FETCH};""".format(
                 OFFSET=offset_row_count,
-                FETCH=fetch_row_count)
+                FETCH=fetch_row_count,
+                QUALITY=quality)
         self.c.execute(query_tmp)
-        return stringArrayToJSONArray(self.c.fetchall())
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
 
     # /object/info/
     # https://consensys-cpl.atlassian.net/browse/MVP-379
@@ -1507,7 +1629,7 @@ class Database:
         quality = random.randint(1,99)
 
         # Get user-related info first
-        query_tmp_count = """SELECT COUNT(Observer.id), Observer.eth_addr, Observer.name, ParsedIOD.obs_time
+        query_tmp_count = """SELECT COUNT(Observer.id), Observer.eth_addr, Observer.name,date_format(ParsedIOD.obs_time, '%M %d, %Y')
             FROM ParsedIOD
             JOIN Station ON ParsedIOD.station_number = Station.station_num 
             JOIN Observer ON Observer.id = Station.user 
@@ -1529,7 +1651,7 @@ class Database:
             'object_purpose', ucs_SATDB.purpose_detailed, 
             'object_secondary_purpose', ucs_SATDB.comments,
             'year_launched', YEAR(celestrak_SATCAT.launch_date),
-            'time_last_tracked', ParsedIOD.obs_time,
+            'time_last_tracked', date_format(ParsedIOD.obs_time, '%M %d, %Y'),
             'number_users_tracked', '{COUNT}',
             'time_last_tracked', '{LAST_TRACKED}',
             'address_last_tracked', '{ETH_ADDR}',
@@ -1546,8 +1668,11 @@ class Database:
             LIMIT 1;""".format(COUNT=user_count, LAST_TRACKED=last_tracked, ETH_ADDR=eth_addr, NAME=name, QUALITY=quality, URL=info_url, NORAD_NUM=norad_num)
         self.c.execute(query_tmp)
         try:
-            return QueryRowToJSON(self.c.fetchone())
-        except:
+            observations = QueryRowToJSON_JSON(self.c.fetchone())
+            convert_country_names_single(observations)
+            return json.dumps(observations)
+        except Exception as e:
+            print(e)
             return None
 
     # /objectUserSightings
@@ -1559,7 +1684,7 @@ class Database:
         obs_weight = random.random()
 
         query_tmp = """SELECT Json_Object(
-            'observation_time', obs_time, 
+            'observation_time', date_format(obs_time, '%M %d, %Y'), 
             'object_origin', celestrak_SATCAT.source, 
             'user_location', Obs.location, 
             'username', Obs.user_name, 
@@ -1593,7 +1718,9 @@ class Database:
                 )
         self.c.execute(query_tmp)
         try:
-            return stringArrayToJSONArray(self.c.fetchall())
+            observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+            convert_country_names(observations)
+            return json.dumps(observations)
         except:
             return None
 
@@ -1606,7 +1733,7 @@ class Database:
         obs_weight = random.random()
 
         query_tmp = """SELECT Json_Object(
-            'observation_time', obs_time, 
+            'observation_time', date_format(obs_time, '%M %d, %Y'), 
             'object_origin', celestrak_SATCAT.source, 
             'user_location', Obs.location, 
             'username', Obs.user_name, 
@@ -1637,7 +1764,9 @@ class Database:
                 )
         self.c.execute(query_tmp)
         try:
-            return stringArrayToJSONArray(self.c.fetchall())
+            observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+            convert_country_names(observations)
+            return json.dumps(observations)
         except:
             return None
 
@@ -1736,7 +1865,8 @@ class Database:
         try:
             (line0, line1, line2) = self.c.fetchone()
             return "{}r\n{}\n{}\n".format(line0,line1,line2)
-        except:
+        except Exception as e:
+            print(e)
             return None
 
     def commit_TLE_db_writes(self):
