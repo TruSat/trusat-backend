@@ -11,6 +11,7 @@ import base64
 
 
 def create_message(sender, to, subject, message_text):
+    message_text = 'Save this email: TruSat account recovery info for' + to + '\nTo log into TruSat, you\'ll need your password AND this secret code:\n' + message_text + '\nThis email is the only time we can send you this code. Trusat cannot restore your account or reset your password for you. Please save this email forever and make not of the password you used.\nWhy do we do it this way? Read more\nQuestions? Please email: Support@TruSat.org'
     message = MIMEText(message_text)
     message['to'] = to
     message['from'] = sender
@@ -47,6 +48,6 @@ def send_email(to, message_text):
 
     service = build('gmail', 'v1', credentials=creds)
 
-    message_to_send = create_message('kenan.oneal@consensys.net', to, 'SatHunt Private Key Backup', message_text)
+    message_to_send = create_message('kenan.oneal@consensys.net', to, 'TruSat - Save this email: Recovery Info', message_text)
 
     send_message(service, 'me', message_to_send)
