@@ -56,11 +56,6 @@ def datetime_from_sqldatetime(sql_date_string):
     date_format = '%Y-%m-%d %H:%M:%S.%f'
     return datetime.strptime(sql_date_string, date_format)
 
-def datetime_from_sqldatetime(sql_date_string):
-    """ The 4 digit sub-seconds are not the standard 3 or 6, which creates problems with datetime.fromisoformat """
-    date_format = '%Y-%m-%d %H:%M:%S.%f'
-    return datetime.strptime(sql_date_string, date_format)
-
 def convert_country_names(object_observed):
     for observation in object_observed:
         countries_two_letters = ''
