@@ -6,6 +6,18 @@ from hashlib import md5
 from csv import writer 
 import pycountry
 import json
+
+
+# The following 7 lines are necessary until the tle_util module is public
+import inspect
+import os
+import sys
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+tle_path = os.path.join(parentdir, "sathunt-tle")
+sys.path.insert(1,tle_path) 
+import tle_util
+
 import logging
 log = logging.getLogger(__name__)
 
@@ -882,6 +894,9 @@ class Database:
                 log.error("MYSQL ERROR: {}".format(e))
         return True
 
+    #######################
+    ### Observer-related queries
+    #######################
     def updateObserverNonce(self, nonce, public_address):
         if self._dbtype == "INFILE":
             try:
@@ -1017,6 +1032,58 @@ class Database:
         self.c.execute(query_tmp)
         return self.c.fetchone()[0]
 
+    #######################
+    ### IOD-related queries
+    #######################
+    def cdictQueryToObsObj(self, fetch):
+        """ Transfer the cdict.fetchall() results of a Obs query to tle_util IOD() object array (all variables)
+
+        Input: Fetch results from the cdict cursor
+
+        Output: Array of IOD() objects
+        """
+        Observations = []
+
+        for row in fetch:
+            OBS = IOD()
+
+            OBS.obs_id			        = row["obs_id"]
+            OBS.submitted			    = row["submitted"]
+            OBS.user_string			    = row["user_string"]
+            OBS.object_number		    = row["object_number"]
+            OBS.international_designation	= row["international_designation"]
+            OBS.station_number		    = row["station_number"]
+            OBS.station_status_code	    = row["station_status_code"]
+            OBS.obs_time_string		    = row["obs_time_string"]
+            OBS.obs_time			    = row["obs_time"]
+            OBS.time_uncertainty	    = row["time_uncertainty"]
+            OBS.time_standard_code	    = row["time_standard_code"]
+            OBS.angle_format_code	    = row["angle_format_code"]
+            OBS.epoch_code			    = row["epoch_code"]
+            OBS.epoch			        = row["epoch"]
+            OBS.ra			            = row["ra"]
+            OBS.declination			    = row["declination"]
+            OBS.azimuth			        = row["azimuth"]
+            OBS.elevation			    = row["elevation"]
+            OBS.positional_uncertainty	= row["positional_uncertainty"]
+            OBS.optical_behavior_code	= row["optical_behavior_code"]
+            OBS.visual_magnitude		= row["visual_magnitude"]
+            OBS.visual_magnitude_high	= row["visual_magnitude_high"]
+            OBS.visual_magnitude_low	= row["visual_magnitude_low"]
+            OBS.magnitude_uncertainty	= row["magnitude_uncertainty"]
+            OBS.flash_period			= row["flash_period"]
+            OBS.remarks			        = row["remarks"]
+            OBS.iod_type			    = row["iod_type"]
+            OBS.iod_string			    = row["iod_string"]
+            OBS.valid_position		    = row["valid_position"]
+            OBS.message_id			    = row["message_id"]
+            OBS.obsFingerPrint		    = row["obsFingerPrint"]
+            OBS.import_timestamp	    = row["import_timestamp"]
+
+            Observations.append(OBS)
+        return Observations
+
+
     def getObservationCount(self):
         """ GET OBSERVATION COUNT """
         if self._dbtype == "INFILE":
@@ -1092,38 +1159,6 @@ class Database:
             results = self.c_getRecentObservations_query.fetchall()
         return results        
 
-
-    def selectTLEFile(self, tle_file_fingerprint):
-        """Query to see if a TLE file is already in the database."""
-        if self._dbtype == "INFILE": # Manage array
-            if (tle_file_fingerprint not in self._tle_file_fingerprintDict):
-                results = None
-            else:
-                results = self._tle_file_fingerprintDict[tle_file_fingerprint]
-        elif self._dbtype == "sqlite":
-            self.c.execute(self.selectTLEFile_query, [tle_file_fingerprint])
-            results = self.c.fetchone()
-        else:
-            self.c_selectTLEFile_query.execute(self.selectTLEFile_query, [tle_file_fingerprint])
-            results = self.c_selectTLEFile_query.fetchone()
-        return results
-
-
-    def selectTLEFingerprint(self, tle_fingerprint):
-        """Query to see if a specific TLE is already in the database"""
-        if self._dbtype == "INFILE": # Manage array
-            if (tle_fingerprint not in self._tle_fingerprintDict):
-                results = None
-            else:
-                results = self._tle_fingerprintDict[tle_fingerprint]
-        elif self._dbtype == "sqlite":
-            self.c.execute(self.selectTLEFingerprint_query, [tle_fingerprint])
-            results = self.c.fetchone()
-        else:
-            self.c_selectTLEFingerprint_query.execute(self.selectTLEFingerprint_query, [tle_fingerprint])
-            results = self.c_selectTLEFingerprint_query.fetchone()
-        return results
-
     def selectIODFingerprint(self, iod_fingerprint):
         """Query to see if a specific IOD is already in the database"""
         if self._dbtype == "INFILE": # Manage array
@@ -1138,26 +1173,6 @@ class Database:
             self.c_selectIODFingerprint_query.execute(self.selectIODFingerprint_query, [iod_fingerprint])
             results = self.c_selectIODFingerprint_query.fetchone()
         return results
-
-
-    def selectTLEEpochBeforeDate(self, query_epoch_datetime, satellite_number):
-        """Query to return the first TLE with epoch prior to specified date for a specific satellite number"""
-        self.selectTLEEpochBeforeDate_query = "SELECT * FROM TLE WHERE epoch <= '{}' AND satellite_number={} ORDER BY epoch DESC LIMIT 1".format(query_epoch_datetime, satellite_number)
-        self.c.execute(self.selectTLEEpochBeforeDate_query)
-        return self.c.fetchone()
-
-    def selectTLEEpochNearestDate(self, query_epoch_datetime, satellite_number):
-        """Query to return the nearest TLE with epoch for a specific satellite for a specified date"""
-        self.selectTLEEpochNearestDate_query = "SELECT *,ABS(TIMEDIFF(epoch,'{}')) as diff FROM TLE where satellite_number={} ORDER BY diff ASC LIMIT 1".format(query_epoch_datetime, satellite_number)
-        self.c.execute(self.selectTLEEpochNearestDate_query)
-        return self.c.fetchone()
-
-    def selectTLEEpochNearestDate(self, query_epoch_datetime, satellite_number):
-        """Query to return the nearest TLE with epoch for a specific satellite for a specified date"""
-        self.selectTLEEpochNearestDate_query = "SELECT *,ABS(TIMEDIFF(epoch,'{}')) as diff FROM TLE where satellite_number={} ORDER BY diff ASC LIMIT 1".format(query_epoch_datetime, satellite_number)
-        self.c.execute(self.selectTLEEpochNearestDate_query)
-        return self.c.fetchone()
-
 
     def selectObservationHistory_JSON(self, fetch_row_count=10, offset_row_count=0):
         query_tmp = """SELECT Json_Object(
@@ -1216,6 +1231,231 @@ class Database:
             return self.c.fetchall()
         except:
             return None
+
+    def commit_IOD_db_writes(self):
+        if (self._dbtype == "sqlserver"):
+            while(len(self._IODentryList) > 0):
+                try: 
+                    self.c_addParsedIOD.executemany(self.addParsedIOD_query,self._IODentryList)
+                    self._IODentryList = []
+                except Exception as e:
+                    log.error("MYSQL ERROR: {}".format(e))
+                    # FIXME - (Work in progress) - try to get rid of duplicate entry in a executemany list
+                    if ("Duplicate Entry" in e):
+                        mysql_error_tuple = e.split(' ')
+                        # FIXME - This is fragile
+                        duplicate_fingerprint = mysql_error_tuple[6].strip("'")
+                        row = 0
+                        # FIXME - Don't know if this will work for the whole tuple, or if I have to find the element
+                        for entry in observerTuple:
+                            if duplicate_fingerprint in entry:
+                                observerTuple.remove(row)
+                            row += 1
+
+        if (self._dbtype != "INFILE"):
+            self.conn.commit()
+
+    #######################
+    ### TLE-related queries
+    #######################
+    def cdictQueryToTruSatelliteObj(self, fetch):
+        """ Transfer the cdict.fetchall() results of a TLE query to tle_util TruSatellite() object array (all variables)
+
+        Input: Fetch results from the cdict cursor
+
+        Output: Array of TruSatellite() objects
+        """
+        TLEs = []
+
+        for row in fetch:
+            TLE = tle_util.TruSatellite()
+
+            TLE.tle_id			= row["tle_id"]
+            TLE.line0			= row["line0"]
+            TLE.line1			= row["line1"]
+            TLE.line2			= row["line2"]
+
+            TLE.sat_name			            = row["sat_name"]
+            TLE.satellite_number	            = row["satellite_number"]
+            TLE.classification		            = row["classification"]
+            TLE.designation			            = row["designation"]
+            TLE.epoch			                = row["epoch"]
+            TLE.mean_motion_derivative		    = row["mean_motion_derivative"]
+            TLE.mean_motion_sec_derivative	    = row["mean_motion_sec_derivative"]
+            TLE.bstar			                = row["bstar"]
+            TLE.ephemeris_type	                = row["ephemeris_type"]
+            TLE.element_set_number	            = row["element_set_number"]
+            TLE.inclination			            = row["inclination"]
+            TLE.inclination_radians	            = row["inclination_radians"]
+            TLE.raan_degrees		            = row["raan_degrees"]
+            TLE.raan_radians		            = row["raan_radians"]
+            TLE.eccentricity		            = row["eccentricity"]
+            TLE.arg_perigee_degrees	            = row["arg_perigee_degrees"]
+            TLE.arg_perigee_radians	            = row["arg_perigee_radians"]
+            TLE.mean_anomaly_degrees            = row["mean_anomaly_degrees"]
+            TLE.mean_anomaly_radians            = row["mean_anomaly_radians"]
+            TLE.mean_motion_orbits_per_day      = row["mean_motion_orbits_per_day"]
+            TLE.mean_motion_radians_per_second  = row["mean_motion_radians_per_second"]
+            TLE.orbit_number			        = row["orbit_number"]
+
+            TLE.launch_piece_number	= row["launch_piece_number"]
+            TLE.analyst_object		= row["analyst_object"]
+            TLE.strict_import		= row["strict_import"]
+            TLE.tle_fingerprint		= row["tle_fingerprint"]
+            TLE._tle_file_fingerprint = row["file_fingerprint"]
+            TLE.import_timestamp	= row["import_timestamp"]
+
+            TLEs.append(TLE)
+        return TLEs
+
+
+    def selectTLEFile(self, tle_file_fingerprint):
+        """Query to see if a TLE file is already in the database."""
+        if self._dbtype == "INFILE": # Manage array
+            if (tle_file_fingerprint not in self._tle_file_fingerprintDict):
+                results = None
+            else:
+                results = self._tle_file_fingerprintDict[tle_file_fingerprint]
+        elif self._dbtype == "sqlite":
+            self.c.execute(self.selectTLEFile_query, [tle_file_fingerprint])
+            results = self.c.fetchone()
+        else:
+            self.c_selectTLEFile_query.execute(self.selectTLEFile_query, [tle_file_fingerprint])
+            results = self.c_selectTLEFile_query.fetchone()
+        return results
+
+
+    def selectTLEFingerprint(self, tle_fingerprint):
+        """Query to see if a specific TLE is already in the database"""
+        if self._dbtype == "INFILE": # Manage array
+            if (tle_fingerprint not in self._tle_fingerprintDict):
+                results = None
+            else:
+                results = self._tle_fingerprintDict[tle_fingerprint]
+        elif self._dbtype == "sqlite":
+            self.c.execute(self.selectTLEFingerprint_query, [tle_fingerprint])
+            results = self.c.fetchone()
+        else:
+            self.c_selectTLEFingerprint_query.execute(self.selectTLEFingerprint_query, [tle_fingerprint])
+            results = self.c_selectTLEFingerprint_query.fetchone()
+        return results
+
+    def selectTLEEpochBeforeDate(self, query_epoch_datetime, satellite_number):
+        """Query to return the first TLE with epoch *prior* to specified date for a specific satellite number
+        
+        Returns TruSatellite() object
+        """
+        self.selectTLEEpochBeforeDate_query = """SELECT * FROM TLE 
+            WHERE epoch <= '{}' 
+            AND satellite_number={} 
+            ORDER BY epoch DESC
+            LIMIT 1""".format(query_epoch_datetime, satellite_number)
+        self.cdict.execute(self.selectTLEEpochBeforeDate_query)
+        row = [self.cdict.fetchone()]   # Put single result into an array
+        return self.cdictQueryToTruSatelliteObj(row)[0]  # Unpack the array to the object, for just one result
+
+    def selectTLEEpochNearestDate(self, query_epoch_datetime, satellite_number):
+        """Query to return the *nearest* TLE with epoch for a specific satellite for a specified date
+
+        Could be before or after the provided date.
+        Returns TruSatellite() object
+        """
+        self.selectTLEEpochNearestDate_query = """SELECT *,ABS(TIMEDIFF(epoch,'{}')) as diff FROM TLE
+            WHERE satellite_number={} 
+            ORDER BY diff ASC
+            LIMIT 1""".format(query_epoch_datetime, satellite_number)
+        self.c.execute(self.selectTLEEpochNearestDate_query)
+        row = [self.cdict.fetchone()]    # Put single result into an array
+        return self.cdictQueryToTruSatelliteObj(row)[0]  # Unpack the array to the object, for just one result
+
+    # FIXME - This is the latest of everything in the catalog - but some will be old from McCants stuff because they were dropped from classfd.tle
+    def selectTLE_Astriagraph(self):
+        query_tmp = """SELECT line0, line1, line2, satellite_number
+            FROM TLE 
+            GROUP BY satellite_number
+            ORDER BY TLE.epoch DESC;"""
+        self.c.execute(query_tmp)
+        result = ""
+        for (line0, line1, line2, _) in self.c.fetchall():
+            result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
+        return result
+
+    # https://consensys-cpl.atlassian.net/browse/MVP-285
+    def selectTLE_all(self):
+        query_tmp = """SELECT line0, line1, line2, satellite_number
+            FROM TLE 
+            GROUP BY satellite_number
+            ORDER BY satellite_number ASC;"""
+        self.c.execute(query_tmp)
+        result = ""
+        for (line0, line1, line2, _) in self.c.fetchall():
+            result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
+        return result
+
+
+    # https://consensys-cpl.atlassian.net/browse/MVP-286
+    def selectTLE_priorities(self):
+        # TODO: Replace with real priority sort. https://consensys-cpl.atlassian.net/browse/MVP-389
+        # In the meantime, return TLEs older than 30 days
+        query_tmp = """SELECT line0, line1, line2, satellite_number
+            FROM TLE 
+			WHERE DATEDIFF(NOW(),epoch) > 30
+            GROUP BY satellite_number
+            ORDER BY TLE.epoch DESC;"""
+        self.c.execute(query_tmp)
+        result = ""
+        for (line0, line1, line2, _) in self.c.fetchall():
+            result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
+        return result
+
+    # https://consensys-cpl.atlassian.net/browse/MVP-287
+    def selectTLE_high_confidence(self):
+        # TODO: Replace with real confidence sort. https://consensys-cpl.atlassian.net/browse/MVP-390
+        # In the meantime, return TLEs younger than 30 days, newest first
+        query_tmp = """SELECT line0, line1, line2, satellite_number
+            FROM TLE 
+			WHERE DATEDIFF(NOW(),epoch) < 30
+            GROUP BY satellite_number
+            ORDER BY TLE.epoch ASC;"""
+        self.c.execute(query_tmp)
+        result = ""
+        for (line0, line1, line2, _) in self.c.fetchall():
+            result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
+        return result
+
+    # https://consensys-cpl.atlassian.net/browse/MVP-385
+    def selectTLE_single(self, norad_num):
+        query_tmp = """SELECT line0, line1, line2 
+            FROM TLE 
+            WHERE satellite_number={NORAD_NUM}
+            ORDER BY EPOCH DESC
+            LIMIT 1;""".format(NORAD_NUM=norad_num)
+        self.c.execute(query_tmp)
+        try:
+            (line0, line1, line2) = self.c.fetchone()
+            return "{}r\n{}\n{}\n".format(line0,line1,line2)
+        except Exception as e:
+            print(e)
+            return None
+
+    def commit_TLE_db_writes(self):
+        """Process a stored query batch for all the TLEs in a file at once.
+
+        Note that for large TLEs (50,000 entries, we might want to batch this at 1,000 per per something)
+        That's not an issue for the small McCants files
+        """
+        if (self._dbtype == "sqlserver"):
+            if(len(self._TLEentryList) > 0):
+                try: 
+                    self.c_addTLE_query.executemany(self.addTLE_query,self._TLEentryList)
+                    self._TLEentryList = []
+                except Exception as e:
+                    log.error("MYSQL ERROR: {}".format(e))
+        if (self._dbtype != "INFILE"):
+            self.conn.commit()
+
+
+
 
     def selectUserStations_JSON(self, eth_addr):
         query_tmp = """SELECT Json_Object(
@@ -1798,116 +2038,6 @@ class Database:
         except:
             return None
 
-
-    # FIXME - This is the latest of everything in the catalog - but some will be old from McCants stuff because they were dropped from classfd.tle
-    def selectTLE_Astriagraph(self):
-        query_tmp = """SELECT line0, line1, line2, satellite_number
-            FROM TLE 
-            GROUP BY satellite_number
-            ORDER BY TLE.epoch DESC;"""
-        self.c.execute(query_tmp)
-        result = ""
-        for (line0, line1, line2, _) in self.c.fetchall():
-            result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
-        return result
-
-    # https://consensys-cpl.atlassian.net/browse/MVP-285
-    def selectTLE_all(self):
-        query_tmp = """SELECT line0, line1, line2, satellite_number
-            FROM TLE 
-            GROUP BY satellite_number
-            ORDER BY satellite_number ASC;"""
-        self.c.execute(query_tmp)
-        result = ""
-        for (line0, line1, line2, _) in self.c.fetchall():
-            result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
-        return result
-
-
-    # https://consensys-cpl.atlassian.net/browse/MVP-286
-    def selectTLE_priorities(self):
-        # TODO: Replace with real priority sort. https://consensys-cpl.atlassian.net/browse/MVP-389
-        # In the meantime, return TLEs older than 30 days
-        query_tmp = """SELECT line0, line1, line2, satellite_number
-            FROM TLE 
-			WHERE DATEDIFF(NOW(),epoch) > 30
-            GROUP BY satellite_number
-            ORDER BY TLE.epoch DESC;"""
-        self.c.execute(query_tmp)
-        result = ""
-        for (line0, line1, line2, _) in self.c.fetchall():
-            result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
-        return result
-
-    # https://consensys-cpl.atlassian.net/browse/MVP-287
-    def selectTLE_high_confidence(self):
-        # TODO: Replace with real confidence sort. https://consensys-cpl.atlassian.net/browse/MVP-390
-        # In the meantime, return TLEs younger than 30 days, newest first
-        query_tmp = """SELECT line0, line1, line2, satellite_number
-            FROM TLE 
-			WHERE DATEDIFF(NOW(),epoch) < 30
-            GROUP BY satellite_number
-            ORDER BY TLE.epoch ASC;"""
-        self.c.execute(query_tmp)
-        result = ""
-        for (line0, line1, line2, _) in self.c.fetchall():
-            result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
-        return result
-
-    # https://consensys-cpl.atlassian.net/browse/MVP-385
-    def selectTLE_single(self, norad_num):
-        query_tmp = """SELECT line0, line1, line2 
-            FROM TLE 
-            WHERE satellite_number={NORAD_NUM}
-            ORDER BY EPOCH DESC
-            LIMIT 1;""".format(NORAD_NUM=norad_num)
-        self.c.execute(query_tmp)
-        try:
-            (line0, line1, line2) = self.c.fetchone()
-            return "{}r\n{}\n{}\n".format(line0,line1,line2)
-        except Exception as e:
-            print(e)
-            return None
-
-    def commit_TLE_db_writes(self):
-        """Process a stored query batch for all the TLEs in a file at once.
-
-        Note that for large TLEs (50,000 entries, we might want to batch this at 1,000 per per something)
-        That's not an issue for the small McCants files
-        """
-        if (self._dbtype == "sqlserver"):
-            if(len(self._TLEentryList) > 0):
-                try: 
-                    self.c_addTLE_query.executemany(self.addTLE_query,self._TLEentryList)
-                    self._TLEentryList = []
-                except Exception as e:
-                    log.error("MYSQL ERROR: {}".format(e))
-        if (self._dbtype != "INFILE"):
-            self.conn.commit()
-
-
-    def commit_IOD_db_writes(self):
-        if (self._dbtype == "sqlserver"):
-            while(len(self._IODentryList) > 0):
-                try: 
-                    self.c_addParsedIOD.executemany(self.addParsedIOD_query,self._IODentryList)
-                    self._IODentryList = []
-                except Exception as e:
-                    log.error("MYSQL ERROR: {}".format(e))
-                    # FIXME - (Work in progress) - try to get rid of duplicate entry in a executemany list
-                    if ("Duplicate Entry" in e):
-                        mysql_error_tuple = e.split(' ')
-                        # FIXME - This is fragile
-                        duplicate_fingerprint = mysql_error_tuple[6].strip("'")
-                        row = 0
-                        # FIXME - Don't know if this will work for the whole tuple, or if I have to find the element
-                        for entry in observerTuple:
-                            if duplicate_fingerprint in entry:
-                                observerTuple.remove(row)
-                            row += 1
-
-        if (self._dbtype != "INFILE"):
-            self.conn.commit()
 
 
     def clean(self):
