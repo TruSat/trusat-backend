@@ -18,6 +18,14 @@ tle_path = os.path.join(parentdir, "sathunt-tle")
 sys.path.insert(1,tle_path) 
 import tle_util
 
+# The following 5 lines are necessary until the iod module is public
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+iod_path = os.path.join(parentdir, "sathunt-iod")
+sys.path.insert(1,iod_path) 
+import iod
+
 import logging
 log = logging.getLogger(__name__)
 
@@ -1045,7 +1053,7 @@ class Database:
         Observations = []
 
         for row in fetch:
-            OBS = IOD()
+            OBS = iod.IOD()
 
             OBS.obs_id			        = row["obs_id"]
             OBS.submitted			    = row["submitted"]
@@ -1082,6 +1090,47 @@ class Database:
 
             Observations.append(OBS)
         return Observations
+
+    def selectIODListat(self, obs_id):
+        """ Get a list of observation IDs starting at the specified obs_id
+
+        Returns an array of IOD objects
+        """
+        query_tmp = """SELECT * FROM ParsedIOD 
+                WHERE obs_id >= {OBS_ID}
+                ORDER BY obs_id ASC
+                LIMIT 10;""".format(OBS_ID=obs_id)
+        self.cdict.execute(query_tmp)
+        rows = self.cdict.fetchall()
+        return self.cdictQueryToObsObj(rows)
+
+    def selectIODlist(self,iod_list):
+        query_tmp = """SELECT *, Obs.latitude, Obs.longitude, Obs.elevation_m, Obs.obs_name FROM ParsedIOD            
+			JOIN (
+                    SELECT 
+                        latitude, 
+                        longitude, 
+                        elevation_m, 
+                        Observer.name as obs_name, 
+                        Station.station_num as station_num 
+                    FROM Station,Observer 
+                    WHERE Station.user = Observer.id
+                )
+                Obs ON ParsedIOD.station_number = Obs.station_num
+            WHERE """
+        first=True
+        for id in iod_list:
+            if(first):
+                query_tmp = query_tmp + " obs_id={} ".format(id)
+                first=False
+            else:
+                query_tmp = query_tmp + " OR obs_id={} ".format(id)
+
+        query_tmp = query_tmp + " ORDER by obs_time ASC;" 
+
+        self.cdict.execute(query_tmp)
+        rows = self.cdict.fetchall()
+        return self.cdictQueryToObsObj(rows)
 
 
     def getObservationCount(self):
@@ -1252,7 +1301,7 @@ class Database:
                                 observerTuple.remove(row)
                             row += 1
 
-        if (self._dbtype != "INFILE"):
+        elif (self._dbtype != "INFILE"):
             self.conn.commit()
 
     #######################
@@ -1345,12 +1394,12 @@ class Database:
         
         Returns TruSatellite() object
         """
-        self.selectTLEEpochBeforeDate_query = """SELECT * FROM TLE 
+        query_tmp = """SELECT * FROM TLE 
             WHERE epoch <= '{}' 
             AND satellite_number={} 
             ORDER BY epoch DESC
             LIMIT 1""".format(query_epoch_datetime, satellite_number)
-        self.cdict.execute(self.selectTLEEpochBeforeDate_query)
+        self.cdict.execute(query_tmp)
         row = [self.cdict.fetchone()]   # Put single result into an array
         return self.cdictQueryToTruSatelliteObj(row)[0]  # Unpack the array to the object, for just one result
 
@@ -1360,11 +1409,11 @@ class Database:
         Could be before or after the provided date.
         Returns TruSatellite() object
         """
-        self.selectTLEEpochNearestDate_query = """SELECT *,ABS(TIMEDIFF(epoch,'{}')) as diff FROM TLE
+        query_tmp = """SELECT *,ABS(TIMEDIFF(epoch,'{}')) as diff FROM TLE
             WHERE satellite_number={} 
             ORDER BY diff ASC
             LIMIT 1""".format(query_epoch_datetime, satellite_number)
-        self.c.execute(self.selectTLEEpochNearestDate_query)
+        self.c.execute(query_tmp)
         row = [self.cdict.fetchone()]    # Put single result into an array
         return self.cdictQueryToTruSatelliteObj(row)[0]  # Unpack the array to the object, for just one result
 
