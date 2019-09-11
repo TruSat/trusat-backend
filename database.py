@@ -129,6 +129,22 @@ def convert_country_names_single(observation):
         observation["object_origin"] = ''
     return
 
+# We haven't defined a Station class anywhere, so might as well do it here.
+class Station:
+    def __init__(self):
+        self.station_num    = None
+        self.initial		= None
+        self.latitude		= None
+        self.longitude		= None
+        self.elevation_m	= None
+        self.name			= None
+        self.MPC			= None
+        self.details		= None
+        self.preferred_format = None
+        self.source_url		= None
+        self.notes			= None
+        self.user			= None
+
 # TODO: Add index statements to the appropriate fields when creating the tables
 class Database:
     """ Database class opens and stores connection to the database, and performs database operations.
@@ -901,6 +917,88 @@ class Database:
             except Exception as e:
                 log.error("MYSQL ERROR: {}".format(e))
         return True
+
+    #######################
+    ### Station-related queries
+    #######################
+    def getStationsQuery(self, requested_station_list):
+        """ For a list of station numbers, return a Dict of Station classes, keyed by Station_ID
+        
+        Log a warning if no data found for any requested station.
+
+        Input:
+            Unique list of station numbers (assumed unique)
+        Output:
+            Dict of Station() objects contained in station number array, keyed by Station_ID
+        """
+        query_tmp = "SELECT * FROM Station WHERE station_num IN ( "
+        
+        first = True
+        for station in requested_station_list:
+            if (first):
+                query_tmp = query_tmp + " {} ".format(station) 
+                first = False
+            else:
+                query_tmp = query_tmp + ", {} ".format(station) 
+        query_tmp = query_tmp + ") ORDER BY station_num ASC;"
+
+        self.cdict.execute(query_tmp)
+        station_data = self.cdict.fetchall()
+
+        # Check to see that we got the requested data, warn if we didn't
+        # Note that we're assuming that the function has been called with unique items in requested_station_list
+        requested_num   = len(requested_station_list)
+        requested_found = len(station_data)
+        if (requested_found < requested_num):
+            found_station_list = []
+            for station in station_data:
+                if (station["station_num"] not in found_station_list):
+                    found_station_list.append(station["station_num"])
+            for station in requested_station_list:
+                if (station not in found_station_list):
+                    log.warning("Did not find data for station {}".format(station))
+                    # TODO Figure out if there's something else to do here to warn the calling function of missing data
+
+        Stations = {} # Initialize dict for station data
+        for row in station_data:
+            Sta = Station()
+
+            Sta.station_num		= row["station_num"]
+            Sta.initial			= row["initial"]
+            Sta.latitude		= row["latitude"]
+            Sta.longitude		= row["longitude"]
+            Sta.elevation_m		= row["elevation_m"]
+            Sta.name			= row["name"]
+            Sta.MPC			    = row["MPC"]
+            Sta.details			= row["details"]
+            Sta.preferred_format = row["preferred_format"]
+            Sta.source_url		= row["source_url"]
+            Sta.notes			= row["notes"]
+            Sta.user			= row["user"]
+
+            # Add new dictionary entry for Station Num
+            Stations.update( {Sta.station_num : Sta } )
+        return Stations
+
+
+    def getStationDictforIODs(self, IODs):
+        """ Query the DB for all the stations contained in an IOD Array, and return a dictionary for 
+        station information to support analyses of the IODs
+
+        Input: an array of IOD class variables
+
+        Output: Dict of Station() objects contained in IOD array, indexed by Station_ID key
+        """
+        needed_stations = []
+
+        # Create unique list of stations contained in IOD array
+        for iod in IODs:
+            if (iod.station_number not in needed_stations):
+                needed_stations.append(iod.station_number)
+
+        # TODO: Figure out if there's error checking here for less station data than we asked for
+        Stations = self.getStationsQuery(needed_stations)
+        return Stations
 
     #######################
     ### Observer-related queries
