@@ -25,10 +25,13 @@ def generate_object_id():
     return str(randbits(256))
 
 def QueryRowToJSON(var):
-    return json.dumps(
-        json.loads(var[0]),
-        sort_keys=False, 
-        indent=4)
+    try:
+        return json.dumps(
+            json.loads(var[0]),
+            sort_keys=False, 
+            indent=4)
+    except:
+        return b'{}'
 
 def QueryRowToJSON_JSON(var):
     return json.loads(var[0])
@@ -195,6 +198,8 @@ class Database:
             self.c_updateObserverBio_query = self.conn.cursor(prepared=True)
             self.c_updateObserverLocation_query = self.conn.cursor(prepared=True)
             self.c_updateObserverPrivate_query = self.conn.cursor(prepared=True)
+            self.c_updateObserverPassword_query = self.conn.cursor(prepared=True)
+            self.c_updateObserverAddress_query = self.conn.cursor(prepared=True)
             self.c_getObserverNonce_query = self.conn.cursor(prepared=True)
             self.c_getObserverJWT_query = self.conn.cursor(prepared=True)
             self.c_getObservationCount_query = self.conn.cursor(prepared=True)
@@ -210,6 +215,8 @@ class Database:
             self.c_addSATCAT_query = self.conn.cursor(prepared=True)
             self.c_addUCSDB_query = self.conn.cursor(prepared=True)
             self.c_selectObserverID_query = self.conn.cursor(prepared=True)
+            self.c_selectObserverAddressFromEmail_query = self.conn.cursor(prepared=True)
+            self.c_selectObserverAddressFromPassword_query = self.conn.cursor(prepared=True)
             self.selectObserverID_query = '''SELECT max(id) from Observer'''
             try:
                 self.c_selectObserverID_query.execute(self.selectObserverID_query, [])
@@ -230,15 +237,21 @@ class Database:
         self.updateObserverNonce_query = '''UPDATE Observer SET nonce=? WHERE eth_addr=?'''
         self.updateObserverJWT_query = '''UPDATE Observer SET jwt=?, password=? WHERE eth_addr=?'''
         self.updateObserverUsername_query = '''UPDATE Observer SET name=? WHERE eth_addr=?'''
+        #self.updateObserverEmail_query = '''UPDATE Observer_email INNER JOIN Observer ON Observer_email.user_email=Observer.id SET Observer_email.email=? WHERE Observer.eth_addr=?'''
         self.updateObserverEmail_query = '''UPDATE Observer SET reference=? WHERE eth_addr=?'''
         self.updateObserverLocation_query = '''UPDATE Observer SET location=? WHERE eth_addr=?'''
         self.updateObserverBio_query = '''UPDATE Observer SET bio=? WHERE eth_addr=?'''
+        self.updateObserverPassword_query = '''UPDATE Observer SET password=? WHERE eth_addr=?'''
+        self.updateObserverAddress_query = '''UPDATE Observer SET eth_addr=? WHERE eth_addr=?'''
         self.getObserverNonce_query = '''SELECT nonce FROM Observer WHERE eth_addr=?'''
         self.getObserverJWT_query = '''SELECT jwt FROM Observer WHERE eth_addr=?'''
         self.getObservationCount_query = '''SELECT object_number, COUNT(object_number) as querycount from ParsedIOD where valid_position>0 GROUP BY object_number order by querycount DESC'''
         self.getCommunityObservationByYear_query = '''SELECT YEAR(obs_time), COUNT(*) as querycount from ParsedIOD where valid_position>0 GROUP BY YEAR(obs_time) order by YEAR(obs_time) ASC'''
         self.getCommunityObservationByMonth_query = '''SELECT MONTH(obs_time), COUNT(*) as querycount from ParsedIOD where valid_position>0 GROUP BY MONTH(obs_time) order by MONTH(obs_time) ASC'''
         self.getObserverCountByID_query = '''SELECT id, COUNT(*) from Observer WHERE eth_addr=?'''
+        #self.selectObserverAddressFromEmail_query = '''SELECT Observer.eth_addr FROM Observer INNER JOIN Observer_email ON Observer.id=Observer_email.user_id WHERE Observer_email.email=?''' #AND nonce IS NULL'''
+        self.selectObserverAddressFromEmail_query = '''SELECT eth_addr FROM Observer WHERE reference=?''' #AND nonce IS NULL'''
+        self.selectObserverAddressFromPassword_query = '''SELECT eth_addr FROM Observer WHERE password=?'''
         self.getRecentObservations_query = '''SELECT * FROM ParsedIOD where valid_position>0 ORDER BY obs_time DESC LIMIT 5'''
         self.selectTLEFile_query = '''SELECT file_fingerprint FROM TLEFILE WHERE file_fingerprint LIKE ? LIMIT 1'''
         self.selectTLEFingerprint_query = '''SELECT tle_fingerprint FROM TLE WHERE tle_fingerprint LIKE ? LIMIT 1'''
@@ -967,6 +980,34 @@ class Database:
             self.conn.commit()
         return True
 
+    def updateObserverPassword(self, password, public_address):
+        if self._dbtype == "INFILE":
+            try:
+                results = (self.updateObserverPassword_query, [password, public_address])
+            except KeyError:
+                results = None
+        elif self._dbtype == "sqlite":
+            self.c.execute(self.updateObserverPassword_query, [password, public_address])
+            results = self.c.fetchone()
+        else:
+            self.c_updateObserverPassword_query.execute(self.updateObserverPassword_query, [password, public_address])
+            self.conn.commit()
+        return True
+
+    def updateObserverAddress(self, new_address, public_address):
+        if self._dbtype == "INFILE":
+            try:
+                results = (self.updateObserverAddress_query, [new_address, public_address])
+            except KeyError:
+                results = None
+        elif self._dbtype == "sqlite":
+            self.c.execute(self.updateObserverAddress_query, [new_address, public_address])
+            results = self.c.fetchone()
+        else:
+            self.c_updateObserverAddress_query.execute(self.updateObserverAddress_query, [new_address, public_address])
+            self.conn.commit()
+        return True
+
 
     def selectObserver(self, observer_name):
         """ Look up an observer by (name/email string) in database or internal dictionary"""
@@ -981,6 +1022,41 @@ class Database:
         else:
             self.c_selectObserver_query.execute(self.selectObserver_query, [observer_name])
             results = self.c_selectObserver_query.fetchone()
+        return results
+
+    def selectObserverAddressFromEmail(self, email):
+        if self._dbtype == "INFILE": # Manage array
+            try:
+                results = [self._observerDict[email]]
+            except KeyError:
+                results = None
+        elif self._dbtype == "sqlite":
+            self.c.execute(self.selectObserverAddressFromEmail_query, [email])
+            results = self.c.fetchone()
+        else:
+            self.c_selectObserverAddressFromEmail_query.execute(self.selectObserverAddressFromEmail_query, [email])
+            try:
+                results = self.c_selectObserverAddressFromEmail_query.fetchone()[0]
+            except:
+                return None
+        return results
+
+    def selectObserverAddressFromPassword(self, password):
+        if self._dbtype == "INFILE": # Manage array
+            try:
+                results = [self._observerDict[password]]
+            except KeyError:
+                results = None
+        elif self._dbtype == "sqlite":
+            self.c.execute(self.selectObserverAddressFromPassword_query, [password])
+            results = self.c.fetchone()
+        else:
+            self.c_selectObserverAddressFromPassword_query.execute(self.selectObserverAddressFromPassword_query, [password])
+            try:
+                results = self.c_selectObserverAddressFromPassword_query.fetchone()[0]
+            except Exception as e:
+                print(e)
+                return None
         return results
 
     def getObserverNonce(self, public_address):
@@ -1181,6 +1257,7 @@ class Database:
 
     def selectObjectHistoryByMonth_JSON(self, norad_number, year, month):
         query_tmp = """SELECT Json_Object(
+            'id', ParsedIOD.obs_id,
             'observation_time', UNIX_TIMESTAMP(ParsedIOD.obs_time),
             'username', user_string,
             'user_address', 'FILLER',
@@ -1197,7 +1274,25 @@ class Database:
                     YEAR=year,
                     MONTH=month)
         self.c.execute(query_tmp)
-        return stringArrayToJSONArray_JSON(self.c.fetchall())
+        history_by_month = stringArrayToJSONArray_JSON(self.c.fetchall())
+        for entry in history_by_month:
+            try:
+                user_information_query = '''SELECT station_number FROM ParsedIOD WHERE obs_id={}'''.format(entry["id"])
+                entry.pop('id', None)
+                self.c.execute(user_information_query)
+                station_number = self.c.fetchone()[0]
+                user_information_query = '''SELECT Observer.name, Observer.eth_addr, Observer.location FROM Observer INNER JOIN Station ON Station.user=Observer.id WHERE Station.station_num={}'''.format(station_number)
+                self.c.execute(user_information_query)
+                (username, address, location) = self.c.fetchone()
+                entry['username'] = username
+                entry['user_address'] = address
+                if location == None:
+                    entry['user_location'] = ''
+                else:
+                    entry['user_location'] = location
+            except Exception as e:
+                print(e)
+        return history_by_month
 
     # Supports user profile https://consensys-cpl.atlassian.net/browse/MVP-311
     # /object/history https://consensys-cpl.atlassian.net/browse/MVP-334
@@ -1289,6 +1384,25 @@ class Database:
                 OBS_COUNT=obs_count, 
                 AVG_OBS_QUALITY=avg_obs_quality,
                 ETH_ADDR=eth_addr)
+        #query_tmp = """SELECT Json_Object(
+        #    'user_name', Observer.name,
+        #    'email', Observer_email.email,
+        #    'user_address', Observer.eth_addr,
+        #    'user_location', Observer.location,
+        #    'number_objects_tracked', '{NUM_OBJ_TRACKED}',
+        #    'observation_count', '{OBS_COUNT}',
+        #    'average_observation_quality', '{AVG_OBS_QUALITY}',
+        #    'user_bio', Observer.bio,
+        #    'user_image', Observer.url_image)
+        #    FROM Observer
+        #    INNER JOIN Observer_email
+        #    ON Observer.id=Observer_email.user_id
+        #    WHERE Observer.eth_addr = '{ETH_ADDR}'
+        #    LIMIT 1;""".format(
+        #        NUM_OBJ_TRACKED=num_obj_tracked, 
+        #        OBS_COUNT=obs_count, 
+        #        AVG_OBS_QUALITY=avg_obs_quality,
+        #        ETH_ADDR=eth_addr)
         self.c.execute(query_tmp)
         return QueryRowToJSON(self.c.fetchone())
             
@@ -1640,7 +1754,8 @@ class Database:
         self.c.execute(query_tmp_count)
         try:
             (user_count, eth_addr, name, last_tracked) = self.c.fetchone()
-        except:
+        except Exception as e:
+            print(e)
             return None
 
         # Get object info and patch in user-info
@@ -1739,7 +1854,8 @@ class Database:
             'username', Obs.user_name, 
             'observation_quality', '{QUALITY}', 
             'observation_time_difference', '{TIME_DIFF}', 
-            'observation_weight', '{OBS_WEIGHT}')
+            'observation_weight', '{OBS_WEIGHT}',
+            'user_address', Obs.eth_addr)
             FROM ParsedIOD
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             JOIN (SELECT 

@@ -1,17 +1,19 @@
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer,  HTTPServer, BaseHTTPRequestHandler
 import ssl
 from io import BytesIO
 import json
 import secrets
-import datetime
+import datetime as dt
 import jwt
 import copy
-from jwt import encode
-from datetime import datetime
+from jwt import encode, decode
+from datetime import datetime, timedelta
 
 from eth_account import Account
 from eth_account.messages import defunct_hash_message, encode_defunct
 import sha3
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
 
 import database
 import google_email
@@ -109,9 +111,13 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(bytes(tles_json, 'utf-8'))
 
         else:
-            self.send_response(200)
+            #try:
+                #number = self.path[1:]
+
+            #except:
+            self.send_response(400)
             self.end_headers()
-            self.wfile.write(b'HI JOHN')
+            self.wfile.write(b'')
         db.clean()
 
 
@@ -130,29 +136,27 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         password = lines[4].strip()
         f.close()
         db = database.Database(db_name, db_type, endpoint, username, password)
-        try:
-            db.createTables()
-        except:
-            print("Tables already exist")
+        #try:
+        #    db.createTables()
+        #except:
+        #    print("Tables already exist")
         try:
             json_body = json.loads(body)
         except:
             print('json could not be parsed')
+            return
 
         ### GET NONCE ENDPOINT ###
         if self.path == "/getNonce":
-            print('getNonce')
             public_address_count = db.getObserverCountByID(public_address=json_body["address"])
             random_number = secrets.randbits(16)
             response_message = '{"nonce":\"%s\"}' % random_number
             if public_address_count[0] == None or public_address_count[0] == 0:
                 # New User
-                print("new user")
                 db.addObserver(json_body["address"], "NULL", 0, "NULL")
                 db.updateObserverNonce(nonce=random_number, public_address=json_body["address"])
             elif public_address_count[0] >= 1:
                 # Old User
-                print("old user")
                 db.updateObserverNonce(nonce=random_number, public_address=json_body["address"])
             response_body = bytes(response_message, 'utf-8')
 
@@ -164,7 +168,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
         ### LOGIN ENDPOINT ###
         elif self.path == "/login":
-            print('login')
             old_nonce = db.getObserverNonce(json_body["address"])
             print(old_nonce[0])
             nonce = str(old_nonce[0]).encode('utf-8')
@@ -181,7 +184,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 print('message could not be checked')
             if signed_public_key.lower() == json_body["address"].lower():
                 key = nonce
-                encoded_jwt = encode({'some':'payload'}, key, algorithm='HS256')
+                encoded_jwt = encode({'address':json_body["address"]}, key, algorithm='HS256')
                 db.updateObserverJWT(encoded_jwt, key, json_body["address"])
                 response_message = b'{"jwt":"'
                 response_message += encoded_jwt
@@ -202,27 +205,45 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             if db.getObserverJWT(public_address)[0].decode("utf-8") == user_jwt:
                 try:  
                     username = json_body["username"]
-                    db.updateObserverUsername(username, public_address)
+                    if username != "null":
+                        db.updateObserverUsername(username, public_address)
                 except Exception as e:
                     print("Username not being updated")
                     print(e)
                 try:
                     email = json_body["email"]
-                    db.updateObserverEmail(email, public_address)
+                    if email != "null":
+                        db.updateObserverEmail(email, public_address)
                 except Exception as e:
                     print("Email not being updated")
                     print(e)
                 try:
                     bio = json_body["bio"]
-                    db.updateObserverBio(bio, public_address)
+                    if bio != "null":
+                        db.updateObserverBio(bio, public_address)
                 except Exception as e:
                     print("Bio not being updated")
                     print(e)
                 try:
                     location = json_body["location"]
-                    db.updateObserverLocation(location, public_address)
+                    if location != "null":
+                        db.updateObserverLocation(location, public_address)
                 except Exception as e:
                     print("Location not being updated")
+                    print(e)
+                try:
+                    public_location = json_body["public_location"]
+                    if public_location != "null":
+                        db.updateObserverPublicLocation(public_location, public_address)
+                except Exception as e:
+                    print("Location flag could not be found")
+                    print(e)
+                try:
+                    public_username = json_body["public_username"]
+                    if public_username != "null":
+                        db.updateObserverPublicUsername(public_username, public_username)
+                except Exception as e:
+                    print("Username flag could not be found")
                     print(e)
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
@@ -234,7 +255,18 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         ### PROFILE ENDPOINT ###
         elif self.path == "/profile":
             user_jwt = json_body["jwt"]
-            user_addr = json_body["address"]
+            try:
+                user_addr = json_body["address"]
+            except:
+                try:
+                    user_addr = db.getObserverFromJWT(user_jwt)
+                except:
+                    self.send_response(418)
+                    self.send_header('Content-type', 'applicaiton/json')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.end_headers()
+                    self.wfile.write(b'{}')
+                    return
             objects_observed_json = db.selectUserObjectsObserved_JSON(user_addr)
             observation_history_json = db.selectUserObservationHistory_JSON(user_addr)
             credentials = db.getObserverJWT(user_addr)
@@ -242,15 +274,89 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             user_profile_json = json.loads(user_profile)
             user_profile_json["objects_observed"] = objects_observed_json
             user_profile_json["observation_history"] = observation_history_json
+            user_profile_json["public_username"] = False
+            user_profile_json["public_location"] = False
             #if credentials[0].decode("utf-8") == user_jwt:
             #    response_body = bytes(json.dumps(user_profile_json), 'utf-8')
-            response_body = bytes(json.dumps(user_profile_json), 'utf-8')
+            for k,v in user_profile_json.items():
+                if v == None or v =='NULL':
+                    user_profile_json[k] = ""
+            user_profile = json.dumps(user_profile_json)
+            response_body = bytes(user_profile, 'utf-8')
 
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             self.wfile.write(response_body)
+
+        elif self.path == '/claimAccount':
+            email = json_body['email']
+            with open('unsafe_private.pem', 'r') as file:
+                private_key = file.read()
+            #private_rsa_key = load_pem_private_key(private_key, backend=default_backend())
+            results = db.selectObserverAddressFromEmail(email)
+            if results != None:
+                number = str(secrets.randbits(64))
+                jwt_payload = {
+                        'email': email,
+                        'secret': number,
+                        'exp': datetime.utcnow() + timedelta(1800)
+                    }
+                temp_key = "apple_pie"
+                encoded_jwt = encode(jwt_payload, temp_key, algorithm='HS256')
+                db.updateObserverPassword(encoded_jwt.decode('utf-8'), results.decode('utf-8'))
+                google_email.send_recovery_email(email, 'http://trusat.consensys.space/claim/' + encoded_jwt.decode('utf-8'))
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(b'{}')
+
+        elif self.path == "/verifyClaimAccount":
+            message_text = json_body["secret"]
+            address = json_body["address"]
+            user_jwt = json_body["jwt"]
+            print(user_jwt)
+            #Lookup number and old address
+            try:
+                decoded_jwt = decode(user_jwt, "apple_pie", algorithms='HS256')
+                secret = decoded_jwt["secret"]
+                to = decoded_jwt["email"]
+                old_address = db.selectObserverAddressFromPassword(user_jwt).decode('utf-8')
+                #replace address
+                key = str(secrets.randbits(10))
+                encoded_jwt = encode({'address':address}, key, algorithm='HS256')
+                db.updateObserverAddress(address, old_address)
+                print(old_address)
+                print(address)
+                google_email.send_email(to, message_text)
+                db.updateObserverJWT(encoded_jwt, key, json_body["address"])
+                response_message = b'{"jwt":"'
+                response_message += encoded_jwt
+                response_message += b'"}'
+                response_body = response_message
+
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(response_body)
+            except Exception as e:
+                print(e)
+                self.send_response(400)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(b'{}')
+
+            
+            #issue jwt
+            
+            #OTHERWISE
+
+            #Take address that they generated earlier and merge it?
+
 
         elif self.path == '/emailSecret':
             to = json_body['to']
@@ -275,9 +381,10 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         elif self.path == '/object/info':
             norad_number = json_body['norad_number']
             object_info = db.selectObjectInfo_JSON(norad_number)
-            print(norad_number)
-            response_body = bytes(object_info, 'utf-8')
-            print(object_info)
+            try:
+                response_body = bytes(object_info, 'utf-8')
+            except:
+                response_body = b'[]'
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
@@ -375,7 +482,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
         elif self.path == "/submitObservation":
             user_jwt = json_body["jwt"]
-            user_addr = db.getObserverFromJWT(user_jwt)[0]
+            user_addr = db.getObserverFromJWT(user_jwt)
             parsed_iod_array = []
             #credentials = db.getObserverJWT(user_addr)
             if user_addr == None:
@@ -414,6 +521,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
         db.clean()
 
-httpd = HTTPServer(('', 8080), SimpleHTTPRequestHandler)
+httpd = ThreadingHTTPServer(('', 8080), SimpleHTTPRequestHandler)
 httpd.socket = ssl.wrap_socket(httpd.socket, keyfile='./privkey.pem', certfile='./fullchain.pem', server_side=True)
 httpd.serve_forever()
