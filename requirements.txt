@@ -1,0 +1,9 @@
+pysha3
+pyjwt
+eth_account
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+sgp4
+skyfield
+spacetrack
