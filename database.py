@@ -56,11 +56,6 @@ def datetime_from_sqldatetime(sql_date_string):
     date_format = '%Y-%m-%d %H:%M:%S.%f'
     return datetime.strptime(sql_date_string, date_format)
 
-def datetime_from_sqldatetime(sql_date_string):
-    """ The 4 digit sub-seconds are not the standard 3 or 6, which creates problems with datetime.fromisoformat """
-    date_format = '%Y-%m-%d %H:%M:%S.%f'
-    return datetime.strptime(sql_date_string, date_format)
-
 def convert_country_names(object_observed):
     for observation in object_observed:
         countries_two_letters = ''
@@ -190,6 +185,7 @@ class Database:
             self.c_addParsedIOD = self.conn.cursor(prepared=True)
             self.c_addStation_query = None
             self.c_addObserver_query = self.conn.cursor(prepared=True)
+            self.c_addObserverEmail_query = self.conn.cursor(prepared=True)
             self.c_selectObserver_query = self.conn.cursor(prepared=True)
             self.c_updateObserverNonce_query = self.conn.cursor(prepared=True)
             self.c_updateObserverJWT_query = self.conn.cursor(prepared=True)
@@ -233,12 +229,13 @@ class Database:
         #  %s only works for sqlserver, ? works for both sqlite and sqlserver
         self.addStation_query = None
         self.addObserver_query = '''INSERT INTO Observer(id, eth_addr, name, reputation, reference) VALUES(?,?,?,?,?)'''
+        self.addObserverEmail_query = '''INSERT INTO Observer_email(id, email) VALUES(?,?)'''
         self.selectObserver_query = '''SELECT id FROM Observer WHERE verified LIKE ? LIMIT 1'''
         self.updateObserverNonce_query = '''UPDATE Observer SET nonce=? WHERE eth_addr=?'''
         self.updateObserverJWT_query = '''UPDATE Observer SET jwt=?, password=? WHERE eth_addr=?'''
         self.updateObserverUsername_query = '''UPDATE Observer SET name=? WHERE eth_addr=?'''
-        #self.updateObserverEmail_query = '''UPDATE Observer_email INNER JOIN Observer ON Observer_email.user_email=Observer.id SET Observer_email.email=? WHERE Observer.eth_addr=?'''
-        self.updateObserverEmail_query = '''UPDATE Observer SET reference=? WHERE eth_addr=?'''
+        self.updateObserverEmail_query = '''UPDATE Observer_email INNER JOIN Observer ON Observer_email.user_email=Observer.id SET Observer_email.email=? WHERE Observer.eth_addr=?'''
+        #self.updateObserverEmail_query = '''UPDATE Observer SET reference=? WHERE eth_addr=?'''
         self.updateObserverLocation_query = '''UPDATE Observer SET location=? WHERE eth_addr=?'''
         self.updateObserverBio_query = '''UPDATE Observer SET bio=? WHERE eth_addr=?'''
         self.updateObserverPassword_query = '''UPDATE Observer SET password=? WHERE eth_addr=?'''
@@ -249,8 +246,8 @@ class Database:
         self.getCommunityObservationByYear_query = '''SELECT YEAR(obs_time), COUNT(*) as querycount from ParsedIOD where valid_position>0 GROUP BY YEAR(obs_time) order by YEAR(obs_time) ASC'''
         self.getCommunityObservationByMonth_query = '''SELECT MONTH(obs_time), COUNT(*) as querycount from ParsedIOD where valid_position>0 GROUP BY MONTH(obs_time) order by MONTH(obs_time) ASC'''
         self.getObserverCountByID_query = '''SELECT id, COUNT(*) from Observer WHERE eth_addr=?'''
-        #self.selectObserverAddressFromEmail_query = '''SELECT Observer.eth_addr FROM Observer INNER JOIN Observer_email ON Observer.id=Observer_email.user_id WHERE Observer_email.email=?''' #AND nonce IS NULL'''
-        self.selectObserverAddressFromEmail_query = '''SELECT eth_addr FROM Observer WHERE reference=?''' #AND nonce IS NULL'''
+        self.selectObserverAddressFromEmail_query = '''SELECT Observer.eth_addr FROM Observer INNER JOIN Observer_email ON Observer.id=Observer_email.user_id WHERE Observer_email.email=?''' #AND nonce IS NULL'''
+        #self.selectObserverAddressFromEmail_query = '''SELECT eth_addr FROM Observer WHERE reference=?''' #AND nonce IS NULL'''
         self.selectObserverAddressFromPassword_query = '''SELECT eth_addr FROM Observer WHERE password=?'''
         self.getRecentObservations_query = '''SELECT * FROM ParsedIOD where valid_position>0 ORDER BY obs_time DESC LIMIT 5'''
         self.selectTLEFile_query = '''SELECT file_fingerprint FROM TLEFILE WHERE file_fingerprint LIKE ? LIMIT 1'''
@@ -758,6 +755,11 @@ class Database:
             reputation,
             first_line
             )
+
+        observerEmailTuple = (
+            self._new_observerid,
+            verification
+            )
     
         if self._dbtype == "INFILE": # Make CSV files
             self._writer_Observer.writerow(observerTuple)
@@ -765,17 +767,27 @@ class Database:
         elif self._dbtype == "sqlite":
             try:
                 self.c.execute(self.addObserver_query,observerTuple)
+                self.c.execute(self.addObserverEmail_query, observerEmailTuple)
                 self.conn.commit()
             except sqlite3.IntegrityError as e:
                 log.error("{}".format(e))
         else:
             try:
                 self.c_addObserver_query.execute(self.addObserver_query, observerTuple)
+                self.c_addObserverEmail_query.execute(self.addObserverEmail_query, observerEmailTuple)
                 self.conn.commit()
             except Exception as e:
                 log.error("MYSQL ERROR: {}".format(e))
         return self._new_observerid
 
+    def addObserverEmail(self, user_id, email):
+        try:
+            self.c_addObserverEmail_query.execute(self.addObserverEmail_query, [user_id, email])
+            self.conn.commit()
+            return user_id
+        except Exception as e:
+            log.error("MYSQL ERROR: {}".format(e))
+            return None
 
     def addTLE(self, entry):
         """ Add an TLE entry to the database """
@@ -1367,26 +1379,9 @@ class Database:
         except:
             obs_count = 0
 
-        query_tmp = """SELECT Json_Object(
-            'user_name', Observer.name,
-            'email', Observer.reference,
-            'user_address', Observer.eth_addr,
-            'user_location', Observer.location,
-            'number_objects_tracked', '{NUM_OBJ_TRACKED}',
-            'observation_count', '{OBS_COUNT}',
-            'average_observation_quality', '{AVG_OBS_QUALITY}',
-            'user_bio', Observer.bio,
-            'user_image', Observer.url_image)
-            FROM Observer
-            WHERE Observer.eth_addr = '{ETH_ADDR}'
-            LIMIT 1;""".format(
-                NUM_OBJ_TRACKED=num_obj_tracked, 
-                OBS_COUNT=obs_count, 
-                AVG_OBS_QUALITY=avg_obs_quality,
-                ETH_ADDR=eth_addr)
         #query_tmp = """SELECT Json_Object(
         #    'user_name', Observer.name,
-        #    'email', Observer_email.email,
+        #    'email', Observer.reference,
         #    'user_address', Observer.eth_addr,
         #    'user_location', Observer.location,
         #    'number_objects_tracked', '{NUM_OBJ_TRACKED}',
@@ -1395,14 +1390,31 @@ class Database:
         #    'user_bio', Observer.bio,
         #    'user_image', Observer.url_image)
         #    FROM Observer
-        #    INNER JOIN Observer_email
-        #    ON Observer.id=Observer_email.user_id
         #    WHERE Observer.eth_addr = '{ETH_ADDR}'
         #    LIMIT 1;""".format(
         #        NUM_OBJ_TRACKED=num_obj_tracked, 
         #        OBS_COUNT=obs_count, 
         #        AVG_OBS_QUALITY=avg_obs_quality,
         #        ETH_ADDR=eth_addr)
+        query_tmp = """SELECT Json_Object(
+            'user_name', Observer.name,
+            'email', Observer_email.email,
+            'user_address', Observer.eth_addr,
+            'user_location', Observer.location,
+            'number_objects_tracked', '{NUM_OBJ_TRACKED}',
+            'observation_count', '{OBS_COUNT}',
+            'average_observation_quality', '{AVG_OBS_QUALITY}',
+            'user_bio', Observer.bio,
+            'user_image', Observer.url_image)
+            FROM Observer
+            INNER JOIN Observer_email
+            ON Observer.id=Observer_email.user_id
+            WHERE Observer.eth_addr = '{ETH_ADDR}'
+            LIMIT 1;""".format(
+                NUM_OBJ_TRACKED=num_obj_tracked, 
+                OBS_COUNT=obs_count, 
+                AVG_OBS_QUALITY=avg_obs_quality,
+                ETH_ADDR=eth_addr)
         self.c.execute(query_tmp)
         return QueryRowToJSON(self.c.fetchone())
             
