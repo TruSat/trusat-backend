@@ -13,7 +13,7 @@ from eth_account import Account
 from eth_account.messages import defunct_hash_message, encode_defunct
 import sha3
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.serialization import load_pem_private_key
+from cryptography.hazmat.primitives.serialization import load_pem_private_key, load_pem_public_key
 
 import database
 import google_email
@@ -294,7 +294,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             email = json_body['email']
             with open('unsafe_private.pem', 'r') as file:
                 private_key = file.read()
-            #private_rsa_key = load_pem_private_key(private_key, backend=default_backend())
+            private_rsa_key = load_pem_private_key(bytes(private_key, 'utf-8'), password=None, backend=default_backend())
             results = db.selectObserverAddressFromEmail(email)
             if results != None:
                 number = str(secrets.randbits(64))
@@ -303,8 +303,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                         'secret': number,
                         'exp': datetime.utcnow() + timedelta(1800)
                     }
-                temp_key = "apple_pie"
-                encoded_jwt = encode(jwt_payload, temp_key, algorithm='HS256')
+                encoded_jwt = encode(jwt_payload, private_rsa_key, algorithm='RS256')
                 db.updateObserverPassword(encoded_jwt.decode('utf-8'), results.decode('utf-8'))
                 google_email.send_recovery_email(email, 'http://trusat.consensys.space/claim/' + encoded_jwt.decode('utf-8'))
             self.send_response(200)
@@ -320,7 +319,10 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             print(user_jwt)
             #Lookup number and old address
             try:
-                decoded_jwt = decode(user_jwt, "apple_pie", algorithms='HS256')
+                with open('public.pem', 'r') as file:
+                    public_key = file.read()
+                public_rsa_key = load_pem_public_key(bytes(public_key,'utf-8'), backend=default_backend())
+                decoded_jwt = decode(user_jwt, public_rsa_key, algorithms='RS256')
                 secret = decoded_jwt["secret"]
                 to = decoded_jwt["email"]
                 old_address = db.selectObserverAddressFromPassword(user_jwt).decode('utf-8')
