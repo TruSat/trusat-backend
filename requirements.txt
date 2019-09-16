@@ -7,3 +7,4 @@ google-auth-oauthlib
 sgp4
 skyfield
 spacetrack
+cryptography
