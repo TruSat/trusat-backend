@@ -108,5 +108,5 @@ token.pickle
 privkey.pem
 fullchain.pem
 Astrana.db
-login.txt
+login.txt*
 credentials.json
