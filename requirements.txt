@@ -8,3 +8,8 @@ sgp4
 skyfield
 spacetrack
 cryptography
+
+# Dependencies used by tests
+requests
+pytest
+snapshottest
