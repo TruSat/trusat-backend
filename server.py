@@ -26,6 +26,21 @@ import iod
 PORT_NUMBER = 8080
 
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
+
+    def send_200_JSON(self, body_data):
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        self.wfile.write(bytes(body_data, 'utf-8'))
+
+    def send_200_text(self, body_data):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/plain')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        self.wfile.write(bytes(body_data, 'utf-8'))
+
     def do_GET(self):
         f = open('login.txt', 'r')
         lines = f.readlines()
@@ -39,80 +54,39 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             
         if self.path == "/catalog/priorities":
             json_object = db.selectCatalog_Priorities_JSON()
-            response_body = bytes(json_object, 'utf-8')
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(response_body)
+            self.send_200_JSON(json_object)
         
         elif self.path == "/catalog/undisclosed":
             json_object = db.selectCatalog_Undisclosed_JSON()
-            response_body = bytes(json_object, 'utf-8')
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(response_body)
+            self.send_200_JSON(json_object)
 
         elif self.path == "/catalog/debris":
             json_object = db.selectCatalog_Debris_JSON()
-            response_body = bytes(json_object, 'utf-8')
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(response_body)
+            self.send_200_JSON(json_object)
 
         elif self.path == "/catalog/latest":
             json_object = db.selectCatalog_Latest_JSON()
-            response_body = bytes(json_object, 'utf-8')
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(response_body)
+            self.send_200_JSON(json_object)
 
         elif self.path == "/catalog/all":
             json_object = db.selectCatalog_All_JSON()
-            response_body = bytes(json_object, 'utf-8')
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(response_body)
+            self.send_200_JSON(json_object)
 
         elif self.path == "/tle/trusat_all.txt":
             two_line_elements = db.selectTLE_all()
-            self.send_response(200)
-            self.send_header('Content-type', 'text/plain')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(bytes(two_line_elements, 'utf-8'))
+            self.send_200_text(two_line_elements)
 
         elif self.path == "/tle/trusat_priorities.txt":
             two_line_elements = db.selectTLE_priorities()
-            self.send_response(200)
-            self.send_header('Content-type', 'text/plain')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(bytes(two_line_elements, 'utf-8'))
+            self.send_200_text(two_line_elements)
 
         elif self.path == "/tle/trusat_high_confidence.txt":
             two_line_elements = db.selectTLE_high_confidence()
-            self.send_response(200)
-            self.send_header('Content-type', 'text/plain')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(bytes(two_line_elements, 'utf-8'))
+            self.send_200_text(two_line_elements)
 
         elif self.path == "/astriagraph":
             tles_json = db.selectTLE_Astriagraph()
-            self.send_response(200)
-            self.send_header('Content-type', 'text/plain')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(bytes(tles_json, 'utf-8'))
+            self.send_200_text(tles_json)
 
         else:
             #try:
@@ -527,6 +501,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
         db.clean()
 
-httpd = ThreadingHTTPServer(('', 8080), SimpleHTTPRequestHandler)
+httpd = ThreadingHTTPServer(('', PORT_NUMBER), SimpleHTTPRequestHandler)
 httpd.socket = ssl.wrap_socket(httpd.socket, keyfile='./privkey.pem', certfile='./fullchain.pem', server_side=True)
 httpd.serve_forever()
