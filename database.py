@@ -1965,7 +1965,7 @@ class Database:
             'object_type', ucs_SATDB.purpose,
             'object_primary_purpose', ucs_SATDB.purpose_detailed,
             'object_secondary_purpose', ucs_SATDB.comments,
-            'object_observation_quality', '{QUALITY}',
+            'object_observation_quality', '%(QUALITY)s',
             'time_last_tracked', date_format(IODs.obs_time, '%M %d, %Y'),
             'address_last_tracked', Obs.eth_addr,
             'username_last_tracked',Obs.user_name)
@@ -1974,7 +1974,7 @@ class Database:
             		FROM ParsedIOD
             		WHERE ParsedIOD.valid_position = 1
             		ORDER BY obs_time DESC
-                    LIMIT {OFFSET},{FETCH}) AS IODs
+                    LIMIT %(OFFSET)s,%(FETCH)s) AS IODs
             JOIN (SELECT
                     Station.station_num as station_num,
                     Station.user as station_user,
@@ -1984,16 +1984,15 @@ class Database:
                     FROM Station,Observer
                     WHERE Station.user = Observer.id) Obs ON IODs.station_number = Obs.station_num
             LEFT JOIN ucs_SATDB ON IODs.object_number = ucs_SATDB.norad_number
-            LEFT JOIN celestrak_SATCAT ON IODs.object_number = celestrak_SATCAT.sat_cat_id;""".format(
-                OFFSET=offset_row_count,
-                FETCH=fetch_row_count,
-                QUALITY=quality)
-
+            LEFT JOIN celestrak_SATCAT ON IODs.object_number = celestrak_SATCAT.sat_cat_id;"""
         
         # !TODO: here and everywhere, use bind variables rather than string formatting, for security and performance:
         # mysql connector uses the pyformat paramstyle (https://www.python.org/dev/peps/pep-0249/#paramstyle), so this looks something like:
         # self.c.execute("SELECT ... WHERE my_column = %(name)s", {"name": value}) 
-        self.c.execute(query_tmp)
+        self.c.execute(query_tmp,
+          { 'OFFSET': offset_row_count,
+            'FETCH':fetch_row_count,
+            'QUALITY': quality })
         observations = stringArrayToJSONArray_JSON(self.c.fetchall())
         convert_country_names(observations)
         return json.dumps(observations)
