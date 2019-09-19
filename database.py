@@ -1,6 +1,5 @@
 import sqlite3
 import mysql.connector as mariadb
-from secrets import randbelow, randbits
 from datetime import datetime, timedelta
 from hashlib import md5
 from csv import writer
@@ -29,20 +28,9 @@ import iod
 import logging
 log = logging.getLogger(__name__)
 
-import random # Temporary for faking some results in DEV
-
 """
 database.py: Does database interactions for the Open Satellite Catalog
 """
-
-def generate_user_id():
-    """ Generate 32-bit random number """
-    return randbelow(2147483647) # Maximum signed value of SQL INT type
-
-
-def generate_object_id():
-    """ Generate 256-bit random number as a string """
-    return str(randbits(256))
 
 def QueryRowToJSON(var):
     try:
@@ -1356,7 +1344,7 @@ class Database:
     # Supports user profile https://consensys-cpl.atlassian.net/browse/MVP-311
     # /object/history https://consensys-cpl.atlassian.net/browse/MVP-334
     def selectObjectHistory_summary(self, norad_num):
-        quality = random.randint(1,99)
+        quality = 99 # !TODO
         query_tmp = """SELECT
             YEAR(obs_time) as observation_year,
             MONTH(obs_time) as observation_month,
@@ -1624,7 +1612,7 @@ class Database:
 
     def selectProfileInfo_JSON(self, eth_addr):
         # TODO: Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
-        avg_obs_quality = random.randint(1,99) # FIXME: Replace with real data:
+        avg_obs_quality = 99 # !TODO # FIXME: Replace with real data:
 
         # Get unique list of observed objects for this user
         # TODO: Seems like there's a way to get a count in the query instead of counting the result in python
@@ -1677,9 +1665,9 @@ class Database:
     # Notes about endpoint https://consensys-cpl.atlassian.net/browse/MVP-328
     def selectUserObservationHistory_JSON(self, eth_addr, fetch_row_count=10, offset_row_count=0):
         # TODO: Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
-        quality = random.randint(1,99)
-        time_difference = random.uniform(-5,5)
-        obs_weight = random.random()
+        quality = 99 # !TODO
+        time_difference = 3 # !TODO
+        obs_weight = 0.123456 # !TODO
 
         query_tmp = """SELECT Json_Object(
             'observation_time',date_format(ParsedIOD.obs_time, '%M %d, %Y'),
@@ -1800,7 +1788,8 @@ class Database:
     # https://consensys-cpl.atlassian.net/browse/MVP-323
     # FIXME: Optimization - this query is slow, because of the Join to Observer not using the index
     def selectCatalog_Priorities_JSON(self, fetch_row_count=100, offset_row_count=0):
-        quality = random.randint(1,99)
+        quality = 99 # !TODO
+        quality = 99 # !TODO # make it deterministic
         # TODO: No priorities in database yet, just sort by reverse obs order for something interesting/different to look at
         # https://consensys-cpl.atlassian.net/browse/MVP-389
         # Note: Version using inner joins - which returns null for values which aren't in ucs_SATDB or celestrak_SATCAT
@@ -1843,7 +1832,7 @@ class Database:
     # https://consensys-cpl.atlassian.net/browse/MVP-324
     # FIXME: Optimization - this query is slow, because of the Join to Observer not using the index
     def selectCatalog_Undisclosed_JSON(self, fetch_row_count=100, offset_row_count=0):
-        quality = random.randint(1,99)
+        quality = 99 # !TODO
         query_tmp = """select Json_Object(
             'object_norad_number', ParsedIOD.object_number,
             'object_name', celestrak_SATCAT.name,
@@ -1884,7 +1873,7 @@ class Database:
     # /catalog/debris
     # https://consensys-cpl.atlassian.net/browse/MVP-325
     def selectCatalog_Debris_JSON(self, fetch_row_count=100, offset_row_count=0):
-        quality = random.randint(1,99)
+        quality = 99 # !TODO
         query_tmp = """select Json_Object(
             'object_norad_number', ParsedIOD.object_number,
             'object_name', celestrak_SATCAT.name,
@@ -1923,7 +1912,7 @@ class Database:
     # /catalog/latest
     # https://consensys-cpl.atlassian.net/browse/MVP-326
     def selectCatalog_Latest_JSON(self, fetch_row_count=100, offset_row_count=0):
-        quality = random.randint(1,99)
+        quality = 99 # !TODO
         now = datetime.utcnow()
         date_delta = now - timedelta(days=365)
         launch_date_string  = date_delta.strftime("%Y-%m-%d")
@@ -1968,7 +1957,7 @@ class Database:
     # /catalog/all
     # https://consensys-cpl.atlassian.net/browse/MVP-327
     def selectCatalog_All_JSON(self, fetch_row_count=100, offset_row_count=0):
-        quality = random.randint(1,99)
+        quality = 99 # !TODO
         query_tmp = """SELECT Json_Object(
             'object_norad_number', ParsedIOD.object_number,
             'object_name', celestrak_SATCAT.name,
@@ -2007,7 +1996,7 @@ class Database:
     # https://consensys-cpl.atlassian.net/browse/MVP-379
     def selectObjectInfo_JSON(self, norad_num):
         info_url = "https://www.heavens-above.com/SatInfo.aspx?satid={}".format(norad_num)
-        quality = random.randint(1,99)
+        quality = 99 # !TODO
 
         # Get user-related info first
         query_tmp_count = """SELECT COUNT(Observer.id), Observer.eth_addr, Observer.name,date_format(ParsedIOD.obs_time, '%M %d, %Y')
@@ -2061,9 +2050,9 @@ class Database:
     # https://consensys-cpl.atlassian.net/browse/MVP-381
     def selectObjectUserSightings_JSON(self, norad_num, eth_addr, fetch_row_count=100, offset_row_count=0):
         # TODO: Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
-        quality = random.randint(1,99)
-        time_difference = random.uniform(-5,5)
-        obs_weight = random.random()
+        quality = 99 # !TODO
+        time_difference = 3 # !TODO
+        obs_weight = 0.123456 # !TODO
 
         query_tmp = """SELECT Json_Object(
             'observation_time', date_format(obs_time, '%M %d, %Y'),
@@ -2110,9 +2099,9 @@ class Database:
     # https://consensys-cpl.atlassian.net/browse/MVP-380
     def selectObjectInfluence_JSON(self, norad_num, fetch_row_count=100, offset_row_count=0):
         # TODO: Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
-        quality = random.randint(1,99)
-        time_difference = random.uniform(-5,5)
-        obs_weight = random.random()
+        quality = 99 # !TODO
+        time_difference = 3 # !TODO
+        obs_weight = 0.123456 # !TODO
 
         query_tmp = """SELECT Json_Object(
             'observation_time', date_format(obs_time, '%M %d, %Y'),
