@@ -18,9 +18,6 @@ sys.path.insert(1,tle_path)
 import tle_util
 
 # The following 5 lines are necessary until the iod module is public
-import inspect
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(currentdir)
 iod_path = os.path.join(parentdir, "sathunt-iod")
 sys.path.insert(1,iod_path)
 import iod
@@ -33,6 +30,7 @@ database.py: Does database interactions for the Open Satellite Catalog
 """
 
 def QueryRowToJSON(var):
+    """ TODO: Kenan to document """
     try:
         return json.dumps(
             json.loads(var[0]),
@@ -42,9 +40,11 @@ def QueryRowToJSON(var):
         return b'{}'
 
 def QueryRowToJSON_JSON(var):
+    """ TODO: Kenan to document """
     return json.loads(var[0])
 
 def stringArrayToJSONArray(string_array):
+    """ TODO: Kenan to document """
     json_array = []
     for item in string_array:
         json_array.append(json.loads(item[0]))
@@ -54,6 +54,7 @@ def stringArrayToJSONArray(string_array):
         indent=4)
 
 def stringArrayToJSONArray_JSON(string_array):
+    """ TODO: Kenan to document """
     json_array = []
     for item in string_array:
         json_array.append(json.loads(item[0]))
@@ -65,6 +66,7 @@ def datetime_from_sqldatetime(sql_date_string):
     return datetime.strptime(sql_date_string, date_format)
 
 def convert_country_names(object_observed):
+    """ TODO: Kenan to document """
     for observation in object_observed:
         countries_two_letters = ''
         country_count = 0
@@ -92,6 +94,7 @@ def convert_country_names(object_observed):
     return
 
 def convert_country_names_single(observation):
+    """ TODO: Kenan to document """
     countries_two_letters = ''
     country_count = 0
     try:
@@ -119,6 +122,8 @@ def convert_country_names_single(observation):
 
 # We haven't defined a Station class anywhere, so might as well do it here.
 class Station:
+    """ Class object to contain all the database details for an COSPAR Station record
+    """
     def __init__(self):
         self.station_num    = None
         self.initial		= None
@@ -453,7 +458,11 @@ class Database:
                     WHERE NEW.international_designation = celestrak_SATCAT.intl_desg LIMIT 1);
                 END IF;
             END;"""
-        self.c.execute(create_trigger_query)
+        try:
+            self.c.execute(create_trigger_query)
+        except (MySQLdb.Error, MySQLdb.Warning) as e:
+            log.warning(e)
+            log.warning("You may need to set log_bin_trust_function_creators=1 in your database instance.")
 
         # Note we're counting on iod.py to set international designation to "?" if it's questionable
         create_trigger_query = """CREATE TRIGGER IF NOT EXISTS add_international_designation
@@ -465,7 +474,11 @@ class Database:
                     WHERE NEW.object_number = celestrak_SATCAT.norad_num LIMIT 1);
                 END IF;
             END;"""
-        self.c.execute(create_trigger_query)
+        try:
+            self.c.execute(create_trigger_query)
+        except (MySQLdb.Error, MySQLdb.Warning) as e:
+            log.warning(e)
+            log.warning("You may need to set log_bin_trust_function_creators=1 in your database instance.")
 
 
         """ TLE_process """
@@ -1021,6 +1034,8 @@ class Database:
     ### Observer-related queries
     #######################
     def updateObserverNonce(self, nonce, public_address):
+        """ TODO: Kenan to document """
+
         if self._dbtype == "INFILE":
             try:
                 results = (self.updateObserverNonce_query, [nonce, public_address])
@@ -1035,6 +1050,7 @@ class Database:
         return True
 
     def updateObserverJWT(self, jwt, password, public_address):
+        """ TODO: Kenan to document """
         if self._dbtype == "INFILE":
             try:
                 results = (self.updateObserverJWT_query, [jwt, password, public_address])
@@ -1049,6 +1065,7 @@ class Database:
         return True
 
     def updateObserverUsername(self, username, public_address):
+        """ TODO: Kenan to document """
         if self._dbtype == "INFILE":
             try:
                 results = (self.updateObserverUsername_query, [username, public_address])
@@ -1062,6 +1079,7 @@ class Database:
             self.conn.commit()
 
     def updateObserverEmail(self, email, public_address):
+        """ TODO: Kenan to document """
         if self._dbtype == "INFILE":
             try:
                 results = (self.updateObserverEmail_query, [email, public_address])
@@ -1076,6 +1094,7 @@ class Database:
         return True
 
     def updateObserverBio(self, bio, public_address):
+        """ TODO: Kenan to document """
         if self._dbtype == "INFILE":
             try:
                 results = (self.updateObserverBio_query, [bio, public_address])
@@ -1090,6 +1109,7 @@ class Database:
         return True
 
     def updateObserverLocation(self, location, public_address):
+        """ TODO: Kenan to document """
         if self._dbtype == "INFILE":
             try:
                 results = (self.updateObserverLocation_query, [location, public_address])
@@ -1120,6 +1140,7 @@ class Database:
         return results
 
     def getObserverNonce(self, public_address):
+        """ TODO: Kenan to document """
         """ GET OBSERVER NONCE """
         if self._dbtype == "INFILE":
             try:
@@ -1135,6 +1156,7 @@ class Database:
         return results
 
     def getObserverJWT(self, public_address):
+        """ TODO: Kenan to document """
         """ GET OBSERVER NONCE """
         if self._dbtype == "INFILE":
             try:
@@ -1151,6 +1173,7 @@ class Database:
         return results
 
     def getObserverFromJWT(self, jwt):
+        """ TODO: Kenan to document """
         query_tmp = '''SELECT eth_addr FROM Observer WHERE jwt="{JWT}"'''.format(JWT=jwt)
         self.c.execute(query_tmp)
         return self.c.fetchone()[0]
@@ -1243,6 +1266,7 @@ class Database:
 
 
     def getObservationCount(self):
+        """ TODO: Kenan to document """
         """ GET OBSERVATION COUNT """
         if self._dbtype == "INFILE":
             try:
@@ -1258,6 +1282,7 @@ class Database:
         return results
 
     def getCommunityObservationByYear(self):
+        """ TODO: Kenan to document """
         """ GET COMMUNITY OBSERVATION BY YEAR """
         if self._dbtype == "INFILE":
             try:
@@ -1273,6 +1298,7 @@ class Database:
         return results
 
     def getCommunityObservationByMonth(self):
+        """ TODO: Kenan to document """
         """ GET COMMUNITY OBSERVATION BY YEAR """
         if self._dbtype == "INFILE":
             try:
@@ -1288,6 +1314,7 @@ class Database:
         return results
 
     def getObserverCountByID(self, public_address):
+        """ TODO: Kenan to document """
         """ GET OBSERVER COUNT BY ID """
         if self._dbtype == "INFILE":
             try:
@@ -1303,6 +1330,7 @@ class Database:
         return results
 
     def getRecentObservations(self):
+        """ TODO: Kenan to document """
         """ GET RECENT OBSERVATIONS """
         if self._dbtype == "INFILE":
             try:
@@ -1333,6 +1361,11 @@ class Database:
         return results
 
     def selectObservationHistory_JSON(self, fetch_row_count=10, offset_row_count=0):
+        """ Provide a full observation history of objects starting with most recent valid observations
+
+            Inputs: (None)
+            Output: JSON object with observation summary
+        """
         query_tmp = """SELECT Json_Object(
             'time_submitted',date_format(ParsedIOD.obs_time, '%M %d, %Y'),
             'object_name',celestrak_SATCAT.name,
@@ -1351,6 +1384,13 @@ class Database:
         return stringArrayToJSONArray(self.c.fetchall())
 
     def selectObjectHistoryByMonth_JSON(self, norad_number, year, month):
+        """ For a particular object, provide a navigation structure of its full observatio history
+
+            Inputs: NORAD number of interest, year, month
+            Output: JSON object with observation summary
+
+            Note (Chris) - not sure this is being used currently
+        """
         query_tmp = """SELECT Json_Object(
             'observation_time', UNIX_TIMESTAMP(ParsedIOD.obs_time),
             'username', user_string,
@@ -1373,6 +1413,13 @@ class Database:
     # Supports user profile https://consensys-cpl.atlassian.net/browse/MVP-311
     # /object/history https://consensys-cpl.atlassian.net/browse/MVP-334
     def selectObjectHistory_summary(self, norad_num):
+        """ Given a NORAD number, provide a summary structure of its observations by day, month, year
+
+            Inputs: norad_num
+            Output: SQL query rows
+
+            Note (Chris): not sure this is being used, currently
+        """
         quality = 99 # !TODO
         query_tmp = """SELECT
             YEAR(obs_time) as observation_year,
@@ -1391,6 +1438,8 @@ class Database:
             return None
 
     def commit_IOD_db_writes(self):
+        """ Commit pending INSERTS to database.  Requested by external function after batch processes, 
+        ideally after 1000 record updates or so."""
         if (self._dbtype == "sqlserver"):
             while(len(self._IODentryList) > 0):
                 try:
@@ -1472,7 +1521,7 @@ class Database:
 
 
     def selectTLEFile(self, tle_file_fingerprint):
-        """Query to see if a TLE file is already in the database."""
+        """ Query to see if a TLE file is already in the database based on its fingerprint. """
         if self._dbtype == "INFILE": # Manage array
             if (tle_file_fingerprint not in self._tle_file_fingerprintDict):
                 results = None
@@ -1488,7 +1537,7 @@ class Database:
 
 
     def selectTLEFingerprint(self, tle_fingerprint):
-        """Query to see if a specific TLE is already in the database"""
+        """ Query to see if a specific TLE is already in the database based on its fingerprint. """
         if self._dbtype == "INFILE": # Manage array
             if (tle_fingerprint not in self._tle_fingerprintDict):
                 results = None
@@ -1503,7 +1552,7 @@ class Database:
         return results
 
     def selectTLEEpochBeforeDate(self, query_epoch_datetime, satellite_number):
-        """Query to return the first TLE with epoch *prior* to specified date for a specific satellite number
+        """ Query to return the first TLE with epoch *prior* to specified date for a specific satellite number
 
         Returns TruSatellite() object
         """
@@ -1517,7 +1566,7 @@ class Database:
         return self.cdictQueryToTruSatelliteObj(row)[0]  # Unpack the array to the object, for just one result
 
     def selectTLEEpochNearestDate(self, query_epoch_datetime, satellite_number):
-        """Query to return the *nearest* TLE with epoch for a specific satellite for a specified date
+        """ Query to return the *nearest* TLE with epoch for a specific satellite for a specified date
 
         Could be before or after the provided date.
         Returns TruSatellite() object
@@ -1532,6 +1581,11 @@ class Database:
 
     # FIXME - This is the latest of everything in the catalog - but some will be old from McCants stuff because they were dropped from classfd.tle
     def selectTLE_Astriagraph(self):
+        """ Create a list of TLEs appropriate for Astriagraph to plot.
+
+        Not currently used.
+        """
+
         query_tmp = """SELECT line0, line1, line2, satellite_number
             FROM TLE
             GROUP BY satellite_number
@@ -1544,6 +1598,9 @@ class Database:
 
     # https://consensys-cpl.atlassian.net/browse/MVP-285
     def selectTLE_all(self):
+        """ Create a full list of TLEs for all unique objects in the database.
+        """
+
         query_tmp = """SELECT line0, line1, line2, satellite_number
             FROM TLE
             GROUP BY satellite_number
@@ -1557,6 +1614,8 @@ class Database:
 
     # https://consensys-cpl.atlassian.net/browse/MVP-286
     def selectTLE_priorities(self):
+        """ Create list of priority TLEs
+        """
         # TODO: Replace with real priority sort. https://consensys-cpl.atlassian.net/browse/MVP-389
         # In the meantime, return TLEs older than 30 days
         query_tmp = """SELECT line0, line1, line2, satellite_number
@@ -1572,6 +1631,8 @@ class Database:
 
     # https://consensys-cpl.atlassian.net/browse/MVP-287
     def selectTLE_high_confidence(self):
+        """ Create list of high confidence TLEs
+        """
         # TODO: Replace with real confidence sort. https://consensys-cpl.atlassian.net/browse/MVP-390
         # In the meantime, return TLEs younger than 30 days, newest first
         query_tmp = """SELECT line0, line1, line2, satellite_number
@@ -1587,6 +1648,8 @@ class Database:
 
     # https://consensys-cpl.atlassian.net/browse/MVP-385
     def selectTLE_single(self, norad_num):
+        """ Provide the most recent TLE for a given NORAD number """
+
         query_tmp = """SELECT line0, line1, line2
             FROM TLE
             WHERE satellite_number={NORAD_NUM}
@@ -1617,9 +1680,12 @@ class Database:
             self.conn.commit()
 
 
-
-
     def selectUserStations_JSON(self, eth_addr):
+        """ Create a list of observation Stations for a given ETH address
+        TODO: Return number of observations for each station along with list
+        PRIVACY: Should only be returned to the logged-in wallet owner.
+        """
+
         query_tmp = """SELECT Json_Object(
             'station_number', Station.station_num,
             'station_observation_count', '1', /* FIXME:  Add a station observation count to this list */
@@ -1642,6 +1708,12 @@ class Database:
 
 
     def selectProfileInfo_JSON(self, eth_addr):
+        """ Return profile info for a given user ETH address, including:
+        - Number objects tracked by user
+        - Total observation count by user
+        - Summary user stats
+        """
+
         # TODO: Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
         avg_obs_quality = 99 # !TODO # FIXME: Replace with real data:
 
@@ -1695,6 +1767,9 @@ class Database:
     # Supports user profile https://consensys-cpl.atlassian.net/browse/MVP-311
     # Notes about endpoint https://consensys-cpl.atlassian.net/browse/MVP-328
     def selectUserObservationHistory_JSON(self, eth_addr, fetch_row_count=10, offset_row_count=0):
+        """ Return the observation history for a particular ETH addresses, starting with most 
+        recent observations.
+        """
         # TODO: Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
         quality = 99 # !TODO
         time_difference = 3 # !TODO
@@ -1736,6 +1811,8 @@ class Database:
         return stringArrayToJSONArray_JSON(self.c.fetchall())
 
     def selectUserObjectsObserved_JSON(self, eth_addr, fetch_row_count=10, offset_row_count=0):
+        """ For a given ETH address, return list of objects they have observed along with context detail.
+        """
         # FIXME: Fancier query logic needed to get the last eth_addr to track in the summary of a selected-users observations.
         query_tmp = """SELECT Json_Object(
             'object_origin', ucs_SATDB.country_owner,
@@ -1775,6 +1852,9 @@ class Database:
     # https://consensys-cpl.atlassian.net/browse/MVP-311
     # /profile endpoint for a logged-in user
     def selectUserProfile(self, eth_addr):
+        """ Return nested Object of data related to user profile
+        Note (from Chris) not sure if this is used by backend...
+        """
         user_profile_info = self.selectProfileInfo_JSON(eth_addr)
         user_stations = self.selectUserStations_JSON(eth_addr)
         user_objects_observered = self.selectUserObjectsObserved_JSON(eth_addr)
@@ -1793,7 +1873,8 @@ class Database:
 
 
     def selectObjectsObserved_JSON(self, fetch_row_count=10, offset_row_count=0):
-        # TODO Figure out from John if this is user-specific or what the history is in context of
+        """ Return list of (global) observed objects, ordered from most recent
+        """
         query_tmp = """SELECT Json_Object(
             'object_origin', ucs_SATDB.country_owner,
             'primary_purpose', ucs_SATDB.purpose,
@@ -1819,11 +1900,13 @@ class Database:
     # https://consensys-cpl.atlassian.net/browse/MVP-323
     # FIXME: Optimization - this query is slow, because of the Join to Observer not using the index
     def selectCatalog_Priorities_JSON(self, fetch_row_count=100, offset_row_count=0):
+        """ Return list of catalog objects in priority observation order
+        """
+
         quality = 99 # !TODO
         quality = 99 # !TODO # make it deterministic
         # TODO: No priorities in database yet, just sort by reverse obs order for something interesting/different to look at
         # https://consensys-cpl.atlassian.net/browse/MVP-389
-        # Note: Version using inner joins - which returns null for values which aren't in ucs_SATDB or celestrak_SATCAT
         query_tmp = """select Json_Object(
             'object_norad_number', ParsedIOD.object_number,
             'object_name', celestrak_SATCAT.name,
@@ -1861,8 +1944,9 @@ class Database:
 
     # /catalog/undisclosed
     # https://consensys-cpl.atlassian.net/browse/MVP-324
-    # FIXME: Optimization - this query is slow, because of the Join to Observer not using the index
     def selectCatalog_Undisclosed_JSON(self, fetch_row_count=100, offset_row_count=0):
+        """ Create list of Classified TLEs - those that have 'NEA' (no elements available) status via Celestrak
+        """
         quality = 99 # !TODO
         query_tmp = """select Json_Object(
             'object_norad_number', ParsedIOD.object_number,
@@ -1904,6 +1988,8 @@ class Database:
     # /catalog/debris
     # https://consensys-cpl.atlassian.net/browse/MVP-325
     def selectCatalog_Debris_JSON(self, fetch_row_count=100, offset_row_count=0):
+        """ Create list of Debris objects.  Most catalog items have DEB in the tital.  
+        There are probably some exceptions """
         quality = 99 # !TODO
         query_tmp = """select Json_Object(
             'object_norad_number', ParsedIOD.object_number,
@@ -1943,6 +2029,7 @@ class Database:
     # /catalog/latest
     # https://consensys-cpl.atlassian.net/browse/MVP-326
     def selectCatalog_Latest_JSON(self, fetch_row_count=100, offset_row_count=0):
+        """ Provide a list of the most recently launched objects (last 12 months) """
         quality = 99 # !TODO
         now = datetime.utcnow()
         date_delta = now - timedelta(days=365)
@@ -1988,6 +2075,9 @@ class Database:
     # /catalog/all
     # https://consensys-cpl.atlassian.net/browse/MVP-327
     def selectCatalog_All_JSON(self, fetch_row_count=100, offset_row_count=0):
+        """ Return a full list of all objects in the DB which have been observed, 
+        ordered by the time they were last tracked.  Should contain only one entry per umique object.
+        """
         quality = 99 # !TODO
         query_tmp = """SELECT Json_Object(
             'object_norad_number', IODs.object_number,
@@ -2031,6 +2121,10 @@ class Database:
     # /object/info/
     # https://consensys-cpl.atlassian.net/browse/MVP-379
     def selectObjectInfo_JSON(self, norad_num):
+        """ Provide on Object containing valid-URLs for external sources of additional information 
+        for a given NORAD number.  Currently only returns a single option (Heavens Above), and it is a
+        TODO to add other options.
+        """
         info_url = "https://www.heavens-above.com/SatInfo.aspx?satid={}".format(norad_num)
         quality = 99 # !TODO
 
@@ -2085,6 +2179,9 @@ class Database:
     # /objectUserSightings
     # https://consensys-cpl.atlassian.net/browse/MVP-381
     def selectObjectUserSightings_JSON(self, norad_num, eth_addr, fetch_row_count=100, offset_row_count=0):
+        """ For a given object and user ETH address, return a detailed list of their observation 
+        history for that object, with most recent observations first.
+        """
         # TODO: Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
         quality = 99 # !TODO
         time_difference = 3 # !TODO
@@ -2134,6 +2231,11 @@ class Database:
     # /object/influence
     # https://consensys-cpl.atlassian.net/browse/MVP-380
     def selectObjectInfluence_JSON(self, norad_num, fetch_row_count=100, offset_row_count=0):
+        """ For a given NORAD object, return detailed observation information (by all users)
+        for the object, with the most recent observations first.
+
+        In the roadmap, this should probably narrow to only the selected (most recent?) TLE
+        """
         # TODO: Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
         quality = 99 # !TODO
         time_difference = 3 # !TODO
@@ -2181,6 +2283,9 @@ class Database:
     # https://consensys-cpl.atlassian.net/browse/MVP-393
     # /findObject endpoint
     def selectFindObject(self, partial_string):
+        """ Facilitate a search of objects contained in the database, by NORAD number or name.
+        Provide a partial result of matches to allow the user to choose their specific object of interest.
+        """
         if (type(partial_string) == int):
             query_tmp = """SELECT DISTINCT Json_Object(
                 'norad_number', norad_num,
