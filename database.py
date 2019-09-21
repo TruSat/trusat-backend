@@ -297,6 +297,7 @@ class Database:
             message_id,
             obsFingerPrint
         ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'''
+        # TODO: add mean_motion_radians_per_minute from the TLE class to here
         self.addTLE_query = '''INSERT INTO TLE (
             line0,
             line1,
@@ -466,6 +467,32 @@ class Database:
             END;"""
         self.c.execute(create_trigger_query)
 
+
+        """ TLE_process """
+        createquery = '''CREATE TABLE IF NOT EXISTS TLE_process (
+            process_id                  INT NOT NULL ''' + self.increment + ''',
+            object_number               MEDIUMINT(5) UNSIGNED,  /* NORAD Num of TLE/Obs */
+            obs_id                      INT NOT NULL,           /* ID of observation */
+            tle_source_id               INT NOT NULL,           /* ID of starting reference TLE */
+            tle_result_id               INT NOT NULL,           /* ID of TLE created with this obs_id */
+            aspect                      FLOAT,                  /* degrees */
+            cross_track_err             FLOAT,                  /* degrees, left of track is positive */
+            time_err                    FLOAT,                  /* seconds */
+            position_err                FLOAT,                  /* degrees */
+            obs_weight                  FLOAT,
+            tle_result_rms              FLOAT,                  /* degrees^2 */
+            delta_rms                   FLOAT,                  /* Change from tle_source rms */
+            remarks                     TEXT,
+            process_timestamp           TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            PRIMARY KEY (`process_id`),
+            KEY `Process_object_number_idx` (`object_number`) USING BTREE,
+            KEY `Process_obs_id_idx`        (`obs_id`)        USING BTREE,
+            KEY `Process_tle_source_id_idx` (`tle_source_id`) USING BTREE,
+            KEY `Process_tle_result_id_idx` (`tle_result_id`) USING BTREE
+            )''' + self.charset_string
+        self.c.execute(createquery)
+
+
         """ Station """
         createquery = """CREATE TABLE IF NOT EXISTS Station (
             station_num INT UNSIGNED NOT NULL,
@@ -534,6 +561,7 @@ class Database:
         log.info("Creating TLE tables...")
 
         """ TLE """
+        # TODO: add mean_motion_radians_per_minute from the TLE class to here
         createquery = '''CREATE TABLE IF NOT EXISTS TLE (
             tle_id                      INTEGER PRIMARY KEY''' + self.increment + ''',
             line0                       TINYTEXT,
@@ -788,6 +816,7 @@ class Database:
 
     def addTLE(self, entry):
         """ Add an TLE entry to the database """
+        # TODO: add mean_motion_radians_per_minute from the TLE class to here
         self._tleid = 0 # Set this as a variable in case we want to generate out own in the future
         newentryTuple = (
             entry.line0,
@@ -1424,6 +1453,8 @@ class Database:
             TLE.mean_anomaly_degrees            = row["mean_anomaly_degrees"]
             TLE.mean_anomaly_radians            = row["mean_anomaly_radians"]
             TLE.mean_motion_orbits_per_day      = row["mean_motion_orbits_per_day"]
+            # TODO: add mean_motion_radians_per_minute from the TLE class to here
+
             TLE.mean_motion_radians_per_second  = row["mean_motion_radians_per_second"]
             TLE.orbit_number			        = row["orbit_number"]
 
