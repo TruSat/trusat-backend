@@ -396,6 +396,17 @@ class Database:
             file_fingerprint) VALUES
             (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'''
 
+    """ TruSat Table Schema overview:
+    - ParsedIOD       - Observations from IOD, RDE or UK formats
+    - Observer        - User table
+    - Observer_email  - User emails
+    - Station         - Observation Station details
+    - station_status  - Lookup of Character-pack to status description
+    - TLE             - Two Line Elements
+    - TLEFILE         - File record of externally-source elements (for dupe detection or source traceability)
+    - celestrak_SATCAT - Catalog description (externally sourced from Celestrak)
+    - ucs_SATDB        - Catalog description (externally sourced from UCS database)
+    """
 
     def createObsTables(self):
         """ Generate Observation tables """
@@ -403,38 +414,38 @@ class Database:
 
         """ ParsedIOD """
         createquery = '''CREATE TABLE IF NOT EXISTS ParsedIOD (
-            obs_id                      INT NOT NULL ''' + self.increment + ''',
-            submitted                   DATETIME,
-            user_string                 TEXT,
-            object_number               MEDIUMINT(5) UNSIGNED,
-            international_designation   VARCHAR(14),
-            station_number              SMALLINT(4) UNSIGNED NOT NULL,
-            station_status_code         CHAR(1),
-            obs_time_string             VARCHAR(27),
-            obs_time                    DATETIME(4),
-            time_uncertainty            FLOAT,
-            time_standard_code          TINYINT,
-            angle_format_code           CHAR(1),
-            epoch_code                  CHAR(1),
-            epoch                       SMALLINT,
-            ra                          DOUBLE,
-            declination                 DOUBLE, /* dec appears to be namespace collision */
-            azimuth                     DOUBLE,
-            elevation                   DOUBLE,
-            positional_uncertainty      DOUBLE,
-            optical_behavior_code       CHAR(1),
-            visual_magnitude            FLOAT,
+            obs_id                      INT NOT NULL ''' + self.increment + ''',    /* Unique internal ID */
+            submitted                   DATETIME,                       /* Datetime when the user submitted the observation (receipt time or time of email) */
+            user_string                 TEXT,                           /* DEPRECATED email address or other identifier of user */
+            object_number               MEDIUMINT(5) UNSIGNED,          /* NORAD number */
+            international_designation   VARCHAR(14),                    /* International designation */
+            station_number              SMALLINT(4) UNSIGNED NOT NULL,  /* Station number that made observation */
+            station_status_code         CHAR(1),        /* Packed code of station status - unpacked in station_status table */
+            obs_time_string             VARCHAR(27),    /* Source ascii string for observation time (for IOD.py debugging) */
+            obs_time                    DATETIME(4),    /* Exact time of observation */
+            time_uncertainty            FLOAT,          /* Observation uncertainty (seconds) */
+            time_standard_code          TINYINT,        /* Coded time standard */
+            angle_format_code           CHAR(1),        /* Packed code of angle format */
+            epoch_code                  CHAR(1),        /* Packed code of angle EPOCH format */
+            epoch                       SMALLINT,       /* Decoded EPOCH year */
+            ra                          DOUBLE,         /* right ascension (radians) - derived from az/el by iod.py if not provided */
+            declination                 DOUBLE,         /* declination of observation (radians) - 'dec' appears to be namespace collision. derived from az/el by iod.py if not provided */
+            azimuth                     DOUBLE,         /* azimuth of observation (radians) - derived from ra/dec by iod.py if not provided */
+            elevation                   DOUBLE,         /* elevation of observation (radians) - derived from ra/dec by iod.py if not provided */
+            positional_uncertainty      DOUBLE,         /* Position uncertainy of observation (radians) */
+            optical_behavior_code       CHAR(1),        /* Packed code of optical behavior */
+            visual_magnitude            FLOAT,         
             visual_magnitude_high       FLOAT,
             visual_magnitude_low        FLOAT,
             magnitude_uncertainty       FLOAT,
-            flash_period                FLOAT,
-            remarks                     TEXT,
-            iod_type                    VARCHAR(3),
-            iod_string                  TEXT NOT NULL,
-            valid_position              BOOL,
-            message_id                  TEXT,
-            obsFingerPrint              CHAR(32) NOT NULL UNIQUE,
-            import_timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            flash_period                FLOAT,          /* seconds */
+            remarks                     TEXT,           /* Any comments right of the formatted portion of the record */
+            iod_type                    VARCHAR(3),     /* Source type of Observation: IOD, RDE, UK */
+            iod_string                  TEXT NOT NULL,  /* Full / original unparsed observation record */
+            valid_position              BOOL,           /* Status flag pertaining to iod.py validity checks */
+            message_id                  TEXT,           /* Source mail header message ID (if available) */
+            obsFingerPrint              CHAR(32) NOT NULL UNIQUE,   /* Unique MD5 fingerprint of observation */
+            import_timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, /* Timestamp of DB record creation */
             PRIMARY KEY (`obs_id`),
             UNIQUE KEY `ParsedIOD_obsFingerPrint_idx` (`obsFingerPrint`),
             KEY `ParsedIOD_user_string_40_idx` (`user_string`(40)) USING BTREE,
@@ -449,6 +460,7 @@ class Database:
         # Requires setting log_bin_trust_function_creators=1 on the AWS RDS instance
         # https://stackoverflow.com/a/30874794
         # Note we're counting on iod.py to set object_number to 0 if it is not available (UK/RDE formats)
+        """ Populate the NORAD object number on INSERT by looking up known International Designation """
         create_trigger_query = """CREATE TRIGGER IF NOT EXISTS add_object_number
             BEFORE INSERT ON ParsedIOD FOR EACH ROW
             BEGIN
@@ -465,6 +477,7 @@ class Database:
             log.warning("You may need to set log_bin_trust_function_creators=1 in your database instance.")
 
         # Note we're counting on iod.py to set international designation to "?" if it's questionable
+        """ Populate the International Designation on INSERT by looking up known NORAD object number """
         create_trigger_query = """CREATE TRIGGER IF NOT EXISTS add_international_designation
             BEFORE INSERT ON ParsedIOD FOR EACH ROW
             BEGIN
@@ -483,7 +496,7 @@ class Database:
 
         """ TLE_process """
         createquery = '''CREATE TABLE IF NOT EXISTS TLE_process (
-            process_id                  INT NOT NULL ''' + self.increment + ''',
+            process_id                  INT NOT NULL ''' + self.increment + ''', /* Unique internal ID of observation */
             object_number               MEDIUMINT(5) UNSIGNED,  /* NORAD Num of TLE/Obs */
             obs_id                      INT NOT NULL,           /* ID of observation */
             tle_source_id               INT NOT NULL,           /* ID of starting reference TLE */
@@ -492,11 +505,11 @@ class Database:
             cross_track_err             FLOAT,                  /* degrees, left of track is positive */
             time_err                    FLOAT,                  /* seconds */
             position_err                FLOAT,                  /* degrees */
-            obs_weight                  FLOAT,
+            obs_weight                  FLOAT,                  /* percentage */
             tle_result_rms              FLOAT,                  /* degrees^2 */
             delta_rms                   FLOAT,                  /* Change from tle_source rms */
-            remarks                     TEXT,
-            process_timestamp           TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            remarks                     TEXT,                   /* Most likely for debugging notes */
+            process_timestamp           TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, /* Timestamp of record creation */
             PRIMARY KEY (`process_id`),
             KEY `Process_object_number_idx` (`object_number`) USING BTREE,
             KEY `Process_obs_id_idx`        (`obs_id`)        USING BTREE,
@@ -506,20 +519,22 @@ class Database:
         self.c.execute(createquery)
 
 
-        """ Station """
+        """ Station Table. These records are a mix of observer identity and station identity. 
+        TODO: Will need to provide better separation between Observers / Stations in future releases.
+        """
         createquery = """CREATE TABLE IF NOT EXISTS Station (
-            station_num INT UNSIGNED NOT NULL,
-            initial TINYTEXT,
-            latitude FLOAT,
-            longitude FLOAT,
-            elevation_m SMALLINT(4),
-            name TINYTEXT,
-            MPC TINYTEXT,
-            details TINYTEXT,
-            preferred_format TINYTEXT,
-            source_url TINYTEXT,
-            notes TINYTEXT,
-            user INT,
+            station_num INT UNSIGNED NOT NULL,  /* 4 Digit COSPAR number of observation station */
+            initial TINYTEXT,                   /* Observer initials */
+            latitude FLOAT,                     /* WGS84 Latitude (degrees) */
+            longitude FLOAT,                    /* WGS84 Longitude (degrees) */
+            elevation_m SMALLINT(4),            /* Elevation above mean sea level (meters) */
+            name TINYTEXT,                      /* Name field for station/observer */
+            MPC TINYTEXT,                       /* Minor Planet Center observatory code (if available) */
+            details TINYTEXT,                   /* Details describing the station */
+            preferred_format TINYTEXT,          /* TruSat team notes on observer preferred reporting format IOD/RDE/UK */
+            source_url TINYTEXT,                /* URL where confirming data can be found */
+            notes TINYTEXT,                     /* TruSat team processing notes */
+            user INT,                           /* Associated User table ID */
             KEY Station_station_num_idx (station_num) USING BTREE,
             KEY Station_user_idx (user) USING BTREE,
             KEY Station_user_station_idx (user, station_num)
@@ -528,9 +543,9 @@ class Database:
 
         """ Station Status """
         createquery = """CREATE TABLE IF NOT EXISTS station_status (
-            code                ENUM('B','C','E','F','G','O','P','T') NOT NULL,
-            short_description   TINYTEXT DEFAULT NULL,
-            description         TINYTEXT DEFAULT NULL,
+            code                ENUM('B','C','E','F','G','O','P','T') NOT NULL, /* Single character station status code */
+            short_description   TINYTEXT DEFAULT NULL,      /* Terse status description */
+            description         TINYTEXT DEFAULT NULL,      /* Full status description */
             KEY station_status_code_id (code) USING BTREE
             )""" + self.charset_string
         self.c.execute(createquery)
@@ -550,18 +565,18 @@ class Database:
         """ Observer """
         createquery = """CREATE TABLE IF NOT EXISTS Observer (
             id          INTEGER PRIMARY KEY''' + self.increment + ''', /* Internal ID  */
-            eth_addr    CHAR(42), /* Ethereum address for user */
-            verified    TEXT,     /* FIXME: Deprecated? Move to Observer_email table? */
-            reputation  INTEGER,
-            reference   TEXT,     /* Internal user ref notes for SeeSat archive */
+            eth_addr    CHAR(42),       /* Ethereum address for user */
+            verified    TEXT,           /* DEPRECATED */
+            reputation  INTEGER,        /* User rank value */
+            reference   TEXT,           /* Internal user ref notes for SeeSat archive */
             nonce       INTEGER,
             jwt         TEXT,
             password    TEXT,
             jwt_secret  CHAR(78),
-            location    TINYTEXT, /* User-specified (publicly visible) location */
-            bio         TEXT,     /* User-specified (publicly visible) bio */
-            url_profile TEXT, /* Profile URL - notionally gravitar or similar. FIXME: need to protect for exploits */
-            url_image   TEXT, /* Profile Image URL - notionally gravitar or similar. FIXME: need to protect for exploits */
+            location    TINYTEXT,       /* User-specified (publicly visible) location */
+            bio         TEXT,           /* User-specified (publicly visible) bio */
+            url_profile TEXT,           /* Profile URL - notionally gravitar or similar. FIXME: need to protect for exploits */
+            url_image   TEXT,           /* Profile Image URL - notionally gravitar or similar. FIXME: need to protect for exploits */
             KEY `Observer_id_idx` (`id`) USING BTREE,
             KEY `Observer_eth_addr_idx` (`eth_addr`) USING BTREE,
             KEY `Observer_reputation_idx` (`reputation`) USING BTREE
@@ -576,40 +591,40 @@ class Database:
         """ TLE """
         # TODO: add mean_motion_radians_per_minute from the TLE class to here
         createquery = '''CREATE TABLE IF NOT EXISTS TLE (
-            tle_id                      INTEGER PRIMARY KEY''' + self.increment + ''',
-            line0                       TINYTEXT,
-            line1                       TINYTEXT,
-            line2                       TINYTEXT,
+            tle_id                      INTEGER PRIMARY KEY''' + self.increment + ''', /* Internal unique record ID */
+            line0                       TINYTEXT,   /* line0/name from TLE */
+            line1                       TINYTEXT,   /* line1 of TLE */
+            line2                       TINYTEXT,   /* line2 of TLE record */
 
-            sat_name                    TINYTEXT,
-            satellite_number            MEDIUMINT NOT NULL,
-            classification              CHAR(1),
-            designation                 CHAR(24),
-            epoch                       DATETIME NOT NULL,
-            mean_motion_derivative      DOUBLE,
+            sat_name                    TINYTEXT,   /* Name of object (may be same as line0) */
+            satellite_number            MEDIUMINT NOT NULL, /* NORAD catalog number */
+            classification              CHAR(1),    /* Classification Code - TruSat generated TLEs use T */
+            designation                 CHAR(24),   /* International Designator */
+            epoch                       DATETIME NOT NULL,  /* FIXME: Python Datetime(?) of TLE epoch */
+            mean_motion_derivative      DOUBLE, 
             mean_motion_sec_derivative  DOUBLE,
             bstar                       DOUBLE,
             ephemeris_type              TINYINT,
             element_set_number          MEDIUMINT,
-            inclination                 DOUBLE NOT NULL,
-            inclination_radians         DOUBLE,
-            raan_degrees                DOUBLE,
-            raan_radians                DOUBLE,
-            eccentricity                DOUBLE NOT NULL,
-            arg_perigee_degrees         DOUBLE,
-            arg_perigee_radians         DOUBLE,
-            mean_anomaly_degrees        DOUBLE,
+            inclination                 DOUBLE NOT NULL, /* FIXME - need to rename to degrees */
+            inclination_radians         DOUBLE, /* Orbit inclination (radians) */
+            raan_degrees                DOUBLE, /* Right Ascension of the Ascending Node (degrees) */
+            raan_radians                DOUBLE, /* Right Ascension of the Ascending Node (radians) */
+            eccentricity                DOUBLE NOT NULL, /* Orbit eccentricity */
+            arg_perigee_degrees         DOUBLE, /* Argument of perigee (degrees) */
+            arg_perigee_radians         DOUBLE, /* Argument of perigee (radians) */
+            mean_anomaly_degrees        DOUBLE, 
             mean_anomaly_radians        DOUBLE,
             mean_motion_orbits_per_day  DOUBLE,
-            mean_motion_radians_per_second DOUBLE,
-            orbit_number                MEDIUMINT,
+            mean_motion_radians_per_second DOUBLE, /* FIXME - need to at mean_motion_radians_per_minute for SGP4 convenience */
+            orbit_number                MEDIUMINT, /* Orbit number since launch */
 
-            launch_piece_number         SMALLINT,
-            analyst_object              BOOL,
-            strict_import               BOOL,
-            tle_fingerprint             CHAR(32) NOT NULL,
-            file_fingerprint            CHAR(32),
-            import_timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            launch_piece_number         SMALLINT,  /* Derived number of launch piece (from international desg) */
+            analyst_object              BOOL,      /* Flag of whether this is an uncorrelated object */
+            strict_import               BOOL,      /* Whether this record was imported / created through strict_import checks */
+            tle_fingerprint             CHAR(32) NOT NULL, /* MD5 fingerprint of this record */
+            file_fingerprint            CHAR(32),          /* MD5 fingerprint of the file this record was imported from (optional) */
+            import_timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,   /* Timestamp of record creation */
             KEY `TLE_epoch_idx` (`epoch`) USING BTREE,
             KEY `TLE_sat_name_idx` (`sat_name`(24)) USING BTREE,
             KEY `TLE_tle_fingerprint_idx` (`tle_fingerprint`(33)) USING BTREE,
@@ -620,10 +635,10 @@ class Database:
         self.conn.commit()
 
         createquery = '''CREATE TABLE IF NOT EXISTS TLEFILE (
-            file_id                 INTEGER PRIMARY KEY''' + self.increment + ''',
-            file_fingerprint        CHAR(32) NOT NULL,
-            source_filename         TINYTEXT,
-            import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            file_id                 INTEGER PRIMARY KEY''' + self.increment + ''', /* Unique internal record ID */
+            file_fingerprint        CHAR(32) NOT NULL, /* MD5 finger print of file */
+            source_filename         TINYTEXT,          /* Name of source file */
+            import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, /* Timestamp of record creation */
             KEY `TLEFILE_file_fingerprint_33_idx` (`file_fingerprint`(33)) USING BTREE
         )''' + self.charset_string
         self.c.execute(createquery)
@@ -719,7 +734,9 @@ class Database:
 
 
     def addParsedIOD(self, entryList, user_string, submit_time, fast_import = False):
-        """ Add an IOD entry to the database """
+        """ Add an IOD entry to the database         
+        Input: IOD-formatted line
+        """
         for entry in entryList:
             # Create fingerprint string from the time and position data only
             # Should uniquely identify the observation
@@ -828,7 +845,8 @@ class Database:
 
 
     def addTLE(self, entry):
-        """ Add an TLE entry to the database """
+        """ Add an TLE entry to the database 
+        Input: TruSatellite() object """
         # TODO: add mean_motion_radians_per_minute from the TLE class to here
         self._tleid = 0 # Set this as a variable in case we want to generate out own in the future
         newentryTuple = (
