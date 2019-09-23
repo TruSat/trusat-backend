@@ -28,6 +28,20 @@ import iod
 
 PORT_NUMBER = 8080
 
+def encode_jwt(user_jwt, addr):
+    with open('unsafe_private.pem', 'r') as file:
+        private_key = file.read()
+    private_rsa_key = load_pem_private_key(bytes(private_key, 'utf-8'), password=None, backend=default_backend())
+    encoded_jwt = encode({'address':addr}, private_rsa_key, algorithm='RS256')
+    return encoded_jwt
+
+def decode_jwt(user_jwt):
+    with open('public.pem', 'r') as file:
+        public_key = file.read()
+    public_rsa_key = load_pem_public_key(bytes(public_key,'utf-8'), backend=default_backend())
+    decoded_jwt = decode(user_jwt, public_rsa_key, algorithms='RS256')
+    return decoded_jwt
+
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
     def __init__(self, request, client_address, server):
@@ -105,11 +119,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_200_text(tles_json)
 
         else:
-            #try:
-                #number = self.path[1:]
-
-            #except:
-            self.send_response(400)
+            self.send_response(404)
             self.end_headers()
             self.wfile.write(b'')
         self.db.clean()
@@ -154,23 +164,19 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         ### LOGIN ENDPOINT ###
         elif self.path == "/login":
             old_nonce = self.db.getObserverNonce(json_body["address"])
-            print(old_nonce[0])
             nonce = str(old_nonce[0]).encode('utf-8')
             message_hash = sha3.keccak_256(nonce).hexdigest()
             message_hash = encode_defunct(hexstr=message_hash)
-            print("hashed messaged: " + str(message_hash))
-            print(json_body["signedMessage"])
-            print("public address: " + json_body["address"])
             try:
                 signed_public_key = Account.recover_message(message_hash, signature=json_body["signedMessage"])
-                #signed_public_key = w3.eth.account.recoverHash(str(message_hash), signature=json_body["signedMessage"])
-                print("recovered address: " + signed_public_key)
             except:
                 print('message could not be checked')
             if signed_public_key.lower() == json_body["address"].lower():
-                key = nonce
-                encoded_jwt = encode({'address':json_body["address"]}, key, algorithm='HS256')
-                self.db.updateObserverJWT(encoded_jwt, key, json_body["address"])
+                with open('unsafe_private.pem', 'r') as file:
+                    private_key = file.read()
+                private_rsa_key = load_pem_private_key(bytes(private_key, 'utf-8'), password=None, backend=default_backend())
+                encoded_jwt = encode({'address':json_body["address"].lower()}, private_rsa_key, algorithm='RS256')
+                db.updateObserverJWT(encoded_jwt, '', json_body["address"])
                 response_message = b'{"jwt":"'
                 response_message += encoded_jwt
                 response_message += b'"}'
@@ -185,9 +191,11 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(response_body)
 
         elif self.path == "/editProfile":
-            public_address = json_body["address"]
+            #public_address = json_body["address"]
             user_jwt = json_body["jwt"]
-            if self.db.getObserverJWT(public_address)[0].decode("utf-8") == user_jwt:
+            decoded_jwt = decode_jwt(user_jwt)
+            public_address = decoded_jwt["address"]
+            if db.getObserverJWT(public_address)[0].decode("utf-8") == user_jwt:
                 try:  
                     username = json_body["username"]
                     if username != "null":
@@ -241,22 +249,39 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         elif self.path == "/profile":
             user_jwt = json_body["jwt"]
             try:
-                user_addr = json_body["address"]
+                user_addr = json_body["addresss"]
             except:
                 try:
-                    user_addr = self.db.getObserverFromJWT(user_jwt)
+                    user_addr = json_body["address"]
                 except:
-                    self.send_response(418)
-                    self.send_header('Content-type', 'applicaiton/json')
-                    self.send_header('Access-Control-Allow-Origin', '*')
-                    self.end_headers()
-                    self.wfile.write(b'{}')
-                    return
-            objects_observed_json = self.db.selectUserObjectsObserved_JSON(user_addr)
-            observation_history_json = self.db.selectUserObservationHistory_JSON(user_addr)
-            credentials = self.db.getObserverJWT(user_addr)
-            user_profile = self.db.selectProfileInfo_JSON(user_addr)
-            user_profile_json = json.loads(user_profile)
+                    decoded_jwt = decode_jwt(user_jwt)
+                    user_addr = decoded_jwt["address"]
+
+            try:
+                with open('public.pem', 'r') as file:
+                    public_key = file.read()
+                public_rsa_key = load_pem_public_key(bytes(public_key,'utf-8'), backend=default_backend())
+                decoded_jwt = decode(user_jwt, public_rsa_key, algorithms='RS256')
+                decoded_addr = decoded_jwt["address"]
+            except:
+                print("need to update the jwt for user")
+            #try:
+            #    user_addr = json_body["address"]
+            #except:
+            #    try:
+            #        user_addr = db.getObserverFromJWT(user_jwt)
+            #    except:
+            #        self.send_response(418)
+            #        self.send_header('Content-type', 'applicaiton/json')
+            #        self.send_header('Access-Control-Allow-Origin', '*')
+            #        self.end_headers()
+            #        self.wfile.write(b'{}')
+            #        return
+            objects_observed_json = db.selectUserObjectsObserved_JSON(user_addr)
+            observation_history_json = db.selectUserObservationHistory_JSON(user_addr)
+            #credentials = db.getObserverJWT(user_addr)
+            user_profile = db.selectProfileInfo_JSON(user_addr)
+            user_profile_json = user_profile
             user_profile_json["objects_observed"] = objects_observed_json
             user_profile_json["observation_history"] = observation_history_json
             user_profile_json["public_username"] = False
@@ -336,13 +361,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_header('Access-Control-Allow-Origin', '*')
                 self.end_headers()
                 self.wfile.write(b'{}')
-
-            
-            #issue jwt
-            
-            #OTHERWISE
-
-            #Take address that they generated earlier and merge it?
 
 
         elif self.path == '/emailSecret':
@@ -448,9 +466,14 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
         elif self.path == "/submitObservation":
             user_jwt = json_body["jwt"]
-            user_addr = self.db.getObserverFromJWT(user_jwt)
+            decoded_jwt = decode_jwt(user_jwt)
+            user_addr = decoded_jwt["address"]
+            #user_addr = db.getObserverFromJWT(user_jwt)
             parsed_iod_array = []
-            #credentials = self.db.getObserverJWT(user_addr)
+            success = 0
+            error_messages = []
+            it = 0
+            #credentials = db.getObserverJWT(user_addr)
             if user_addr == None:
                 self.send_response(401)
                 self.send_header('Access-Control-Allow-Origin', '*')
@@ -466,13 +489,22 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             try:
                 multiple = json_body["multiple"]
                 for item in multiple:
-                    parsed_iod = iod.parse_iod_lines(item)[0]
+                    parsed_iod = iod.parse_iod_lines(item)
+                    it += 1
+                    print(parsed_iod)
                     if parsed_iod:
                         parsed_iod_array.append(parsed_iod)
-                self.db.addParsedIOD(parsed_iod_array, user_addr, datetime.now())
+                    else:
+                        error_messages.append("Observation on line: {} could not be parsed.".format(it))
+                        
+                submission_time = datetime.now()
+                for entry in  parsed_iod_array:
+                    entry_value = db.addParsedIOD(entry, user_addr, submission_time)
+                    success += entry_value[0]
+                    error_messages.extend(entry_value[1])
             except Exception as e:
                 print(e)
-            success_length = len(parsed_iod_array)
+            success_length = {'success':success, 'error_messages':error_messages}#len(parsed_iod_array)
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
