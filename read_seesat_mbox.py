@@ -24,7 +24,7 @@ import database
 import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
-iod_path = os.path.join(parentdir, "sathunt-iod")
+iod_path = os.path.join(parentdir, "trusat-iod")
 sys.path.insert(1,iod_path) 
 import iod
 
