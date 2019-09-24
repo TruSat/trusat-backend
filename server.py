@@ -472,6 +472,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             parsed_iod_array = []
             success = 0
             error_messages = []
+            removed_iods = {}
             it = 0
             #credentials = db.getObserverJWT(user_addr)
             if user_addr == None:
@@ -494,14 +495,20 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     print(parsed_iod)
                     if parsed_iod:
                         parsed_iod_array.append(parsed_iod)
+                        removed_iods[it] = False
                     else:
-                        error_messages.append("Observation on line: {} could not be parsed.".format(it))
+                        error_messages.append("Observation on line {} did not match expected format.".format(it))
+                        removed_iods[it] = True
                         
                 submission_time = datetime.now()
+                it = 0
                 for entry in  parsed_iod_array:
-                    entry_value = db.addParsedIOD(entry, user_addr, submission_time)
+                    it += 1
+                    entry_value = self.db.addParsedIOD(entry, user_addr, submission_time)
                     success += entry_value[0]
-                    error_messages.extend(entry_value[1])
+                    while removed_iods[it] == True:
+                        it += 1
+                    error_messages.append("Observation on line {} has already been submitted.".format(it))
             except Exception as e:
                 print(e)
             success_length = {'success':success, 'error_messages':error_messages}#len(parsed_iod_array)
