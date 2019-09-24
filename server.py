@@ -432,16 +432,13 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 "observation": []
             }
             prev_month_string = "January"
+            month_string = "January"
             new_real_response = copy.deepcopy(real_response)
             new_internals = copy.deepcopy(internals)
             for items in real_entry:
                 timestamp = datetime.fromtimestamp(float(items["observation_time"]))
                 month_string = timestamp.strftime("%B")
-                date = datetime.fromtimestamp(float(items["observation_time"])).day
-                if prev_month_string != month_string:
-                    year_response[prev_month_string] = copy.deepcopy(new_real_response)
-                    new_real_response = copy.deepcopy(real_response)
-                    prev_month_string = month_string
+                date = timestamp.day
                 if date == new_internals["date"]:
                     items["observation_quality"] = secrets.randbits(7)
                     new_internals["observation"].append(items)
@@ -452,6 +449,10 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     new_internals["date"] = date
                     items["observation_quality"] = secrets.randbits(7)
                     new_internals["observation"].append(items)
+                if prev_month_string != month_string:
+                    year_response[prev_month_string] = copy.deepcopy(new_real_response)
+                    new_real_response = copy.deepcopy(real_response)
+                    prev_month_string = month_string
             if new_internals["date"] != 0:
                 new_real_response.append(new_internals)
             year_response[month_string] = new_real_response
@@ -467,8 +468,14 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         elif self.path == '/object/userSightings':
             norad_number = json_body['norad_number']
             user_jwt = json_body['jwt']
-            public_address = json_body['address']
-            print(user_jwt)
+            decoded_jwt = decode_jwt(user_jwt)
+            try:
+                public_address = decoded_jwt["address"]
+            except:
+                self.send_response(403)
+                self.end_headers()
+                self.wfile.write(b'')
+                return
             tmp = self.db.selectObjectUserSightings_JSON(norad_number, public_address)
             response_body = bytes(tmp, 'utf-8')
             self.send_response(200)
