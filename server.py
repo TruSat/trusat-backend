@@ -69,6 +69,20 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             body_bytes = b'[]'
         self.wfile.write(body_bytes)
 
+    def send_200_JSON_catalog(self, body_data):
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Cache-Control', 'public')
+        self.send_header('Cache-Control', 'max-age=3600')
+        self.end_headers()
+        try:
+            body_bytes = bytes(body_data, 'utf-8')
+        except Exception as e:
+            print(e)
+            body_bytes = b'[]'
+        self.wfile.write(body_bytes)
+
     def send_200_text(self, body_data):
         self.send_response(200)
         self.send_header('Content-type', 'text/plain')
@@ -81,42 +95,56 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             body_bytes = b''
         self.wfile.write(body_bytes)
 
+    def send_200_text_tle(self, body_data):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/plain')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Cache-Control', 'public')
+        self.send_header('Cache-Control', 'max-age=360')
+        self.end_headers()
+        try:
+            body_bytes = bytes(body_data, 'utf-8')
+        except Exception as e:
+            print(e)
+            body_bytes = b''
+        self.wfile.write(body_bytes)
+
     def do_GET(self):
         if self.path == "/catalog/priorities":
             json_object = self.db.selectCatalog_Priorities_JSON()
-            self.send_200_JSON(json_object)
+            self.send_200_JSON_catalog(json_object)
         
         elif self.path == "/catalog/undisclosed":
             json_object = self.db.selectCatalog_Undisclosed_JSON()
-            self.send_200_JSON(json_object)
+            self.send_200_JSON_catalog(json_object)
 
         elif self.path == "/catalog/debris":
             json_object = self.db.selectCatalog_Debris_JSON()
-            self.send_200_JSON(json_object)
+            self.send_200_JSON_catalog(json_object)
 
         elif self.path == "/catalog/latest":
             json_object = self.db.selectCatalog_Latest_JSON()
-            self.send_200_JSON(json_object)
+            self.send_200_JSON_catalog(json_object)
 
         elif self.path == "/catalog/all":
             json_object = self.db.selectCatalog_All_JSON()
-            self.send_200_JSON(json_object)
+            self.send_200_JSON_catalog(json_object)
 
         elif self.path == "/tle/trusat_all.txt":
             two_line_elements = self.db.selectTLE_all()
-            self.send_200_text(two_line_elements)
+            self.send_200_text_tle(two_line_elements)
 
         elif self.path == "/tle/trusat_priorities.txt":
             two_line_elements = self.db.selectTLE_priorities()
-            self.send_200_text(two_line_elements)
+            self.send_200_text_tle(two_line_elements)
 
         elif self.path == "/tle/trusat_high_confidence.txt":
             two_line_elements = self.db.selectTLE_high_confidence()
-            self.send_200_text(two_line_elements)
+            self.send_200_text_tle(two_line_elements)
 
         elif self.path == "/astriagraph":
             tles_json = self.db.selectTLE_Astriagraph()
-            self.send_200_text(tles_json)
+            self.send_200_text_tle(tles_json)
 
         else:
             self.send_response(404)
@@ -385,14 +413,9 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
         elif self.path == '/object/history':
             norad_number = json_body['norad_number']
-            year = json_body['year']
-            #object_history = self.db.selectObjectHistory_summary(norad_number)
-            #response_body = bytes(json.dumps(object_history), 'utf-8')
             year = None
-            month = None
             try:
                 year = json_body["year"]
-                month = json_body["month"]
             except Exception as e:
                 print(e)
                 self.send_response(200)
@@ -401,31 +424,43 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(b'[]')
                 return
-            real_entry = self.db.selectObjectHistoryByMonth_JSON(norad_number, year, month)
+            real_entry = self.db.selectObjectHistoryByMonth_JSON(norad_number, year)
+            year_response = {}
             real_response = []
             internals = {
                 "date": 0,
                 "observation": []
             }
+            prev_month_string = "January"
+            new_real_response = copy.deepcopy(real_response)
             new_internals = copy.deepcopy(internals)
             for items in real_entry:
+                timestamp = datetime.fromtimestamp(float(items["observation_time"]))
+                month_string = timestamp.strftime("%B")
                 date = datetime.fromtimestamp(float(items["observation_time"])).day
+                if prev_month_string != month_string:
+                    year_response[prev_month_string] = copy.deepcopy(new_real_response)
+                    new_real_response = copy.deepcopy(real_response)
+                    prev_month_string = month_string
                 if date == new_internals["date"]:
                     items["observation_quality"] = secrets.randbits(7)
                     new_internals["observation"].append(items)
                 else:
                     if new_internals["date"] != 0:
-                        real_response.append(new_internals)
+                        new_real_response.append(new_internals)
                     new_internals = copy.deepcopy(internals)
                     new_internals["date"] = date
                     items["observation_quality"] = secrets.randbits(7)
                     new_internals["observation"].append(items)
             if new_internals["date"] != 0:
-                real_response.append(new_internals)
-            response_body = bytes(json.dumps(real_response), 'utf-8')
+                new_real_response.append(new_internals)
+            year_response[month_string] = new_real_response
+            response_body = bytes(json.dumps(year_response), 'utf-8')
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Cache-Control', 'public')
+            self.send_header('Cache-Control', 'max-age=300')
             self.end_headers()
             self.wfile.write(response_body)
 
