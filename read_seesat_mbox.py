@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-# Consider https://github.com/maxlath/fix-utf8
-
 import os
 import re
 import sys 
@@ -208,6 +206,8 @@ def main():
      # Incremental import example
      # http://mailman.satobs.org/mailman/private/seesat-l/
      # python3 ./read_seesat_mbox.py -V --fast -f /Users/chris/Dropbox/code/MVP/seesat-gzip-emails/2019-08August.txt.gz --dbtype sqlserver --database opensatcat_dev --user chris.lewicki 
+     ## With defaults from login.txt
+     # python3 ./read_seesat_mbox.py --dbtype sqlserver -V --fast -f /Users/chris/Dropbox/code/MVP/seesat-gzip-emails/2019-08August.txt.gz --message CAL65Gdet3=x2jHQSyXOGPN+EQ4LYAoa9zjYReJ+8g8kR7Mj-Ng@mail.gmail.com
 
      args = conf_parser.parse_args()
      # Process commandline options and parse configuration
@@ -245,6 +245,18 @@ def main():
                log.debug("%s : %s",arg, getattr(args, arg))
 
      if (dbtype == "sqlserver"):
+          # Temporary database credentials hack
+          try:
+               with open('../login.txt', 'r') as f:
+                    lines = f.readlines()
+                    dbname = lines[0].strip()
+                    dbtype = lines[1].strip()
+                    dbhostname = lines[2].strip()
+                    dbusername = lines[3].strip()
+                    dbpassword = lines[4].strip()
+          except: 
+               log.error("DB Login credentials not available.")
+
           if dbusername == None:
                try: 
                     dbusername = input("Username: ") 
@@ -275,8 +287,6 @@ def main():
      COSPAR_Dict = []
      TotalObsCount = 0
 
-     db = database.Database(dbname,dbtype,dbhostname,dbusername,dbpassword)
-
      # Set up to write out what we learn about user records for external processing
      UserFile =  open("seesat_mbox_users.csv", 'w')
      writer_UserFile = writer(UserFile, dialect='unix')
@@ -285,6 +295,7 @@ def main():
      CosparFile = open("seesat_mbox_cospar.csv", 'w')
      writer_COSPAR_Dict = writer(CosparFile, dialect='unix')
  
+     last_msgID = None
      for message in mbox(mbox_filename):
           # https://stackoverflow.com/questions/7331351/python-email-header-decoding-utf-8
           try:
@@ -382,23 +393,9 @@ def main():
                if (dbtype != "INFILE" and db_obs_count):
                     db.commit_IOD_db_writes()
                     last_msgID = msgID
-#               log.debug(' File ({}/{}) in dir "{}" contained'.format(dirfileCount,dirfileTotal,dirName))
-               # log.debug('                                    ({}/{}) IOD records'.format(fileIODCount,TotalCount_IOD))
-               # log.debug('                                    ({}/{}) UK records'.format(fileUKCount,TotalCount_UK))
-               # log.debug('                                    ({}/{}) RDE records'.format(fileRDEcount,TotalCount_RDE))
-               # log.debug('                                        of {} records\n'.format(TotalObsCount))
 
-     # if DirCount_total:
-     #      dirCount = ("{} directories".format(DirCount_total))
-     # else:
-     #      dirCount = "1 directory"
-
-     # print("Processed {} observations from {} users.".format(TotalObsCount, len(UserDict)))
-     # print('                                          ({}) IOD records ({:4.2f} %)'.format(TotalCount_IOD,100*TotalCount_IOD/TotalObsCount))
-     # print('                                          ({}) UK records ({:4.2f} %)'.format(TotalCount_UK,100*TotalCount_UK/TotalObsCount))
-     # print('                                          ({}) RDE records ({:4.2f} %)\n'.format(TotalCount_RDE, 100*TotalCount_RDE/TotalObsCount))
-     # print("Elapsed time: {:.3f} seconds.".format(time()-app_start_time))
-     log.info("Last messageID imported from: {}".format(last_msgID))
+     if (last_msgID):
+          log.info("Last messageID imported from: {}".format(last_msgID))
 
 if __name__ == '__main__':
     main()
