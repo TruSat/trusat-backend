@@ -159,6 +159,7 @@ class Database:
 
         self._last_observer_id = None
         self._IODentryList = []
+        self._IODPendingEntryFingerprintList = [] # Used for dupe-checking within an INSERT  batch
         self._TLEentryList = []
         self._TLEFileDict = {} # Used for INFILE method
         self._observerDict = {} # Used for INFILE method
@@ -754,6 +755,15 @@ class Database:
 
             if(self.selectIODFingerprint(obsFingerPrint)):
                 log.warning(" Skipping IOD - fingerprint {} already in database.".format(obsFingerPrint))
+                log.debug("      Offending IOD entry:\n      {}".format(entry.line))
+                if (fast_import):
+                    log.warning(" ...fast import set, skipping IODs in rest of message.")
+                    return False
+                else:
+                    continue # Already have the IOD
+            elif (obsFingerPrint in self._IODPendingEntryFingerprintList):
+                log.warning(" Skipping IOD - fingerprint {} already received this session and pending write to database.".format(obsFingerPrint))
+                log.debug("      Offending IOD entry:\n      {}".format(entry.line))
                 if (fast_import):
                     log.warning(" ...fast import set, skipping IODs in rest of message.")
                     return False
@@ -802,6 +812,7 @@ class Database:
                         log.error("{}".format(e))
                 else:
                     self._IODentryList.append(newentryTuple)
+                    self._IODPendingEntryFingerprintList.append(obsFingerPrint)
         return len(self._IODentryList)
         # return self.c_addParsedIOD.lastrowid
 
@@ -1378,6 +1389,7 @@ class Database:
             results = self.c_selectIODFingerprint_query.fetchone()
         return results
 
+
     def selectObservationHistory_JSON(self, fetch_row_count=10, offset_row_count=0):
         """ Provide a full observation history of objects starting with most recent valid observations
 
@@ -1463,19 +1475,25 @@ class Database:
                 try:
                     self.c_addParsedIOD.executemany(self.addParsedIOD_query,self._IODentryList)
                     self._IODentryList = []
+                    self._IODPendingEntryFingerprintList = []
                 except Exception as e:
                     log.error("MYSQL ERROR: {}".format(e))
                     # FIXME - (Work in progress) - try to get rid of duplicate entry in a executemany list
-                    if ("Duplicate Entry" in e):
-                        mysql_error_tuple = e.split(' ')
-                        # FIXME - This is fragile
-                        duplicate_fingerprint = mysql_error_tuple[6].strip("'")
-                        row = 0
-                        # FIXME - Don't know if this will work for the whole tuple, or if I have to find the element
-                        for entry in observerTuple:
-                            if duplicate_fingerprint in entry:
-                                observerTuple.remove(row)
-                            row += 1
+                    # This is sensitive to when a user includes a duplicate entry in the same email
+
+                    ## This is the MySQL error when you try and insert a duplicate fingerprint:
+                    # mysql.connector.errors.IntegrityError: 1062 (23000): Duplicate entry '584eca1489bbbb05de3aacbbffc59a83' for key 'ParsedIOD_obsFingerPrint_idx'
+
+                    # if ("Duplicate Entry" in e):  # This line doesn't work because "argument of type 'IntegrityError' is not iterable"
+                    #     mysql_error_tuple = e.split(' ')
+                    #     # FIXME - This is fragile
+                    #     duplicate_fingerprint = mysql_error_tuple[6].strip("'")
+                    #     row = 0
+                    #     # FIXME - Don't know if this will work for the whole tuple, or if I have to find the element
+                    #     for entry in observerTuple:
+                    #         if duplicate_fingerprint in entry:
+                    #             observerTuple.remove(row)
+                    #         row += 1
 
         elif (self._dbtype != "INFILE"):
             self.conn.commit()
