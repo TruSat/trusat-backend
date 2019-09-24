@@ -755,7 +755,7 @@ class Database:
 
             if(self.selectIODFingerprint(obsFingerPrint)):
                 log.warning(" Skipping IOD - fingerprint {} already in database.".format(obsFingerPrint))
-                log.debug("      Offending IOD entry:\n      {}".format(entry.line))
+                log.debug("      Offending entry:\n      {}".format(entry.line))
                 if (fast_import):
                     log.warning(" ...fast import set, skipping IODs in rest of message.")
                     return False
@@ -763,7 +763,7 @@ class Database:
                     continue # Already have the IOD
             elif (obsFingerPrint in self._IODPendingEntryFingerprintList):
                 log.warning(" Skipping IOD - fingerprint {} already received this session and pending write to database.".format(obsFingerPrint))
-                log.debug("      Offending IOD entry:\n      {}".format(entry.line))
+                log.debug("      Offending entry:\n      {}".format(entry.line))
                 if (fast_import):
                     log.warning(" ...fast import set, skipping IODs in rest of message.")
                     return False
