@@ -438,7 +438,7 @@ class Database:
             station_number              SMALLINT(4) UNSIGNED NOT NULL,  /* Station number that made observation */
             station_status_code         CHAR(1),        /* Packed code of station status - unpacked in station_status table */
             obs_time_string             VARCHAR(27),    /* Source ascii string for observation time (for IOD.py debugging) */
-            obs_time                    DATETIME(4),    /* Exact time of observation */
+            obs_time                    DATETIME(6),    /* Exact time of observation */
             time_uncertainty            FLOAT,          /* Observation uncertainty (seconds) */
             time_standard_code          TINYINT,        /* Coded time standard */
             angle_format_code           CHAR(1),        /* Packed code of angle format */
@@ -616,7 +616,7 @@ class Database:
             satellite_number            MEDIUMINT NOT NULL, /* NORAD catalog number */
             classification              CHAR(1),    /* Classification Code - TruSat generated TLEs use T */
             designation                 CHAR(24),   /* International Designator */
-            epoch                       DATETIME NOT NULL,  /* FIXME: Python Datetime(?) of TLE epoch */
+            epoch                       DATETIME(6) NOT NULL,  /* FIXME: Python Datetime of TLE epoch. Rename to epoch_datetime for clarity */
             mean_motion_derivative      DOUBLE, 
             mean_motion_sec_derivative  DOUBLE,
             bstar                       DOUBLE,
@@ -1686,6 +1686,8 @@ class Database:
             results = self.c_selectTLEFingerprint_query.fetchone()
         return results
 
+
+    # FIXME: Make this function prefer TruSatellite TLEs
     def selectTLEEpochBeforeDate(self, query_epoch_datetime, satellite_number):
         """ Query to return the first TLE with epoch *prior* to specified date for a specific satellite number
 
@@ -1700,6 +1702,8 @@ class Database:
         row = [self.cdict.fetchone()]   # Put single result into an array
         return self.cdictQueryToTruSatelliteObj(row)[0]  # Unpack the array to the object, for just one result
 
+
+    # FIXME: Make this function prefer TruSatellite TLEs
     def selectTLEEpochNearestDate(self, query_epoch_datetime, satellite_number):
         """ Query to return the *nearest* TLE with epoch for a specific satellite for a specified date
 
