@@ -73,8 +73,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Cache-Control', 'public')
-        self.send_header('Cache-Control', 'max-age=3600')
+        self.send_header('Cache-Control', 'max-age=300')
         self.end_headers()
         try:
             body_bytes = bytes(body_data, 'utf-8')
@@ -99,8 +98,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'text/plain')
         self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Cache-Control', 'public')
-        self.send_header('Cache-Control', 'max-age=360')
+        self.send_header('Cache-Control', 'max-age=300')
         self.end_headers()
         try:
             body_bytes = bytes(body_data, 'utf-8')
@@ -108,6 +106,13 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             print(e)
             body_bytes = b''
         self.wfile.write(body_bytes)
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header('Accept', 'GET')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Headers', 'Cache-Control')
+        self.end_headers()
 
     def do_GET(self):
         if self.path == "/catalog/priorities":
@@ -325,6 +330,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Cache-Control', 'max-age=2')
             self.end_headers()
             self.wfile.write(response_body)
 
@@ -399,7 +405,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
-            self.wfile.write(response_body)
+            self.wfile.write(b'{}')
 
         elif self.path == '/object/influence':
             norad_number = json_body['norad_number']
@@ -467,15 +473,18 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
         elif self.path == '/object/userSightings':
             norad_number = json_body['norad_number']
-            user_jwt = json_body['jwt']
-            decoded_jwt = decode_jwt(user_jwt)
-            try:
-                public_address = decoded_jwt["address"]
-            except:
-                self.send_response(403)
-                self.end_headers()
-                self.wfile.write(b'')
-                return
+
+            public_address = json_body['address']
+            #user_jwt = json_body['jwt']
+            #decoded_jwt = decode_jwt(user_jwt)
+            #try:
+            #    public_address = decoded_jwt["address"]
+            #except:
+            #    self.send_response(403)
+            #    self.end_headers()
+            #    self.wfile.write(b'')
+            #    return
+
             tmp = self.db.selectObjectUserSightings_JSON(norad_number, public_address)
             response_body = bytes(tmp, 'utf-8')
             self.send_response(200)
