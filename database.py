@@ -235,6 +235,7 @@ class Database:
             self.c_selectIODFingerprint_query = self.conn.cursor(prepared=True)
             self.c_addTLE_query = self.conn.cursor(prepared=True)
             self.c_addTLEFile_query = self.conn.cursor(prepared=True)
+            self.c_addTLEProcess_query = self.conn.cursor(prepared=True)
             self.c_addSATCAT_query = self.conn.cursor(prepared=True)
             self.c_addUCSDB_query = self.conn.cursor(prepared=True)
             self.c_selectObserverID_query = self.conn.cursor(prepared=True)
@@ -337,6 +338,20 @@ class Database:
             file_fingerprint
             ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'''
         self.addTLEFile_query = '''INSERT INTO TLEFILE (file_fingerprint, source_filename) VALUES (?,?)'''
+        self.addTLEProcess_query = '''INSERT INTO TLE_process (
+            object_number,
+            obs_id,
+            tle_source_id,
+            tle_result_id,
+            aspect,
+            cross_track_err,
+            time_err,
+            position_err,
+            obs_weight,
+            tle_start_rms,
+            tle_result_rms,
+            remarks
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)'''
         self.addSATCAT_query = '''INSERT INTO celestrak_SATCAT (
             intl_desg,
             norad_num,
@@ -423,7 +438,7 @@ class Database:
             station_number              SMALLINT(4) UNSIGNED NOT NULL,  /* Station number that made observation */
             station_status_code         CHAR(1),        /* Packed code of station status - unpacked in station_status table */
             obs_time_string             VARCHAR(27),    /* Source ascii string for observation time (for IOD.py debugging) */
-            obs_time                    DATETIME(4),    /* Exact time of observation */
+            obs_time                    DATETIME(6),    /* Exact time of observation */
             time_uncertainty            FLOAT,          /* Observation uncertainty (seconds) */
             time_standard_code          TINYINT,        /* Coded time standard */
             angle_format_code           CHAR(1),        /* Packed code of angle format */
@@ -507,8 +522,8 @@ class Database:
             time_err                    FLOAT,                  /* seconds */
             position_err                FLOAT,                  /* degrees */
             obs_weight                  FLOAT,                  /* percentage */
-            tle_result_rms              FLOAT,                  /* degrees^2 */
-            delta_rms                   FLOAT,                  /* Change from tle_source rms */
+            tle_start_rms               FLOAT,                  /* degrees^2 - value of RMS against reference TLE */
+            tle_result_rms              FLOAT,                  /* degrees^2 - value of RMS against refined TLE */
             remarks                     TEXT,                   /* Most likely for debugging notes */
             process_timestamp           TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, /* Timestamp of record creation */
             PRIMARY KEY (`process_id`),
@@ -601,7 +616,7 @@ class Database:
             satellite_number            MEDIUMINT NOT NULL, /* NORAD catalog number */
             classification              CHAR(1),    /* Classification Code - TruSat generated TLEs use T */
             designation                 CHAR(24),   /* International Designator */
-            epoch                       DATETIME NOT NULL,  /* FIXME: Python Datetime(?) of TLE epoch */
+            epoch                       DATETIME(6) NOT NULL,  /* FIXME: Python Datetime of TLE epoch. Rename to epoch_datetime for clarity */
             mean_motion_derivative      DOUBLE, 
             mean_motion_sec_derivative  DOUBLE,
             bstar                       DOUBLE,
@@ -859,14 +874,14 @@ class Database:
         """ Add an TLE entry to the database 
         Input: TruSatellite() object """
         # TODO: add mean_motion_radians_per_minute from the TLE class to here
-        self._tleid = 0 # Set this as a variable in case we want to generate out own in the future
+        self._tleid = 0 # Set this as a variable in case we want to generate our own in the future
         newentryTuple = (
             entry.line0,
             entry.line1,
             entry.line2,
 
             entry.name,
-            entry.sat_num,
+            entry.satellite_number,
             entry.classification,
             entry.designation,
             entry.epoch_string,
@@ -887,7 +902,7 @@ class Database:
             entry.mean_anomaly_radians,
             entry.mean_motion_orbits_per_day,
             entry.mean_motion_radians_per_second,
-            entry.orbit_num,
+            entry.orbit_number,
 
             entry.launch_piece_number,
             entry.analyst_object,
@@ -907,6 +922,90 @@ class Database:
         else:
             self._TLEentryList.append(newentryTuple)
         return self._tleid
+
+
+    def addTruSatTLE(self, TruSatTLE, TLE_process, tle_source_id, tle_start_rms, tle_result_rms, remarks):
+        """ Add an TruSat-derived TLE entry to the database, concurrently with its TLE_process records
+        Perform as an atomic commit of all records, or bail.
+
+        Inputs:
+         - TruSatTLE - TruSatellite() object
+         - TLE_process - Dictionary of IOD.obs_id entries and their corresponding process data
+
+        Outputs:
+         - Success/Fail
+        """
+        TLE_process_list = []
+
+        # TODO: add mean_motion_radians_per_minute from the TLE class to here
+        newTLETuple = (
+            TruSatTLE.line0,
+            TruSatTLE.line1,
+            TruSatTLE.line2,
+
+            TruSatTLE.name,
+            TruSatTLE.satellite_number,
+            TruSatTLE.classification,
+            TruSatTLE.designation,
+            TruSatTLE.epoch_string,
+            TruSatTLE.mean_motion_derivative,
+            TruSatTLE.mean_motion_sec_derivative,
+            TruSatTLE.bstar,
+            TruSatTLE.ephemeris_type,
+            TruSatTLE.element_num,
+            TruSatTLE.inclination_degrees,
+            TruSatTLE.inclination_radians,
+            TruSatTLE.raan_degrees,
+            TruSatTLE.raan_radians,
+
+            TruSatTLE.eccentricity,
+            TruSatTLE.arg_perigee_degrees,
+            TruSatTLE.arg_perigee_radians,
+            TruSatTLE.mean_anomaly_degrees,
+            TruSatTLE.mean_anomaly_radians,
+            TruSatTLE.mean_motion_orbits_per_day,
+            TruSatTLE.mean_motion_radians_per_second,
+            TruSatTLE.orbit_number,
+
+            TruSatTLE.launch_piece_number,
+            TruSatTLE.analyst_object,
+            TruSatTLE.strict,
+
+            TruSatTLE.tle_fingerprint,
+            TruSatTLE._tle_file_fingerprint
+            )
+
+        # Insert the TLE first, so that we can include the resulting tle_id as tle_result_id in the table TLE_process
+        try:
+            self.c_addTLE_query.execute(self.addTLE_query,newTLETuple)
+            tle_result_id = self.c_addTLE_query.lastrowid
+        except Exception as e:
+            log.error("MYSQL ERROR: {}".format(e))
+            return False
+
+        for obs_id in TLE_process:
+            TLE_process_tuple = (
+                TruSatTLE.satellite_number,
+                obs_id,
+                tle_source_id,
+                tle_result_id,
+                TLE_process[obs_id]["aspect"],
+                TLE_process[obs_id]["cross_track_err"],
+                TLE_process[obs_id]["time_err"],
+                TLE_process[obs_id]["position_err"],
+                TLE_process[obs_id]["obs_weight"],
+                tle_start_rms,
+                tle_result_rms,
+                remarks)
+            TLE_process_list.append(TLE_process_tuple)
+
+        try:
+            self.c_addTLEProcess_query.executemany(self.addTLEProcess_query,TLE_process_list)
+            self.conn.commit()
+            return True
+        except Exception as e:
+            log.error("MYSQL ERROR: {}".format(e))
+            return False
 
 
     def addTLEFile(self, entry):
@@ -1522,7 +1621,7 @@ class Database:
             TLE.satellite_number	            = row["satellite_number"]
             TLE.classification		            = row["classification"]
             TLE.designation			            = row["designation"]
-            TLE.epoch			                = row["epoch"]
+            TLE.epoch_datetime	                = row["epoch"]
             TLE.mean_motion_derivative		    = row["mean_motion_derivative"]
             TLE.mean_motion_sec_derivative	    = row["mean_motion_sec_derivative"]
             TLE.bstar			                = row["bstar"]
@@ -1587,6 +1686,8 @@ class Database:
             results = self.c_selectTLEFingerprint_query.fetchone()
         return results
 
+
+    # FIXME: Make this function prefer TruSatellite TLEs
     def selectTLEEpochBeforeDate(self, query_epoch_datetime, satellite_number):
         """ Query to return the first TLE with epoch *prior* to specified date for a specific satellite number
 
@@ -1601,6 +1702,8 @@ class Database:
         row = [self.cdict.fetchone()]   # Put single result into an array
         return self.cdictQueryToTruSatelliteObj(row)[0]  # Unpack the array to the object, for just one result
 
+
+    # FIXME: Make this function prefer TruSatellite TLEs
     def selectTLEEpochNearestDate(self, query_epoch_datetime, satellite_number):
         """ Query to return the *nearest* TLE with epoch for a specific satellite for a specified date
 
@@ -1702,7 +1805,7 @@ class Database:
     def commit_TLE_db_writes(self):
         """Process a stored query batch for all the TLEs in a file at once.
 
-        Note that for large TLEs (50,000 entries, we might want to batch this at 1,000 per per something)
+        Note that for large TLE files (50,000 entries, we might want to batch this at 1,000 per per something)
         That's not an issue for the small McCants files
         """
         if (self._dbtype == "sqlserver"):
