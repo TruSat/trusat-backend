@@ -1,4 +1,3 @@
-from collections import defaultdict
 import requests
 import json
 from snapshottest.file import FileSnapshot
