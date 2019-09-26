@@ -1389,6 +1389,101 @@ class Database:
             results = self.c_selectIODFingerprint_query.fetchone()
         return results
 
+    def findObservationCluster(
+      self,
+      noradNumber,
+      maxMinutesBetweenObservations = 15,
+      minObservationCount = 2,
+      minObserverCount = 1,
+      minSecondsBetweenObservations = 0,
+      startDate = datetime(1957,10,4,19,28,34,0)):
+        """ Find a cluster of IODs for a particlar object, for use in calculating TLEs.
+
+            Searches for a qualifying time window that satisfies the criteria defined by function parameters.
+
+            When a qualifying time window is found (i.e. containing a qualifying set of observations & observers),
+            this query returns the IDs of ALL observations within that time window.
+
+            If more than one qualifying time window is found, the window with the chronologically earliest start is used.
+            
+            If more than one qualifying window with the chronologically earliest start is found, the longest such window is used. 
+
+            Parameters
+            ----------
+            noradNumber : int
+                The NORAD number of the object we are interested in. Only observations of this object are considered.
+            maxMinutesBetweenObservations: int
+                The duration in minutes of time window. Must be >= 1
+            minObservationCount: int
+                The minimum number of observations within the time window. Must be >= `minObserverCount`
+            minObserverCount: int
+                The minimum number of distinct observers within the time window. Must be 1 <= `minObserverCount` <= `minObservationCount`
+            minSecondsBetweenObservations: int
+                The minimum time in seconds between qualifying observations within the time window. Must be 0 <= `minSecondsBetweenObservations` < 60 `maxMinutesBetweenObservations`
+            startDate : datetime
+                All observtions with times that are before or equal to this value are ignored.
+
+            Returns
+            -------
+            list of one-element (int) tuples
+                All observation IDs relating to the specified object within the qualifying time window.
+        """
+        assert (noradNumber is not None), "No NORAD number supplied"
+        assert (maxMinutesBetweenObservations >= 1), "maxMinutes must be positive"
+        assert (minSecondsBetweenObservations >= 0 and minSecondsBetweenObservations < maxMinutesBetweenObservations * 60), "Invalid minSecondsBetweenObservations"
+        assert (minObserverCount >= 1), "minObserverCount must be positive"
+        assert (minObservationCount >= 1), "minObserverCount must be positive"
+        query = """
+            WITH TIME_WINDOW AS (
+                WITH OBS_USER AS (
+                    SELECT IOD.obs_id, IOD.object_number, IOD.obs_time, Station.user
+                    FROM ParsedIOD AS IOD
+                    left join Station on (IOD.station_number = Station.station_num)
+                    WHERE IOD.object_number = %(noradNumber)s
+                              and IOD.obs_time > %(startDate)s)
+                SELECT obs_time as result_window_start,
+                       addtime(obs_time, sec_to_time(%(maxMinutesBetweenObservations)s * 60)) as result_window_end
+                FROM OBS_USER as LAST_OBS_USER
+                where (
+                  SELECT count(distinct OTHER_OBS_USERS.user)
+                  from OBS_USER as OTHER_OBS_USERS
+                      where
+                          OTHER_OBS_USERS.user != LAST_OBS_USER.user and
+                          OTHER_OBS_USERS.obs_time between addtime(LAST_OBS_USER.obs_time,
+                                                                   sec_to_time(%(minSecondsBetweenObservations)s))
+                                                   and     addtime(LAST_OBS_USER.obs_time,
+                                                                   sec_to_time(%(maxMinutesBetweenObservations)s * 60)))
+                  >= %(minOtherObservers)s	
+                and (
+                  SELECT count(OTHER_OBS.obs_time)
+                  from OBS_USER as OTHER_OBS
+                      where
+                        OTHER_OBS.obs_id != LAST_OBS_USER.obs_id and
+                        OTHER_OBS.obs_time between addtime(LAST_OBS_USER.obs_time,
+                                                          sec_to_time(%(minSecondsBetweenObservations)s))
+                                               and     addtime(LAST_OBS_USER.obs_time,
+                                                          sec_to_time(%(maxMinutesBetweenObservations)s * 60)))
+                  >= %(minOtherObservations)s
+                order by LAST_OBS_USER.obs_time
+                LIMIT 1)
+            SELECT obs_id from ParsedIOD 
+            WHERE object_number = %(noradNumber)s
+            AND obs_time between (SELECT result_window_start from TIME_WINDOW) and (select result_window_end from TIME_WINDOW);"""
+
+        queryParams = {
+          'noradNumber': noradNumber,
+          'startDate': startDate,
+          'minSecondsBetweenObservations': minSecondsBetweenObservations,
+          'maxMinutesBetweenObservations': maxMinutesBetweenObservations,
+          # We take a count *excluding* the first observation/user, because it may or may not incuded in the time window
+          # Excluding it always means we don't have to cope with both the included and excluded case
+          'minOtherObservations': minObservationCount - 1,
+          'minOtherObservers': minObserverCount - 1
+          }
+
+        self.c.execute(query, queryParams)
+        return self.c.fetchall()
+
 
     def selectObservationHistory_JSON(self, fetch_row_count=10, offset_row_count=0):
         """ Provide a full observation history of objects starting with most recent valid observations
