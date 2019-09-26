@@ -13,6 +13,11 @@ from eth_account.messages import defunct_hash_message, encode_defunct
 import sha3
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import load_pem_private_key, load_pem_public_key
+from base64 import urlsafe_b64decode
+
+# Use the database module from our sister repo. We assume it is installed alongside this repo.
+import sys
+sys.path.insert(1,"../sathunt-database")
 import database
 import google_email
 
@@ -69,7 +74,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             body_bytes = b'[]'
         self.wfile.write(body_bytes)
 
-    def send_200_JSON_catalog(self, body_data):
+    def send_200_JSON_cache(self, body_data):
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
@@ -108,6 +113,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(body_bytes)
 
     def do_OPTIONS(self):
+        print('PATH IS:')
+        print(self.path)
         self.send_response(200)
         self.send_header('Accept', 'GET')
         self.send_header('Access-Control-Allow-Origin', '*')
@@ -115,41 +122,218 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
-        if self.path == "/catalog/priorities":
+        try:
+            path = self.path.split('?')[0]
+            parameters = self.path.split('?')[1]
+        except Exception as e:
+            print(e)
+            path = self.path
+        try:
+            parameters = parameters.split('&')
+            parameters_map = {}
+            for param in parameters:
+                parameters_map[param.split('=')[0]] = param.split('=')[1]
+        except Exception as e:
+            print(e)
+            parameters_map = {}
+        if path == "/catalog/priorities":
             json_object = self.db.selectCatalog_Priorities_JSON()
-            self.send_200_JSON_catalog(json_object)
+            self.send_200_JSON_cache(json_object)
         
-        elif self.path == "/catalog/undisclosed":
+        elif path == "/catalog/undisclosed":
             json_object = self.db.selectCatalog_Undisclosed_JSON()
-            self.send_200_JSON_catalog(json_object)
+            self.send_200_JSON_cache(json_object)
 
-        elif self.path == "/catalog/debris":
+        elif path == "/catalog/debris":
             json_object = self.db.selectCatalog_Debris_JSON()
-            self.send_200_JSON_catalog(json_object)
+            self.send_200_JSON_cache(json_object)
 
-        elif self.path == "/catalog/latest":
+        elif path == "/catalog/latest":
             json_object = self.db.selectCatalog_Latest_JSON()
-            self.send_200_JSON_catalog(json_object)
+            self.send_200_JSON_cache(json_object)
 
-        elif self.path == "/catalog/all":
+        elif path == "/catalog/all":
             json_object = self.db.selectCatalog_All_JSON()
-            self.send_200_JSON_catalog(json_object)
+            self.send_200_JSON_cache(json_object)
 
-        elif self.path == "/tle/trusat_all.txt":
+        elif path == "/tle/trusat_all.txt":
             two_line_elements = self.db.selectTLE_all()
             self.send_200_text_tle(two_line_elements)
 
-        elif self.path == "/tle/trusat_priorities.txt":
+        elif path == "/tle/trusat_priorities.txt":
             two_line_elements = self.db.selectTLE_priorities()
             self.send_200_text_tle(two_line_elements)
 
-        elif self.path == "/tle/trusat_high_confidence.txt":
+        elif path == "/tle/trusat_high_confidence.txt":
             two_line_elements = self.db.selectTLE_high_confidence()
             self.send_200_text_tle(two_line_elements)
 
-        elif self.path == "/astriagraph":
+        elif path == "/astriagraph":
             tles_json = self.db.selectTLE_Astriagraph()
             self.send_200_text_tle(tles_json)
+
+        elif path == "/profile":
+            try:
+                user_addr = parameters_map["address"]
+            except Exception as e:
+                print("PROFILE EXCEPTION")
+                print(e)
+                self.send_response(400)
+                return
+            #user_jwt = json_body["jwt"]
+            #try:
+            #    user_addr = json_body["addresss"]
+            #except:
+            #    try:
+            #        user_addr = json_body["address"]
+            #    except:
+            #        decoded_jwt = decode_jwt(user_jwt)
+            #        user_addr = decoded_jwt["address"]
+
+            #try:
+            #    with open('public.pem', 'r') as file:
+            #        public_key = file.read()
+            #    public_rsa_key = load_pem_public_key(bytes(public_key,'utf-8'), backend=default_backend())
+            #    decoded_jwt = decode(user_jwt, public_rsa_key, algorithms='RS256')
+            #    decoded_addr = decoded_jwt["address"]
+            #except:
+            #    print("need to update the jwt for user")
+
+
+
+
+
+
+            #try:
+            #    user_addr = json_body["address"]
+            #except:
+            #    try:
+            #        user_addr = db.getObserverFromJWT(user_jwt)
+            #    except:
+            #        self.send_response(418)
+            #        self.send_header('Content-type', 'applicaiton/json')
+            #        self.send_header('Access-Control-Allow-Origin', '*')
+            #        self.end_headers()
+            #        self.wfile.write(b'{}')
+            #        return
+            objects_observed_json = self.db.selectUserObjectsObserved_JSON(user_addr)
+            observation_history_json = self.db.selectUserObservationHistory_JSON(user_addr)
+            #credentials = self.db.getObserverJWT(user_addr)
+            observation_station_numbers = self.db.selectUserStationNumbers_JSON(user_addr)
+            user_profile_json = self.db.selectProfileInfo_JSON(user_addr)
+            user_profile_json["observation_stations"] = []
+            for station in observation_station_numbers:
+                user_profile_json["observation_stations"].append(station["station_number"])
+            user_profile_json["objects_observed"] = objects_observed_json
+            user_profile_json["observation_history"] = observation_history_json
+            user_profile_json["public_username"] = False
+            user_profile_json["public_location"] = False
+            #if credentials[0].decode("utf-8") == user_jwt:
+            #    response_body = bytes(json.dumps(user_profile_json), 'utf-8')
+            for k,v in user_profile_json.items():
+                if v == None or v =='NULL':
+                    user_profile_json[k] = ""
+            user_profile = json.dumps(user_profile_json)
+
+            self.send_200_JSON_cache(user_profile)
+
+        elif path == '/object/influence':
+            norad_number = parameters_map['norad_number']
+            json_object = self.db.selectObjectInfluence_JSON(norad_number)
+            self.send_200_JSON_cache(json_object)
+
+        elif path == '/object/info':
+            norad_number = parameters_map['norad_number']
+            json_object = self.db.selectObjectInfo_JSON(norad_number)
+            self.send_200_JSON_cache(json_object)
+
+        elif path == '/object/history':
+            norad_number = parameters_map['norad_number']
+            year = None
+            try:
+                year = parameters_map["year"]
+            except Exception as e:
+                print(e)
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(b'[]')
+                return
+            real_entry = self.db.selectObjectHistoryByMonth_JSON(norad_number, year)
+            year_response = {}
+            real_response = []
+            internals = {
+                "date": 0,
+                "observation": []
+            }
+            prev_month_string = "January"
+            month_string = "January"
+            new_real_response = copy.deepcopy(real_response)
+            new_internals = copy.deepcopy(internals)
+            for items in real_entry:
+                timestamp = datetime.fromtimestamp(float(items["observation_time"]))
+                month_string = timestamp.strftime("%B")
+                date = timestamp.day
+                if date == new_internals["date"]:
+                    items["observation_quality"] = secrets.randbits(7)
+                    new_internals["observation"].append(items)
+                else:
+                    if new_internals["date"] != 0:
+                        new_real_response.append(new_internals)
+                    new_internals = copy.deepcopy(internals)
+                    new_internals["date"] = date
+                    items["observation_quality"] = secrets.randbits(7)
+                    new_internals["observation"].append(items)
+                if prev_month_string != month_string:
+                    year_response[prev_month_string] = copy.deepcopy(new_real_response)
+                    new_real_response = copy.deepcopy(real_response)
+                    prev_month_string = month_string
+            if new_internals["date"] != 0:
+                new_real_response.append(new_internals)
+            year_response[month_string] = new_real_response
+            response_body = json.dumps(year_response)
+            self.send_200_JSON_cache(response_body)
+
+        elif path == '/object/userSightings':
+            norad_number = parameters_map['norad_number']
+
+            public_address = parameters_map['address']
+            #user_jwt = json_body['jwt']
+            #decoded_jwt = decode_jwt(user_jwt)
+            #try:
+            #    public_address = decoded_jwt["address"]
+            #except:
+            #    self.send_response(403)
+            #    self.end_headers()
+            #    self.wfile.write(b'')
+            #    return
+
+            response_body = self.db.selectObjectUserSightings_JSON(norad_number, public_address)
+            self.send_200_JSON_cache(response_body)
+
+        elif path == "/tle/object":
+            norad_number = parameters_map["norad_number"]
+            two_line_elements = self.db.selectTLE_single(norad_number)
+            self.send_200_text(two_line_elements)
+
+        elif path == "/findObject":
+            object_name = parameters_map["objectName"]
+            try:
+                object_name = int(object_name)
+            except Exception as e:
+                print(e)
+            objects = self.db.selectFindObject(object_name)
+            self.send_response(200)
+            self.send_header('Content-type', 'text/plain')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Cache-Control', 'max-age=300')
+            self.end_headers()
+            try:
+                self.wfile.write(bytes(objects, 'utf-8'))
+            except Exception as e:
+                self.wfile.write(b'[]')
+                print(e)
 
         else:
             self.send_response(404)
@@ -197,6 +381,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         ### LOGIN ENDPOINT ###
         elif self.path == "/login":
             old_nonce = self.db.getObserverNonce(json_body["address"])
+            email = json_body["email"]
             nonce = str(old_nonce[0]).encode('utf-8')
             message_hash = sha3.keccak_256(nonce).hexdigest()
             message_hash = encode_defunct(hexstr=message_hash)
@@ -205,6 +390,9 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             except:
                 print('message could not be checked')
             if signed_public_key.lower() == json_body["address"].lower():
+                print(email)
+                if email != None:
+                    self.db.updateObserverEmail(email, json_body["address"])
                 with open('unsafe_private.pem', 'r') as file:
                     private_key = file.read()
                 private_rsa_key = load_pem_private_key(bytes(private_key, 'utf-8'), password=None, backend=default_backend())
@@ -231,35 +419,35 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             if db.getObserverJWT(public_address)[0].decode("utf-8") == user_jwt:
                 try:  
                     username = json_body["username"]
-                    if username != "null":
+                    if username != "null" and username != None:
                         self.db.updateObserverUsername(username, public_address)
                 except Exception as e:
                     print("Username not being updated")
                     print(e)
                 try:
                     email = json_body["email"]
-                    if email != "null":
+                    if email != "null" and email != None:
                         self.db.updateObserverEmail(email, public_address)
                 except Exception as e:
                     print("Email not being updated")
                     print(e)
                 try:
                     bio = json_body["bio"]
-                    if bio != "null":
+                    if bio != "null" and bio != None:
                         self.db.updateObserverBio(bio, public_address)
                 except Exception as e:
                     print("Bio not being updated")
                     print(e)
                 try:
                     location = json_body["location"]
-                    if location != "null":
+                    if location != "null" and location != None:
                         self.db.updateObserverLocation(location, public_address)
                 except Exception as e:
                     print("Location not being updated")
                     print(e)
                 try:
                     public_location = json_body["public_location"]
-                    if public_location != "null":
+                    if public_location != "null" and public_location != None:
                         self.db.updateObserverPublicLocation(public_location, public_address)
                 except Exception as e:
                     print("Location flag could not be found")
@@ -310,11 +498,14 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             #        self.end_headers()
             #        self.wfile.write(b'{}')
             #        return
-            objects_observed_json = db.selectUserObjectsObserved_JSON(user_addr)
-            observation_history_json = db.selectUserObservationHistory_JSON(user_addr)
-            #credentials = db.getObserverJWT(user_addr)
-            user_profile = db.selectProfileInfo_JSON(user_addr)
-            user_profile_json = user_profile
+            objects_observed_json = self.db.selectUserObjectsObserved_JSON(user_addr)
+            observation_history_json = self.db.selectUserObservationHistory_JSON(user_addr)
+            #credentials = self.db.getObserverJWT(user_addr)
+            observation_station_numbers = self.db.selectUserStationNumbers_JSON(user_addr)
+            user_profile_json = self.db.selectProfileInfo_JSON(user_addr)
+            user_profile_json["observation_stations"] = []
+            for station in observation_station_numbers:
+                user_profile_json["observation_stations"].append(station["station_number"])
             user_profile_json["objects_observed"] = objects_observed_json
             user_profile_json["observation_history"] = observation_history_json
             user_profile_json["public_username"] = False
@@ -418,6 +609,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_200_JSON(json_object)
 
         elif self.path == '/object/history':
+            print(json_body)
             norad_number = json_body['norad_number']
             year = None
             try:
@@ -562,12 +754,22 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     error_messages.append("Observation on line {} has already been submitted.".format(it))
             except Exception as e:
                 print(e)
+            if success > 0:
+                db.commit_IOD_db_writes();
             success_length = {'success':success, 'error_messages':error_messages}#len(parsed_iod_array)
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             self.wfile.write(bytes(json.dumps(success_length),'utf-8'))
+
+        elif self.path == "/seesat":
+            email_information = json_body["message"]["data"]
+            email_history = urlsafe_b64decode(email_information).decode('utf-8')
+            email_history = json.loads(email_history)
+            print(google_email.get_email_history(email_history['historyId']))
+            self.send_response(204)
+            self.end_headers()
 
         else:
             self.send_response(404)
