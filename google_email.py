@@ -100,3 +100,43 @@ def send_recovery_email(to, message_text):
     message_to_send = create_recovery_message('kenan.oneal@consensys.net', to, 'TruSat - Recover Account', message_text)
 
     send_message(service, 'me', message_to_send)
+    
+
+
+
+
+
+
+def get_email_history(history_id):
+    SCOPES = [#'https://www.googleapis.com/auth/gmail.send',
+            'https://www.googleapis.com/auth/gmail.readonly']#,
+            #'https://www.googleapis.com/auth/gmail.metadata',
+            #'https://mail.google.com']
+
+    creds = None
+
+    if os.path.exists('history_token.pickle'):
+        with open('history_token.pickle', 'rb') as token:
+            creds = pickle.load(token)
+
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+            creds = flow.run_console()
+        with open('history_token.pickle', 'wb') as token:
+            pickle.dump(creds, token)
+
+    service = build('gmail', 'v1', credentials=creds)
+    try:
+        history = (service.users().history().list(userId='me', startHistoryId=history_id-10).execute())
+        changes = history['history'] if 'history' in history else []
+        try:
+            message = service.users().messages().get(UserId='me', id=changes[0]["messages"]["id"]).execute()
+        except:
+            message = None
+        return (changes, history, message)
+    except Exception as e:
+        print(e)
+        return []
