@@ -1613,10 +1613,10 @@ class Database:
                 The NORAD numbers of all objects for which we are aware of IODs newer than their TLE.
         """
         query = """
-            with most_recent_iods as (select max(obs_time) as iod_time, object_number from parsediod
+            with most_recent_iods as (select max(obs_time) as iod_time, object_number from ParsedIOD
                                       where valid_position = 1			                  
                                       group by object_number)
-                ,most_recent_tles as (select satellite_number, max(epoch) as tle_time from tle
+                ,most_recent_tles as (select satellite_number, max(epoch) as tle_time from TLE
                                       group by satellite_number)
               select object_number
               from most_recent_iods
