@@ -249,10 +249,12 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
         elif path == '/object/history':
             norad_number = parameters_map['norad_number']
+            print(norad_number)
             year = None
             try:
                 year = parameters_map["year"]
             except Exception as e:
+                print(year)
                 print(e)
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
@@ -261,38 +263,61 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(b'[]')
                 return
             real_entry = self.db.selectObjectHistoryByMonth_JSON(norad_number, year)
-            year_response = {}
-            real_response = []
-            internals = {
-                "date": 0,
-                "observation": []
-            }
-            prev_month_string = "January"
-            month_string = "January"
-            new_real_response = copy.deepcopy(real_response)
-            new_internals = copy.deepcopy(internals)
+            year_response = {
+                    "January": [],
+                    "February": [],
+                    "March": [],
+                    "April": [],
+                    "May": [],
+                    "June": [],
+                    "July": [],
+                    "August": [],
+                    "September": [],
+                    "October": [],
+                    "November": [],
+                    "December": []
+                }
             for items in real_entry:
                 timestamp = datetime.fromtimestamp(float(items["observation_time"]))
                 month_string = timestamp.strftime("%B")
                 date = timestamp.day
-                if date == new_internals["date"]:
-                    items["observation_quality"] = secrets.randbits(7)
-                    new_internals["observation"].append(items)
-                else:
-                    if new_internals["date"] != 0:
-                        new_real_response.append(new_internals)
-                    new_internals = copy.deepcopy(internals)
-                    new_internals["date"] = date
-                    items["observation_quality"] = secrets.randbits(7)
-                    new_internals["observation"].append(items)
-                if prev_month_string != month_string:
-                    year_response[prev_month_string] = copy.deepcopy(new_real_response)
-                    new_real_response = copy.deepcopy(real_response)
-                    prev_month_string = month_string
-            if new_internals["date"] != 0:
-                new_real_response.append(new_internals)
-            year_response[month_string] = new_real_response
+                items["observation_date"] = date
+                year_response[month_string].append(items)
             response_body = json.dumps(year_response)
+            ########
+            #year_response = {}
+            #real_response = []
+            #internals = {
+            #    "date": 0,
+            #    "observation": []
+            #}
+            #prev_month_string = "January"
+            #month_string = "January"
+            #new_real_response = copy.deepcopy(real_response)
+            #new_internals = copy.deepcopy(internals)
+            #for items in real_entry:
+            #    timestamp = datetime.fromtimestamp(float(items["observation_time"]))
+            #    month_string = timestamp.strftime("%B")
+            #    date = timestamp.day
+            #    if date == new_internals["date"]:
+            #        items["observation_quality"] = secrets.randbits(7)
+            #        new_internals["observation"].append(items)
+            #    else:
+            #        if new_internals["date"] != 0:
+            #            new_real_response.append(new_internals)
+            #        new_internals = copy.deepcopy(internals)
+            #        new_internals["date"] = date
+            #        items["observation_quality"] = secrets.randbits(7)
+            #        new_internals["observation"].append(items)
+            #    if prev_month_string != month_string:
+            #        year_response[prev_month_string] = copy.deepcopy(new_real_response)
+            #        new_real_response = copy.deepcopy(real_response)
+            #        prev_month_string = month_string
+            #if new_internals["date"] != 0:
+            #    new_real_response.append(new_internals)
+            #year_response[month_string] = new_real_response
+            #response_body = json.dumps(year_response)
+            ##########
             self.send_200_JSON_cache(response_body)
 
         elif path == '/object/userSightings':
