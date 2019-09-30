@@ -96,7 +96,8 @@ This is recommended for python if you do or will ever use python for any other p
 
 ### Configure CSpace dependencies
 
- - checkout the appropriate branch of [`trusat-tle`](https://github.com/consensys-space/trusat-tle) to path `../trusat-tle` (i.e. its parent directory should match this repo's parent directory)
+ - checkout the appropriate branch of [`trusat-tle`](https://github.com/consensys-space/trusat-tle) to path `../trusat-tle` (i.e. its parent directory should match this repo's parent directory). Install any dependencies defined within that repo.
+ - checkout the appropriate branch of [`trusat-iod`](https://github.com/consensys-space/trusat-iod) to path `../trusat-iod` (i.e. its parent directory should match this repo's parent directory). Install any dependencies defined within that repo.
 
 ### Secure your HTTPS connections
 
