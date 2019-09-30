@@ -1662,9 +1662,9 @@ class Database:
             WHERE valid_position = 1
             ORDER BY obs_time DESC
             LIMIT %(OFFSET)s,%(FETCH)s;"""
-            query_parameters = {
-                'OFFSET': offset_row_count,
-                'FETCH': fetch_row_count}
+        query_parameters = {
+            'OFFSET': offset_row_count,
+            'FETCH': fetch_row_count}
         self.c.execute(query_tmp, query_parameters)
         return stringArrayToJSONArray(self.c.fetchall())
 
@@ -1689,10 +1689,10 @@ class Database:
             AND Year(obs_time)=%(YEAR)s
             AND Month(obs_time)=%(MONTH)s
             ORDER BY obs_time DESC"""
-            query_parameters = {
-                    'NORAD_NUMBER': norad_number,
-                    'YEAR': year,
-                    'MONTH': month}
+        query_parameters = {
+                'NORAD_NUMBER': norad_number,
+                'YEAR': year,
+                'MONTH': month}
         self.c.execute(query_tmp, query_parameters)
         return stringArrayToJSONArray_JSON(self.c.fetchall())
 
@@ -1716,8 +1716,8 @@ class Database:
             AND valid_position=1
             GROUP BY observation_year, observation_month, observation_day
             ORDER BY observation_year DESC, observation_month ASC, observation_day ASC;"""
-            query_parameters = {
-                'NORAD_NUM': norad_num}
+        query_parameters = {
+            'NORAD_NUM': norad_num}
         self.c.execute(query_tmp, query_parameters)
         try:
             return self.c.fetchall()
