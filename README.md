@@ -1,9 +1,28 @@
-# sathunt-backend
+# trusat-backend
+
+## Introduction
+
+This repo contains the code for deploying, populating and interacting with a TruSat database and its standard REST API.
+
+The easiest way to test/exercise this code is by creating a login.txt file (see below) and then launching `server.py`, and then using the snapshot tests to exercise the API and its underlying database.
+
+### Create login.txt file
+
+This should be a text file containing the parameters of the `Database` contructor - with one parameter on each line. At the time of writing that means:
+
+    dbname     - name of the database
+    dbtype     - database type: "INFILE", "sqlserver" or "sqlite3" (without quotes)
+    dbhostname - hostname for sqlserver
+    dbusername - username for sqlserver
+    dbpassword - password for sqlserver
+
 ## Coding Style
 Follow [PEP 8](https://www.python.org/dev/peps/pep-0008/) for any Python code and the style guide recommended for any other language.
+
 ## Maintaining Repo
 [Style Guide](https://github.com/agis/git-style-guide)
 With the addition of commits to the master branch are done through PRs (Pull Request).
+
 ## Releasing Versions
 Modified from [pyorbital](https://github.com/pytroll/pyorbital/blob/master/RELEASING.md)
 1. checkout master
@@ -16,7 +35,41 @@ Modified from [pyorbital](https://github.com/pytroll/pyorbital/blob/master/RELEA
 5. push changes to github `git push --follow-tags`
 7. check verification tools
 
-## Running the code
+## Configuring a Database
+
+Configuration of the database endpoint is done in the code that constructs the `Database` object in `databse.py`. Typically this is configured in `server.py`.
+
+You can use this code against our development and production databases at `db.consensys.space` (running in Amazon Relational Database Service (RDS), but in some cases, it may be preferable to develop against a local database.
+
+### Installing a local database
+
+Install and configure mariadb on your local machine, run it and secure it. Instructions for MacOS [here](https://mariadb.com/resources/blog/installing-mariadb-10-1-16-on-mac-os-x-with-homebrew/)
+
+Access mariadb using:
+`mysql -u root -p`
+(you will be prompted for your password). Then run
+`CREATE DATABASE opensatcat_local;`
+to create a test database.
+
+Optional: create a non-`root` user for testing.
+
+### Export data from AWS
+
+To export all (~200MB) data from the RDS database:
+
+`mysqldump -h db.consensys.space -u neil.mcclaren -p opensatcat > opensatcat_dump.sql`
+
+Replace `neil.mcclaren` with your `db.consensys.space` user. You will be prompted for a password.
+
+If your user dos not have LOCK permissions then you may need to add a `--skip-lock-tables` flag, e.g. `mysqldump -h db.consensys.space -u neil.mcclaren --skip-lock-tables -p opensatcat > opensatcat_dump.sql`)
+
+### Import data to local database
+
+From the same directory that you did the export, import the data into your local DB by running:
+
+`mysql -u root -p opensatcat_local < opensatcat_dump.sql`
+
+## Installing and running the API server
 
 !TODO: there are too many steps here. What's best practice for automating this setup stuff? How does AWS do it and can we copy that process for local development environments to ensure consistency?
 
@@ -43,26 +96,16 @@ This is recommended for python if you do or will ever use python for any other p
 
 ### Configure CSpace dependencies
 
- - checkout the appropriate branch of [`sathunt-database`](https://github.com/consensys-space/sathunt-database) to path `../sathunt-database` (i.e. its parent directory should match this repo's parent directory)
- - checkout the appropriate branch of [`sathunt-tle`](https://github.com/consensys-space/sathunt-tle) to path `../sathunt-tle` (i.e. its parent directory should match this repo's parent directory)
- - Install dependencies for the `sathunt-database` repo by `cd`ing into it and running `pip3.7 install -r requirements.txt`
- - See that repo's README for instructions on setting up a local database, if required.
-
-### Create login.txt file
-
-This should be a text file containing the parameters of the `Database` contructor - with one parameter on each line. At the time of writing that means:
-
-    dbname     - name of the database
-    dbtype     - database type: "INFILE", "sqlserver" or "sqlite3" (without quotes)
-    dbhostname - hostname for sqlserver
-    dbusername - username for sqlserver
-    dbpassword - password for sqlserver
+ - checkout the appropriate branch of [`trusat-tle`](https://github.com/consensys-space/trusat-tle) to path `../trusat-tle` (i.e. its parent directory should match this repo's parent directory). Install any dependencies defined within that repo.
+ - checkout the appropriate branch of [`trusat-iod`](https://github.com/consensys-space/trusat-iod) to path `../trusat-iod` (i.e. its parent directory should match this repo's parent directory). Install any dependencies defined within that repo.
 
 ### Secure your HTTPS connections
 
 !TODO Instructions for generating `privkey.pem` and `fullchain.pem`, or just change code so that it (configurably) uses unsecured HTTP.
 
 ### Run the code
+
+After doing all of the above, and creating a valid `login.txt` file (see further above), simply run:
 
 `python3.7 server.py`
 

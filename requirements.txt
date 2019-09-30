@@ -8,6 +8,14 @@ sgp4
 skyfield
 spacetrack
 cryptography
+python-dateutil
+
+# Drop-in replacement for configparser which also reads config files
+ConfigArgParse
+
+# The following is for Mac OS X / Homebrew python 3
+mysql-connector-python-rf
+pycountry
 
 # Dependencies used by tests
 requests
