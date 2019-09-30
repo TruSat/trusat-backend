@@ -110,3 +110,10 @@ fullchain.pem
 Astrana.db
 login.txt*
 credentials.json
+
+# Gitignore settings inherited from databsae repo: INFILE and other input/output datafiles
+*.csv
+database-ref-commands.sql
+db_login_variables.py
+update_data.sh
+lastMSGID
