@@ -272,6 +272,13 @@ class Database:
         self.selectTLEFile_query = '''SELECT file_fingerprint FROM TLEFILE WHERE file_fingerprint LIKE ? LIMIT 1'''
         self.selectTLEFingerprint_query = '''SELECT tle_fingerprint FROM TLE WHERE tle_fingerprint LIKE ? LIMIT 1'''
         self.selectIODFingerprint_query = '''SELECT obsFingerPrint FROM ParsedIOD WHERE obsFingerPrint LIKE ? LIMIT 1'''
+        # !TODO: there may be more than one IOD for a given {object, observation time}. Limit to 1, perhaps arbitrarily if we have no way of discriminating.
+        self.selectLatestTLEPerObject = """
+            select TLE.line0, TLE.line1, TLE.line2,  TLE.satellite_number, TLE.epoch from
+              (SELECT max(epoch) as epoch, satellite_number
+              FROM TLE
+              GROUP BY satellite_number) as latest_tles
+            left join TLE on (TLE.satellite_number = latest_tles.satellite_number and TLE.epoch = latest_tles.epoch)"""
         self.addParsedIOD_query = '''INSERT INTO ParsedIOD (
             submitted,
             user_string,
@@ -1887,13 +1894,11 @@ class Database:
         Not currently used.
         """
 
-        query_tmp = """SELECT line0, line1, line2, satellite_number
-            FROM TLE
-            GROUP BY satellite_number
-            ORDER BY TLE.epoch DESC;"""
+        query_tmp = self.selectLatestTLEPerObject + """
+            ORDER BY TLE.satellite_number;"""
         self.c.execute(query_tmp)
         result = ""
-        for (line0, line1, line2, _) in self.c.fetchall():
+        for (line0, line1, line2, _, _) in self.c.fetchall():
             result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
         return result
 
@@ -1902,13 +1907,11 @@ class Database:
         """ Create a full list of TLEs for all unique objects in the database.
         """
 
-        query_tmp = """SELECT line0, line1, line2, satellite_number
-            FROM TLE
-            GROUP BY satellite_number
-            ORDER BY satellite_number ASC;"""
+        query_tmp = self.selectLatestTLEPerObject + """
+            ORDER BY TLE.satellite_number;"""
         self.c.execute(query_tmp)
         result = ""
-        for (line0, line1, line2, _) in self.c.fetchall():
+        for (line0, line1, line2, _, _) in self.c.fetchall():
             result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
         return result
 
@@ -1918,15 +1921,13 @@ class Database:
         """ Create list of priority TLEs
         """
         # TODO: Replace with real priority sort. https://consensys-cpl.atlassian.net/browse/MVP-389
-        # In the meantime, return TLEs older than 30 days
-        query_tmp = """SELECT line0, line1, line2, satellite_number
-            FROM TLE
-            WHERE DATEDIFF(NOW(),epoch) > 30
-            GROUP BY satellite_number
-            ORDER BY TLE.epoch DESC;"""
+        # In the meantime, return TLEs older than 30 days, oldest first
+        query_tmp = self.selectLatestTLEPerObject + """
+            WHERE DATEDIFF(NOW(),TLE.epoch) > 30
+            ORDER BY TLE.epoch ASC;"""
         self.c.execute(query_tmp)
         result = ""
-        for (line0, line1, line2, _) in self.c.fetchall():
+        for (line0, line1, line2, _, _) in self.c.fetchall():
             result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
         return result
 
@@ -1936,14 +1937,12 @@ class Database:
         """
         # TODO: Replace with real confidence sort. https://consensys-cpl.atlassian.net/browse/MVP-390
         # In the meantime, return TLEs younger than 30 days, newest first
-        query_tmp = """SELECT line0, line1, line2, satellite_number
-            FROM TLE
-            WHERE DATEDIFF(NOW(),epoch) < 30
-            GROUP BY satellite_number
-            ORDER BY TLE.epoch ASC;"""
+        query_tmp = self.selectLatestTLEPerObject + """
+            WHERE DATEDIFF(NOW(),TLE.epoch) < 30
+            ORDER BY TLE.epoch DESC;"""
         self.c.execute(query_tmp)
         result = ""
-        for (line0, line1, line2, _) in self.c.fetchall():
+        for (line0, line1, line2, _, _) in self.c.fetchall():
             result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
         return result
 
@@ -2298,7 +2297,7 @@ class Database:
     # /catalog/debris
     # https://consensys-cpl.atlassian.net/browse/MVP-325
     def selectCatalog_Debris_JSON(self, fetch_row_count=100, offset_row_count=0):
-        """ Create list of Debris objects.  Most catalog items have DEB in the tital.  
+        """ Create list of Debris objects.  Most catalog items have DEB in the title.  
         There are probably some exceptions """
         quality = 99 # !TODO
         query_tmp = """select Json_Object(
