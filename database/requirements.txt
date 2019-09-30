@@ -1,0 +1,12 @@
+python-dateutil
+eth_account
+
+# Drop-in replacement for configparser which also reads config files
+ConfigArgParse
+
+# The following is for Mac OS X / Homebrew python 3
+mysql-connector-python-rf
+pycountry
+spacetrack
+skyfield
+
