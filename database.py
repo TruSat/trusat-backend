@@ -2352,7 +2352,8 @@ class Database:
             'object_type', ucs_SATDB.purpose,
             'object_primary_purpose', ucs_SATDB.purpose_detailed,
             'object_secondary_purpose', ucs_SATDB.comments,
-            'object_observation_quality', '%(QUALITY)s',
+            'object_observation_quality', '{QUALITY}',
+            'object_launch_date', celestrak_SATCAT.launch_date,
             'time_last_tracked', date_format(ParsedIOD.obs_time, '%M %d, %Y'),
             'address_last_tracked', Obs.eth_addr,
             'username_last_tracked',Obs.user_name)
@@ -2368,16 +2369,15 @@ class Database:
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
             WHERE ParsedIOD.valid_position = 1
-            AND celestrak_SATCAT.launch_date > %(LAUNCH_DATE)s
-            ORDER BY obs_time DESC
-            LIMIT %(OFFSET)s,%(FETCH)s;"""
-        query_parameters = {
-                'LAUNCH_DATE': launch_date_string,
-                'OFFSET': offset_row_count,
-                'FETCH': fetch_row_count,
-                'QUALITY': quality}
+            AND celestrak_SATCAT.launch_date > {LAUNCH_DATE}
+            ORDER BY celestrak_SATCAT.launch_date DESC
+            LIMIT {OFFSET},{FETCH};""".format(
+                LAUNCH_DATE=launch_date_string,
+                OFFSET=offset_row_count,
+                FETCH=fetch_row_count,
+                QUALITY=quality)
 
-        self.c.execute(query_tmp, query_parameters)
+        self.c.execute(query_tmp)
         observations = stringArrayToJSONArray_JSON(self.c.fetchall())
         convert_country_names(observations)
         return json.dumps(observations)
