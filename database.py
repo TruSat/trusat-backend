@@ -2080,6 +2080,7 @@ class Database:
         time_difference = 3 # !TODO
         obs_weight = 0.123456 # !TODO
 
+        # TODO: inadvertantly limits to single station?
         query_tmp = """SELECT Json_Object(
             'observation_time',date_format(ParsedIOD.obs_time, '%M %d, %Y'),
             'object_name',celestrak_SATCAT.name,
@@ -2120,6 +2121,7 @@ class Database:
         """ For a given ETH address, return list of objects they have observed along with context detail.
         """
         # FIXME: Fancier query logic needed to get the last eth_addr to track in the summary of a selected-users observations.
+        # TODO: inadvertantly limits to single station?
         query_tmp = """SELECT Json_Object(
             'object_origin', ucs_SATDB.country_owner,
             'object_type', ucs_SATDB.purpose,
@@ -2234,8 +2236,7 @@ class Database:
                     Observer.eth_addr as eth_addr,
                     Observer.name as user_name
                     FROM Station,Observer
-                    WHERE Station.user = Observer.id
-                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
+                    WHERE Station.user = Observer.id) Obs ON ParsedIOD.station_number = Obs.station_num
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             WHERE ParsedIOD.valid_position = 1
@@ -2276,8 +2277,7 @@ class Database:
                     Observer.eth_addr as eth_addr,
                     Observer.name as user_name
                     FROM Station,Observer
-                    WHERE Station.user = Observer.id
-                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
+                    WHERE Station.user = Observer.id) Obs ON ParsedIOD.station_number = Obs.station_num
             JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
             JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             WHERE ParsedIOD.valid_position = 1
@@ -2319,8 +2319,7 @@ class Database:
                     Observer.eth_addr as eth_addr,
                     Observer.name as user_name
                     FROM Station,Observer
-                    WHERE Station.user = Observer.id
-                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
+                    WHERE Station.user = Observer.id) Obs ON ParsedIOD.station_number = Obs.station_num
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
             WHERE ParsedIOD.valid_position = 1
@@ -2365,8 +2364,7 @@ class Database:
                     Observer.eth_addr as eth_addr,
                     Observer.name as user_name
                     FROM Station,Observer
-                    WHERE Station.user = Observer.id
-                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
+                    WHERE Station.user = Observer.id) Obs ON ParsedIOD.station_number = Obs.station_num
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
             WHERE ParsedIOD.valid_position = 1
@@ -2508,6 +2506,7 @@ class Database:
         time_difference = 3 # !TODO
         obs_weight = 0.123456 # !TODO
 
+        # TODO: inadvertantly limits to single station?
         query_tmp = """SELECT Json_Object(
             'observation_time', date_format(obs_time, '%M %d, %Y'),
             'object_origin', celestrak_SATCAT.source,
@@ -2563,6 +2562,7 @@ class Database:
         time_difference = 3 # !TODO
         obs_weight = 0.123456 # !TODO
 
+        # TODO: inadvertantly limits to single station?
         query_tmp = """SELECT Json_Object(
             'observation_time', date_format(obs_time, '%M %d, %Y'),
             'object_origin', celestrak_SATCAT.source,
