@@ -831,11 +831,6 @@ class Database:
         return len(self._IODentryList)
         # return self.c_addParsedIOD.lastrowid
 
-
-    def addStation(self, station):
-        print("not done yet, get on it")
-
-
     def addObserver(self,
             eth_addr,
             verification,
@@ -1089,18 +1084,21 @@ class Database:
         Output:
             Dict of Station() objects contained in station number array, keyed by Station_ID
         """
+        query_tuple = ()
         query_tmp = "SELECT * FROM Station WHERE station_num IN ( "
 
         first = True
         for station in requested_station_list:
             if (first):
-                query_tmp = query_tmp + " {} ".format(station)
+                query_tmp = query_tmp + " ? "
+                query_tuple += (station,)
                 first = False
             else:
-                query_tmp = query_tmp + ", {} ".format(station)
+                query_tmp = query_tmp + ", ? "
+                query_tuple += (station,)
         query_tmp = query_tmp + ") ORDER BY station_num ASC;"
 
-        self.cdict.execute(query_tmp)
+        self.cdict.execute(query_tmp, query_tuple)
         station_data = self.cdict.fetchall()
 
         # Check to see that we got the requested data, warn if we didn't
@@ -1302,8 +1300,8 @@ class Database:
 
     def getObserverFromJWT(self, jwt):
         """ TODO: Kenan to document """
-        query_tmp = '''SELECT eth_addr FROM Observer WHERE jwt="{JWT}"'''.format(JWT=jwt)
-        self.c.execute(query_tmp)
+        query_tmp = '''SELECT eth_addr FROM Observer WHERE jwt="%(JWT)s"'''
+        self.c.execute(query_tmp, {'JWT': jwt})
         return self.c.fetchone()[0]
 
     #######################
@@ -1365,16 +1363,17 @@ class Database:
         """
         query_tmp = """SELECT * FROM ParsedIOD
                 WHERE valid_position=1
-                AND obs_id >= {OBS_ID}
+                AND obs_id >= %(OBS_ID)s
                 ORDER BY obs_id ASC
-                LIMIT 10;""".format(OBS_ID=obs_id)
-        self.cdict.execute(query_tmp)
+                LIMIT 10;"""
+        self.cdict.execute(query_tmp, {'OBS_ID': obs_id})
         rows = self.cdict.fetchall()
         return self.cdictQueryToObsObj(rows)
 
     def selectIODlist(self,obs_id_list):
         """ Given the list of specified object IDs, returns an array of corresponding IOD objects """
 
+        query_tuple = ()
         query_tmp = """SELECT * FROM ParsedIOD WHERE
             valid_position=1
             AND obs_id IN ( """
@@ -1382,13 +1381,15 @@ class Database:
         first = True
         for id in obs_id_list:
             if (first):
-                query_tmp = query_tmp + " {} ".format(id)
+                query_tmp = query_tmp + " ? "
+                query_tuple += (id,)
                 first = False
             else:
-                query_tmp = query_tmp + ", {} ".format(id)
+                query_tmp = query_tmp + ", ? "
+                query_tuple += (id,)
         query_tmp = query_tmp + ") ORDER BY obs_time ASC;"
 
-        self.cdict.execute(query_tmp)
+        self.cdict.execute(query_tmp, query_tuple)
         rows = self.cdict.fetchall()
         return self.cdictQueryToObsObj(rows)
 
@@ -1396,12 +1397,7 @@ class Database:
     def getObservationCount(self):
         """ TODO: Kenan to document """
         """ GET OBSERVATION COUNT """
-        if self._dbtype == "INFILE":
-            try:
-                results = (self.getObservationCount_query, [])
-            except KeyError:
-                results = None
-        elif self._dbtype == "sqlite":
+        if self._dbtype == "sqlite":
             self.c.execute(self.getObservationCount_query, [])
             results = self.c.fetchone()
         else:
@@ -1412,12 +1408,7 @@ class Database:
     def getCommunityObservationByYear(self):
         """ TODO: Kenan to document """
         """ GET COMMUNITY OBSERVATION BY YEAR """
-        if self._dbtype == "INFILE":
-            try:
-                results = (self.getCommunityObservationByYear_query, [])
-            except KeyError:
-                results = None
-        elif self._dbtype == "sqlite":
+        if self._dbtype == "sqlite":
             self.c.execute(self.getCommunityObservationByYear_query, [])
             results = self.c.fetchall()
         else:
@@ -1428,12 +1419,7 @@ class Database:
     def getCommunityObservationByMonth(self):
         """ TODO: Kenan to document """
         """ GET COMMUNITY OBSERVATION BY YEAR """
-        if self._dbtype == "INFILE":
-            try:
-                results = (self.getCommunityObservationByMonth_query, [])
-            except KeyError:
-                results = None
-        elif self._dbtype == "sqlite":
+        if self._dbtype == "sqlite":
             self.c.execute(self.getCommunityObservationByMonth_query, [])
             results = self.c.fetchall()
         else:
@@ -1444,12 +1430,7 @@ class Database:
     def getObserverCountByID(self, public_address):
         """ TODO: Kenan to document """
         """ GET OBSERVER COUNT BY ID """
-        if self._dbtype == "INFILE":
-            try:
-                results = (self.getObserverCountByID_query, [public_address])
-            except KeyError:
-                results = None
-        elif self._dbtype == "sqlite":
+        if self._dbtype == "sqlite":
             self.c.execute(self.getObserverCountByID_query, [public_address])
             results = self.c.fetchone()
         else:
@@ -1460,12 +1441,7 @@ class Database:
     def getRecentObservations(self):
         """ TODO: Kenan to document """
         """ GET RECENT OBSERVATIONS """
-        if self._dbtype == "INFILE":
-            try:
-                results = (self.getRecentObservations_query, [])
-            except KeyError:
-                results = None
-        elif self._dbtype == "sqlite":
+        if self._dbtype == "sqlite":
             self.c.execute(self.getRecentObservations_query, [])
             results = self.c.fetchall()
         else:
@@ -1685,10 +1661,11 @@ class Database:
             LEFT JOIN station_status ON ParsedIOD.station_status_code = station_status.code
             WHERE valid_position = 1
             ORDER BY obs_time DESC
-            LIMIT {OFFSET},{FETCH};""".format(
-                OFFSET=offset_row_count,
-                FETCH=fetch_row_count)
-        self.c.execute(query_tmp)
+            LIMIT %(OFFSET)s,%(FETCH)s;"""
+            query_parameters = {
+                'OFFSET': offset_row_count,
+                'FETCH': fetch_row_count}
+        self.c.execute(query_tmp, query_parameters)
         return stringArrayToJSONArray(self.c.fetchall())
 
     def selectObjectHistoryByMonth_JSON(self, norad_number, year, month):
@@ -1708,14 +1685,15 @@ class Database:
             'observation_time_difference', '1.42',
             'observation_weight', '5')
             FROM ParsedIOD
-            WHERE object_number={NORAD_NUMBER}
-            AND Year(obs_time)={YEAR}
-            AND Month(obs_time)={MONTH}
-            ORDER BY obs_time DESC""".format(
-                    NORAD_NUMBER=norad_number,
-                    YEAR=year,
-                    MONTH=month)
-        self.c.execute(query_tmp)
+            WHERE object_number=%(NORAD_NUMBER)s
+            AND Year(obs_time)=%(YEAR)s
+            AND Month(obs_time)=%(MONTH)s
+            ORDER BY obs_time DESC"""
+            query_parameters = {
+                    'NORAD_NUMBER': norad_number,
+                    'YEAR': year,
+                    'MONTH': month}
+        self.c.execute(query_tmp, query_parameters)
         return stringArrayToJSONArray_JSON(self.c.fetchall())
 
     # Supports user profile https://consensys-cpl.atlassian.net/browse/MVP-311
@@ -1734,12 +1712,13 @@ class Database:
             MONTH(obs_time) as observation_month,
             DAYOFMONTH(obs_time) as observation_day
             FROM ParsedIOD
-            WHERE object_number = {NORAD_NUM}
+            WHERE object_number = %(NORAD_NUM)s
             AND valid_position=1
             GROUP BY observation_year, observation_month, observation_day
-            ORDER BY observation_year DESC, observation_month ASC, observation_day ASC;""".format(
-                NORAD_NUM=norad_num)
-        self.c.execute(query_tmp)
+            ORDER BY observation_year DESC, observation_month ASC, observation_day ASC;"""
+            query_parameters = {
+                'NORAD_NUM': norad_num}
+        self.c.execute(query_tmp, query_parameters)
         try:
             return self.c.fetchall()
         except:
@@ -1873,11 +1852,13 @@ class Database:
         Returns TruSatellite() object
         """
         query_tmp = """SELECT * FROM TLE
-            WHERE epoch <= '{}'
-            AND satellite_number={}
+            WHERE epoch <= '%(EPOCH_DATETIME)s'
+            AND satellite_number=%(SATELLITE_NUMBER)s
             ORDER BY epoch DESC
-            LIMIT 1""".format(query_epoch_datetime, satellite_number)
-        self.cdict.execute(query_tmp)
+            LIMIT 1"""
+        query_parameters = {'EPOCH_DATETIME': query_epoch_datetime,
+            'SATELLITE_NUMBER': satellite_number}
+        self.cdict.execute(query_tmp, query_parameters)
         row = [self.cdict.fetchone()]   # Put single result into an array
         return self.cdictQueryToTruSatelliteObj(row)[0]  # Unpack the array to the object, for just one result
 
@@ -1889,11 +1870,13 @@ class Database:
         Could be before or after the provided date.
         Returns TruSatellite() object
         """
-        query_tmp = """SELECT *,ABS(TIMEDIFF(epoch,'{}')) as diff FROM TLE
-            WHERE satellite_number={}
+        query_tmp = """SELECT *,ABS(TIMEDIFF(epoch,'%(EPOCH_DATETIME)s')) as diff FROM TLE
+            WHERE satellite_number=%(SATELLITE_NUMBER)s
             ORDER BY diff ASC
-            LIMIT 1""".format(query_epoch_datetime, satellite_number)
-        self.c.execute(query_tmp)
+            LIMIT 1"""
+        query_parameters = {'EPOCH_DATETIME': query_epoch_datetime,
+            'SATELLITE_NUMBER': satellite_number}
+        self.c.execute(query_tmp, query_parameters)
         row = [self.cdict.fetchone()]    # Put single result into an array
         return self.cdictQueryToTruSatelliteObj(row)[0]  # Unpack the array to the object, for just one result
 
@@ -1970,10 +1953,11 @@ class Database:
 
         query_tmp = """SELECT line0, line1, line2
             FROM TLE
-            WHERE satellite_number={NORAD_NUM}
+            WHERE satellite_number=%(NORAD_NUM)s
             ORDER BY EPOCH DESC
-            LIMIT 1;""".format(NORAD_NUM=norad_num)
-        self.c.execute(query_tmp)
+            LIMIT 1;"""
+        query_parameters = {'NORAD_NUM': norad_num}
+        self.c.execute(query_tmp, query_parameters)
         try:
             (line0, line1, line2) = self.c.fetchone()
             return "{}r\n{}\n{}\n".format(line0,line1,line2)
@@ -2015,11 +1999,11 @@ class Database:
             'station_details', Station.details)
             FROM Station
             JOIN Observer ON Observer.id = Station.user
-            WHERE Observer.eth_addr = '{ETH_ADDR}'
-            ORDER BY Station.station_num ASC;""".format(
-                ETH_ADDR=eth_addr)
+            WHERE Observer.eth_addr = '%(ETH_ADDR)s'
+            ORDER BY Station.station_num ASC;"""
+        query_parameters = {'ETH_ADDR': eth_addr}
         try:
-            self.c.execute(query_tmp)
+            self.c.execute(query_tmp, query_parameters)
             return stringArrayToJSONArray(self.c.fetchall())
         except:
             return None
@@ -2041,9 +2025,10 @@ class Database:
             FROM ParsedIOD
             JOIN Station ON ParsedIOD.station_number = Station.station_num
             JOIN Observer ON Observer.id = Station.user
-            WHERE Observer.eth_addr = '{ETH_ADDR}'
-            GROUP BY ParsedIOD.object_number;""".format(ETH_ADDR=eth_addr)
-        self.c.execute(query_tmp_num_obj_tracked)
+            WHERE Observer.eth_addr = '%(ETH_ADDR)s'
+            GROUP BY ParsedIOD.object_number;"""
+        query_parameters = {'ETH_ADDR': eth_addr}
+        self.c.execute(query_tmp_num_obj_tracked, query_parameters)
         try:
             obj_tracked = self.c.fetchall()
             num_obj_tracked = len(obj_tracked)
@@ -2055,8 +2040,9 @@ class Database:
             FROM ParsedIOD
             JOIN Station ON ParsedIOD.station_number = Station.station_num
             JOIN Observer ON Observer.id = Station.user
-            WHERE Observer.eth_addr = '{ETH_ADDR}';""".format(ETH_ADDR=eth_addr)
-        self.c.execute(query_tmp_obs_count)
+            WHERE Observer.eth_addr = '%(ETH_ADDR)s';"""
+        query_parameters = {'ETH_ADDR': eth_addr}
+        self.c.execute(query_tmp_obs_count, query_parameters)
         try:
             [(obs_count)] = self.c.fetchone()
         except:
@@ -2067,19 +2053,20 @@ class Database:
             'email', Observer.reference,
             'user_address', Observer.eth_addr,
             'user_location', Observer.location,
-            'number_objects_tracked', '{NUM_OBJ_TRACKED}',
-            'observation_count', '{OBS_COUNT}',
-            'average_observation_quality', '{AVG_OBS_QUALITY}',
+            'number_objects_tracked', '%(NUM_OBJ_TRACKED)s',
+            'observation_count', '%(OBS_COUNT)s',
+            'average_observation_quality', '%(AVG_OBS_QUALITY)s',
             'user_bio', Observer.bio,
             'user_image', Observer.url_image)
             FROM Observer
-            WHERE Observer.eth_addr = '{ETH_ADDR}'
-            LIMIT 1;""".format(
-                NUM_OBJ_TRACKED=num_obj_tracked,
-                OBS_COUNT=obs_count,
-                AVG_OBS_QUALITY=avg_obs_quality,
-                ETH_ADDR=eth_addr)
-        self.c.execute(query_tmp)
+            WHERE Observer.eth_addr = '%(ETH_ADDR)s'
+            LIMIT 1;"""
+        query_parameters = {
+                'NUM_OBJ_TRACKED': num_obj_tracked,
+                'OBS_COUNT': obs_count,
+                'AVG_OBS_QUALITY': avg_obs_quality,
+                'ETH_ADDR': eth_addr}
+        self.c.execute(query_tmp, query_parameters)
         return QueryRowToJSON(self.c.fetchone())
 
     # Supports user profile https://consensys-cpl.atlassian.net/browse/MVP-311
@@ -2098,9 +2085,9 @@ class Database:
             'object_name',celestrak_SATCAT.name,
             'station_number', Obs.station_num,
             'object_norad_number', ParsedIOD.object_number,
-            'observation_quality', '{QUALITY}',
-            'observation_time_difference', '{TIME_DIFF}',
-            'observation_weight', '{OBS_WEIGHT}',
+            'observation_quality', '%(QUALITY)s',
+            'observation_time_difference', '%(TIME_DIFF)s',
+            'observation_weight', '%(OBS_WEIGHT)s',
             'observation_iod', ParsedIOD.iod_string
             )
             FROM ParsedIOD
@@ -2112,20 +2099,21 @@ class Database:
                     Observer.name as user_name
                     FROM Station,Observer
                     WHERE Station.user = Observer.id
-                    AND Observer.eth_addr = '{ETH_ADDR}'
+                    AND Observer.eth_addr = '%(ETH_ADDR)s'
                     LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.norad_num
             LEFT JOIN station_status ON ParsedIOD.station_status_code = station_status.code
             WHERE valid_position = 1
             ORDER BY obs_time DESC
-            LIMIT {OFFSET},{FETCH};""".format(
-                QUALITY=quality,
-                TIME_DIFF=time_difference,
-                OBS_WEIGHT=obs_weight,
-                ETH_ADDR=eth_addr,
-                OFFSET=offset_row_count,
-                FETCH=fetch_row_count)
-        self.c.execute(query_tmp)
+            LIMIT %(OFFSET)s,%(FETCH)s;"""
+        query_parameters = {
+                'QUALITY': quality,
+                'TIME_DIFF': time_difference,
+                'OBS_WEIGHT': obs_weight,
+                'ETH_ADDR': eth_addr,
+                'OFFSET': offset_row_count,
+                'FETCH': fetch_row_count}
+        self.c.execute(query_tmp, query_parameters)
         return stringArrayToJSONArray_JSON(self.c.fetchall())
 
     def selectUserObjectsObserved_JSON(self, eth_addr, fetch_row_count=10, offset_row_count=0):
@@ -2152,17 +2140,18 @@ class Database:
                     Observer.name as user_name
                     FROM Station,Observer
                     WHERE Station.user = Observer.id
-                    AND Observer.eth_addr = '{ETH_ADDR}'
+                    AND Observer.eth_addr = '%(ETH_ADDR)s'
                     LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number=ucs_SATDB.norad_number
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             WHERE valid_position = 1
             ORDER BY obs_time DESC
-            LIMIT {OFFSET},{FETCH};""".format(
-                ETH_ADDR=eth_addr,
-                OFFSET=offset_row_count,
-                FETCH=fetch_row_count)
-        self.c.execute(query_tmp)
+            LIMIT %(OFFSET)s,%(FETCH)s;"""
+        query_parameters = {
+                'ETH_ADDR': eth_addr,
+                'OFFSET': offset_row_count,
+                'FETCH': fetch_row_count}
+        self.c.execute(query_tmp, query_parameters)
         object_observed = stringArrayToJSONArray_JSON(self.c.fetchall())
         convert_country_names(object_observed)
         return object_observed
@@ -2205,10 +2194,11 @@ class Database:
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number=ucs_SATDB.norad_number
             WHERE valid_position = 1
             ORDER BY obs_time DESC
-            LIMIT {OFFSET},{FETCH};""".format(
-                OFFSET=offset_row_count,
-                FETCH=fetch_row_count)
-        self.c.execute(query_tmp)
+            LIMIT %(OFFSET)s,%(FETCH)s;"""
+        query_parameters = {
+                'OFFSET': offset_row_count,
+                'FETCH': fetch_row_count}
+        self.c.execute(query_tmp, query_parameters)
         observations = stringArrayToJSONArray_JSON(self.c.fetchall())
         convert_country_names(observations)
         return json.dumps(observations)
@@ -2232,7 +2222,7 @@ class Database:
             'object_type', ucs_SATDB.purpose,
             'object_primary_purpose', ucs_SATDB.purpose_detailed,
             'object_secondary_purpose', ucs_SATDB.comments,
-            'object_observation_quality', '{QUALITY}',
+            'object_observation_quality', '%(QUALITY)s',
             'time_last_tracked', date_format(ParsedIOD.obs_time, '%M %d, %Y'),
             'address_last_tracked', Obs.eth_addr,
             'username_last_tracked',Obs.user_name)
@@ -2250,12 +2240,13 @@ class Database:
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             WHERE ParsedIOD.valid_position = 1
             ORDER BY obs_time DESC
-            LIMIT {OFFSET},{FETCH};""".format(
-                OFFSET=offset_row_count,
-                FETCH=fetch_row_count,
-                QUALITY=quality)
+            LIMIT %(OFFSET)s,%(FETCH)s;"""
+        query_parameters = {
+                'OFFSET': offset_row_count,
+                'FETCH': fetch_row_count,
+                'QUALITY': quality}
 
-        self.c.execute(query_tmp)
+        self.c.execute(query_tmp, query_parameters)
         observations = stringArrayToJSONArray_JSON(self.c.fetchall())
         convert_country_names(observations)
         return json.dumps(observations)
@@ -2273,7 +2264,7 @@ class Database:
             'object_type', ucs_SATDB.purpose,
             'object_primary_purpose', ucs_SATDB.purpose_detailed,
             'object_secondary_purpose', ucs_SATDB.comments,
-            'object_observation_quality', '{QUALITY}',
+            'object_observation_quality', '%(QUALITY)s',
             'time_last_tracked', date_format(ParsedIOD.obs_time, '%M %d, %Y'),
             'address_last_tracked', Obs.eth_addr,
             'username_last_tracked',Obs.user_name)
@@ -2293,12 +2284,13 @@ class Database:
             AND celestrak_SATCAT.orbit_status_code = 'NEA'
             GROUP BY ParsedIOD.object_number
             ORDER BY obs_time DESC
-            LIMIT {OFFSET},{FETCH};""".format(
-                OFFSET=offset_row_count,
-                FETCH=fetch_row_count,
-                QUALITY=quality)
+            LIMIT %(OFFSET)s,%(FETCH)s;"""
+        query_parameters = {
+                'OFFSET': offset_row_count,
+                'FETCH': fetch_row_count,
+                'QUALITY': quality}
 
-        self.c.execute(query_tmp)
+        self.c.execute(query_tmp, query_parameters)
         observations = stringArrayToJSONArray_JSON(self.c.fetchall())
         convert_country_names(observations)
         return json.dumps(observations)
@@ -2315,7 +2307,7 @@ class Database:
             'object_origin', ucs_SATDB.country_owner,
             'object_primary_purpose', ucs_SATDB.purpose_detailed,
             'object_secondary_purpose', ucs_SATDB.comments,
-            'object_observation_quality', '{QUALITY}',
+            'object_observation_quality', '%(QUALITY)s',
             'time_last_tracked', date_format(ParsedIOD.obs_time, '%M %d, %Y'),
             'address_last_tracked', Obs.eth_addr,
             'username_last_tracked',Obs.user_name)
@@ -2335,11 +2327,12 @@ class Database:
             AND celestrak_SATCAT.name LIKE '%DEB%'
             GROUP BY ParsedIOD.object_number
             ORDER BY obs_time DESC
-            LIMIT {OFFSET},{FETCH};""".format(
-                OFFSET=offset_row_count,
-                FETCH=fetch_row_count,
-                QUALITY=quality)
-        self.c.execute(query_tmp)
+            LIMIT %(OFFSET)s,%(FETCH)s;"""
+        query_parameters = {
+                'OFFSET': offset_row_count,
+                'FETCH': fetch_row_count,
+                'QUALITY': quality}
+        self.c.execute(query_tmp, query_parameters)
         observations = stringArrayToJSONArray_JSON(self.c.fetchall())
         convert_country_names(observations)
         return json.dumps(observations)
@@ -2360,7 +2353,7 @@ class Database:
             'object_type', ucs_SATDB.purpose,
             'object_primary_purpose', ucs_SATDB.purpose_detailed,
             'object_secondary_purpose', ucs_SATDB.comments,
-            'object_observation_quality', '{QUALITY}',
+            'object_observation_quality', '%(QUALITY)s',
             'time_last_tracked', date_format(ParsedIOD.obs_time, '%M %d, %Y'),
             'address_last_tracked', Obs.eth_addr,
             'username_last_tracked',Obs.user_name)
@@ -2377,15 +2370,16 @@ class Database:
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
             WHERE ParsedIOD.valid_position = 1
-            AND celestrak_SATCAT.launch_date > {LAUNCH_DATE}
+            AND celestrak_SATCAT.launch_date > %(LAUNCH_DATE)s
             ORDER BY obs_time DESC
-            LIMIT {OFFSET},{FETCH};""".format(
-                LAUNCH_DATE=launch_date_string,
-                OFFSET=offset_row_count,
-                FETCH=fetch_row_count,
-                QUALITY=quality)
+            LIMIT %(OFFSET)s,%(FETCH)s;"""
+        query_parameters = {
+                'LAUNCH_DATE': launch_date_string,
+                'OFFSET': offset_row_count,
+                'FETCH': fetch_row_count,
+                'QUALITY': quality}
 
-        self.c.execute(query_tmp)
+        self.c.execute(query_tmp, query_parameters)
         observations = stringArrayToJSONArray_JSON(self.c.fetchall())
         convert_country_names(observations)
         return json.dumps(observations)
@@ -2451,11 +2445,12 @@ class Database:
             FROM ParsedIOD
             JOIN Station ON ParsedIOD.station_number = Station.station_num
             JOIN Observer ON Observer.id = Station.user
-            WHERE ParsedIOD.object_number = {}
+            WHERE ParsedIOD.object_number = %(NORAD_NUM)s
             GROUP BY Observer.id
             ORDER BY ParsedIOD.obs_time DESC
-            LIMIT 1;""".format(norad_num)
-        self.c.execute(query_tmp_count)
+            LIMIT 1;"""
+        query_parameters = {'NORAD_NUMBER': norad_num}
+        self.c.execute(query_tmp_count, query_parameters)
         try:
             (user_count, eth_addr, name, last_tracked) = self.c.fetchone()
         except Exception as e:
@@ -2471,21 +2466,29 @@ class Database:
             'object_secondary_purpose', ucs_SATDB.comments,
             'year_launched', YEAR(celestrak_SATCAT.launch_date),
             'time_last_tracked', date_format(ParsedIOD.obs_time, '%M %d, %Y'),
-            'number_users_tracked', '{COUNT}',
-            'time_last_tracked', '{LAST_TRACKED}',
-            'address_last_tracked', '{ETH_ADDR}',
-            'username_last_tracked', '{NAME}',
-            'observation_quality', '{QUALITY}',
+            'number_users_tracked', '%(COUNT)s',
+            'time_last_tracked', '%(LAST_TRACKED)s',
+            'address_last_tracked', '%(ETH_ADDR)s',
+            'username_last_tracked', '%(NAME)s',
+            'observation_quality', '%(QUALITY)s',
             'object_background', ucs_SATDB.detailed_comments,
-            'heavens_above_url', '{URL}'
+            'heavens_above_url', '%(URL)s'
             )
             FROM ParsedIOD
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             WHERE ParsedIOD.valid_position = 1
-            AND ParsedIOD.object_number = {NORAD_NUM}
-            LIMIT 1;""".format(COUNT=user_count, LAST_TRACKED=last_tracked, ETH_ADDR=eth_addr, NAME=name, QUALITY=quality, URL=info_url, NORAD_NUM=norad_num)
-        self.c.execute(query_tmp)
+            AND ParsedIOD.object_number = %(NORAD_NUM)s
+            LIMIT 1;"""
+        query_parameters = {
+                'COUNT': user_count,
+                'LAST_TRACKED': last_tracked,
+                'ETH_ADDR': eth_addr,
+                'NAME': name,
+                'QUALITY': quality,
+                'URL': info_url,
+                'NORAD_NUM': norad_num}
+        self.c.execute(query_tmp, query_parameters)
         try:
             observations = QueryRowToJSON_JSON(self.c.fetchone())
             convert_country_names_single(observations)
@@ -2511,9 +2514,9 @@ class Database:
             'user_location', Obs.location,
             'username', Obs.user_name,
             'user_address', Obs.eth_addr,
-            'observation_quality', '{QUALITY}',
-            'observation_time_difference', '{TIME_DIFF}',
-            'observation_weight', '{OBS_WEIGHT}')
+            'observation_quality', '%(QUALITY)s',
+            'observation_time_difference', '%(TIME_DIFF)s',
+            'observation_weight', '%(OBS_WEIGHT)s')
             FROM ParsedIOD
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             JOIN (SELECT
@@ -2525,20 +2528,21 @@ class Database:
                     Observer.location as location
                     FROM Station,Observer
                     WHERE Station.user = Observer.id
-                    AND Observer.eth_addr = '{ETH_ADDR}'
+                    AND Observer.eth_addr = '%(ETH_ADDR)s'
                     LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
-            WHERE ParsedIOD.object_number = {NORAD_NUM}
+            WHERE ParsedIOD.object_number = %(NORAD_NUM)s
             ORDER BY obs_time DESC
-            LIMIT {OFFSET},{FETCH};""".format(
-                QUALITY=quality,
-                TIME_DIFF=time_difference,
-                OBS_WEIGHT=obs_weight,
-                NORAD_NUM=norad_num,
-                ETH_ADDR=eth_addr,
-                OFFSET=offset_row_count,
-                FETCH=fetch_row_count
-                )
-        self.c.execute(query_tmp)
+            LIMIT %(OFFSET)s,%(FETCH)s;"""
+        query_parameters = {
+            'QUALITY': quality,
+            'TIME_DIFF': time_difference,
+            'OBS_WEIGHT': obs_weight,
+            'NORAD_NUM': norad_num,
+            'ETH_ADDR': eth_addr,
+            'OFFSET': offset_row_count,
+            'FETCH': fetch_row_count
+        }
+        self.c.execute(query_tmp, query_parameters)
         try:
             observations = stringArrayToJSONArray_JSON(self.c.fetchall())
             convert_country_names(observations)
@@ -2564,9 +2568,9 @@ class Database:
             'object_origin', celestrak_SATCAT.source,
             'user_location', Obs.location,
             'username', Obs.user_name,
-            'observation_quality', '{QUALITY}',
-            'observation_time_difference', '{TIME_DIFF}',
-            'observation_weight', '{OBS_WEIGHT}',
+            'observation_quality', '%(QUALITY)s',
+            'observation_time_difference', '%(TIME_DIFF)s',
+            'observation_weight', '%(OBS_WEIGHT)s',
             'user_address', Obs.eth_addr)
             FROM ParsedIOD
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
@@ -2580,17 +2584,18 @@ class Database:
                     FROM Station,Observer
                     WHERE Station.user = Observer.id
                     LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
-            WHERE ParsedIOD.object_number = {NORAD_NUM}
+            WHERE ParsedIOD.object_number = %(NORAD_NUM)s
             ORDER BY obs_time DESC
-            LIMIT {OFFSET},{FETCH};""".format(
-                QUALITY=quality,
-                TIME_DIFF=time_difference,
-                OBS_WEIGHT=obs_weight,
-                NORAD_NUM=norad_num,
-                OFFSET=offset_row_count,
-                FETCH=fetch_row_count
-                )
-        self.c.execute(query_tmp)
+            LIMIT %(OFFSET)s,%(FETCH)s;"""
+        query_parameters = {
+            'QUALITY': quality,
+            'TIME_DIFF': time_difference,
+            'OBS_WEIGHT': obs_weight,
+            'NORAD_NUM': norad_num,
+            'OFFSET': offset_row_count,
+            'FETCH': fetch_row_count
+        }
+        self.c.execute(query_tmp, query_parameters)
         try:
             observations = stringArrayToJSONArray_JSON(self.c.fetchall())
             convert_country_names(observations)
@@ -2604,26 +2609,25 @@ class Database:
         """ Facilitate a search of objects contained in the database, by NORAD number or name.
         Provide a partial result of matches to allow the user to choose their specific object of interest.
         """
+        query_parameters = {'PARTIAL': partial_string}
         if (type(partial_string) == int):
             query_tmp = """SELECT DISTINCT Json_Object(
                 'norad_number', norad_num,
                 'name', name)
                 FROM celestrak_SATCAT
-                WHERE norad_num LIKE '{PARTIAL}%'
+                WHERE norad_num LIKE '%(PARTIAL)s%'
                 ORDER by norad_num ASC;
-                """.format(
-                    PARTIAL=partial_string)
+                """
         else:
             query_tmp = """SELECT DISTINCT Json_Object(
                 'norad_number', norad_num,
                 'name', name)
                 FROM celestrak_SATCAT
-                WHERE name LIKE '{PARTIAL}%'
+                WHERE name LIKE '%(PARTIAL)s%'
                 ORDER by name ASC;
-                """.format(
-                    PARTIAL=partial_string)
+                """
         print(query_tmp)
-        self.c.execute(query_tmp)
+        self.c.execute(query_tmp, query_parameters)
         try:
             return stringArrayToJSONArray(self.c.fetchall())
         except:
