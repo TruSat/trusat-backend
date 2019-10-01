@@ -2250,13 +2250,12 @@ class Database:
 
     # /catalog/priorities
     # https://consensys-cpl.atlassian.net/browse/MVP-323
-    # FIXME: Optimization - this query is slow, because of the Join to Observer not using the index
     def selectCatalog_Priorities_JSON(self, fetch_row_count=100, offset_row_count=0):
-        """ Return list of catalog objects in priority observation order
-        """
-
+        """ Create list of 'Priority'' objects. For now, this just means those that have been tracked least recently.
+            Returns all (or fetch_row_count) objects.
+            Ordered by the time they were last tracked (least recent first)."""
         quality = 99 # !TODO
-        quality = 99 # !TODO # make it deterministic
+        # !TODO: return only objects for which we also know a (TruSat?) TLE, once we have a critical mass of such objects
         # TODO: No priorities in database yet, just sort by reverse obs order for something interesting/different to look at
         # https://consensys-cpl.atlassian.net/browse/MVP-389
         query = (
@@ -2278,8 +2277,10 @@ class Database:
     # /catalog/undisclosed
     # https://consensys-cpl.atlassian.net/browse/MVP-324
     def selectCatalog_Undisclosed_JSON(self, fetch_row_count=100, offset_row_count=0):
-        """ Create list of Classified TLEs - those that have 'NEA' (no elements available) status via Celestrak
-        """
+        """ Create list of Classified objects. 
+            Returns all (or fetch_row_count) objects that have 'NEA' (no elements available) status in Celestrak.
+            Ordered by the time they were last tracked (most recent first)."""
+        # !TODO: return only objects for which we also know a (TruSat?) TLE, once we have a critical mass of such objects
         quality = 99 # !TODO
         query = (
           self.selectCatalogQueryPrefix +
@@ -2301,8 +2302,11 @@ class Database:
     # /catalog/debris
     # https://consensys-cpl.atlassian.net/browse/MVP-325
     def selectCatalog_Debris_JSON(self, fetch_row_count=100, offset_row_count=0):
-        """ Create list of Debris objects.  Most catalog items have DEB in the title.  
-        There are probably some exceptions """
+        """ Create list of Debris objects. 
+            Returns all (or fetch_row_count) objects that have 'DEB' in their object name.
+            Ordered by the time they were last tracked (most recent first).
+            This heuristic may be too simple and we may miss some debris."""
+         # !TODO: return only objects for which we also know a (TruSat?) TLE, once we have a critical mass of such objects
         quality = 99 # !TODO
         query = (
           self.selectCatalogQueryPrefix +
@@ -2324,8 +2328,10 @@ class Database:
     # /catalog/latest
     # https://consensys-cpl.atlassian.net/browse/MVP-326
     def selectCatalog_Latest_JSON(self, fetch_row_count=100, offset_row_count=0):
-        """ Provide a list of the most recently launched objects.
-            Returns all (or fetch_row_count) objects with a launch date; ordered by launch date, newest first. """
+        """ Provide a list of the most recently launched objects that have been observed.
+            Returns all (or fetch_row_count) objects with a launch date.
+            Ordered by launch date, newest first. """
+        # !TODO: return only objects for which we also know a (TruSat?) TLE, once we have a critical mass of such objects
         quality = 99 # !TODO
         query = (
           self.selectCatalogQueryPrefix +
@@ -2348,9 +2354,12 @@ class Database:
     # /catalog/all
     # https://consensys-cpl.atlassian.net/browse/MVP-327
     def selectCatalog_All_JSON(self, fetch_row_count=100, offset_row_count=0):
-        """ Return a full list of all objects in the DB which have been observed, 
-        ordered by the time they were last tracked.  Should contain only one entry per unique object.
+        """ Return a full list of all observed objects in the DB. 
+            Returns all (or fetch_row_count) objects that have been observed.
+            Ordered by the time they were last tracked (most recent first).
+            Should contain only one entry per unique object.
         """
+        # !TODO: return only objects for which we also know a (TruSat?) TLE, once we have a critical mass of such objects
         quality = 99 # !TODO
         query = (
           self.selectCatalogQueryPrefix +
