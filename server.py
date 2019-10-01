@@ -488,5 +488,10 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         self.db.clean()
 
 httpd = ThreadingHTTPServer(('', PORT_NUMBER), SimpleHTTPRequestHandler)
-httpd.socket = ssl.wrap_socket(httpd.socket, keyfile='./privkey.pem', certfile='./fullchain.pem', server_side=True)
+
+if os.getenv('TRUSAT_DISABLE_HTTPS', False):
+  print('HTTPS disabled!')
+else:
+  httpd.socket = ssl.wrap_socket(httpd.socket, keyfile='./privkey.pem', certfile='./fullchain.pem', server_side=True)
+
 httpd.serve_forever()
