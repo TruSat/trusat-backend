@@ -316,7 +316,7 @@ class Database:
               'object_type', obj_purpose,
               'object_primary_purpose', obj_purpose_detailed,
               'object_secondary_purpose', obj_comments,
-              'object_observation_quality', '%(QUALITY)s',
+              'object_observation_quality', %(QUALITY)s,
               'object_launch_date', obj_launch_date,
               'time_last_tracked', date_format(obs_time, '%M %d, %Y'),
               'address_last_tracked', obs_eth_addr,
@@ -1902,7 +1902,7 @@ class Database:
         Returns TruSatellite() object
         """
         query_tmp = """SELECT * FROM TLE
-            WHERE epoch <= '%(EPOCH_DATETIME)s'
+            WHERE epoch <= %(EPOCH_DATETIME)s
             AND satellite_number=%(SATELLITE_NUMBER)s
             ORDER BY epoch DESC
             LIMIT 1"""
@@ -1920,7 +1920,7 @@ class Database:
         Could be before or after the provided date.
         Returns TruSatellite() object
         """
-        query_tmp = """SELECT *,ABS(TIMEDIFF(epoch,'%(EPOCH_DATETIME)s')) as diff FROM TLE
+        query_tmp = """SELECT *,ABS(TIMEDIFF(epoch,%(EPOCH_DATETIME)s)) as diff FROM TLE
             WHERE satellite_number=%(SATELLITE_NUMBER)s
             ORDER BY diff ASC
             LIMIT 1"""
@@ -2041,7 +2041,7 @@ class Database:
             'station_details', Station.details)
             FROM Station
             JOIN Observer ON Observer.id = Station.user
-            WHERE Observer.eth_addr = '%(ETH_ADDR)s'
+            WHERE Observer.eth_addr = %(ETH_ADDR)s
             ORDER BY Station.station_num ASC;"""
         query_parameters = {'ETH_ADDR': eth_addr}
         try:
@@ -2067,7 +2067,7 @@ class Database:
             FROM ParsedIOD
             JOIN Station ON ParsedIOD.station_number = Station.station_num
             JOIN Observer ON Observer.id = Station.user
-            WHERE Observer.eth_addr = '%(ETH_ADDR)s'
+            WHERE Observer.eth_addr = %(ETH_ADDR)s
             GROUP BY ParsedIOD.object_number;"""
         query_parameters = {'ETH_ADDR': eth_addr}
         self.c.execute(query_tmp_num_obj_tracked, query_parameters)
@@ -2082,7 +2082,7 @@ class Database:
             FROM ParsedIOD
             JOIN Station ON ParsedIOD.station_number = Station.station_num
             JOIN Observer ON Observer.id = Station.user
-            WHERE Observer.eth_addr = '%(ETH_ADDR)s';"""
+            WHERE Observer.eth_addr = %(ETH_ADDR)s;"""
         query_parameters = {'ETH_ADDR': eth_addr}
         self.c.execute(query_tmp_obs_count, query_parameters)
         try:
@@ -2095,13 +2095,13 @@ class Database:
             'email', Observer.reference,
             'user_address', Observer.eth_addr,
             'user_location', Observer.location,
-            'number_objects_tracked', '%(NUM_OBJ_TRACKED)s',
-            'observation_count', '%(OBS_COUNT)s',
-            'average_observation_quality', '%(AVG_OBS_QUALITY)s',
+            'number_objects_tracked', %(NUM_OBJ_TRACKED)s,
+            'observation_count', %(OBS_COUNT)s,
+            'average_observation_quality', %(AVG_OBS_QUALITY)s,
             'user_bio', Observer.bio,
             'user_image', Observer.url_image)
             FROM Observer
-            WHERE Observer.eth_addr = '%(ETH_ADDR)s'
+            WHERE Observer.eth_addr = %(ETH_ADDR)s
             LIMIT 1;"""
         query_parameters = {
                 'NUM_OBJ_TRACKED': num_obj_tracked,
@@ -2128,9 +2128,9 @@ class Database:
             'object_name',celestrak_SATCAT.name,
             'station_number', Obs.station_num,
             'object_norad_number', ParsedIOD.object_number,
-            'observation_quality', '%(QUALITY)s',
-            'observation_time_difference', '%(TIME_DIFF)s',
-            'observation_weight', '%(OBS_WEIGHT)s',
+            'observation_quality', %(QUALITY)s,
+            'observation_time_difference', %(TIME_DIFF)s,
+            'observation_weight', %(OBS_WEIGHT)s,
             'observation_iod', ParsedIOD.iod_string
             )
             FROM ParsedIOD
@@ -2142,7 +2142,7 @@ class Database:
                     Observer.name as user_name
                     FROM Station,Observer
                     WHERE Station.user = Observer.id
-                    AND Observer.eth_addr = '%(ETH_ADDR)s'
+                    AND Observer.eth_addr = %(ETH_ADDR)s
                     LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.norad_num
             LEFT JOIN station_status ON ParsedIOD.station_status_code = station_status.code
@@ -2184,7 +2184,7 @@ class Database:
                     Observer.name as user_name
                     FROM Station,Observer
                     WHERE Station.user = Observer.id
-                    AND Observer.eth_addr = '%(ETH_ADDR)s'
+                    AND Observer.eth_addr = %(ETH_ADDR)s
                     LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number=ucs_SATDB.norad_number
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
@@ -2266,7 +2266,7 @@ class Database:
             'object_type', ucs_SATDB.purpose,
             'object_primary_purpose', ucs_SATDB.purpose_detailed,
             'object_secondary_purpose', ucs_SATDB.comments,
-            'object_observation_quality', '%(QUALITY)s',
+            'object_observation_quality', %(QUALITY)s,
             'time_last_tracked', date_format(ParsedIOD.obs_time, '%M %d, %Y'),
             'address_last_tracked', Obs.eth_addr,
             'username_last_tracked',Obs.user_name)
@@ -2307,7 +2307,7 @@ class Database:
             'object_type', ucs_SATDB.purpose,
             'object_primary_purpose', ucs_SATDB.purpose_detailed,
             'object_secondary_purpose', ucs_SATDB.comments,
-            'object_observation_quality', '%(QUALITY)s',
+            'object_observation_quality', %(QUALITY)s,
             'time_last_tracked', date_format(ParsedIOD.obs_time, '%M %d, %Y'),
             'address_last_tracked', Obs.eth_addr,
             'username_last_tracked',Obs.user_name)
@@ -2349,7 +2349,7 @@ class Database:
             'object_origin', ucs_SATDB.country_owner,
             'object_primary_purpose', ucs_SATDB.purpose_detailed,
             'object_secondary_purpose', ucs_SATDB.comments,
-            'object_observation_quality', '%(QUALITY)s',
+            'object_observation_quality', %(QUALITY)s,
             'time_last_tracked', date_format(ParsedIOD.obs_time, '%M %d, %Y'),
             'address_last_tracked', Obs.eth_addr,
             'username_last_tracked',Obs.user_name)
@@ -2416,7 +2416,7 @@ class Database:
             'object_type', ucs_SATDB.purpose,
             'object_primary_purpose', ucs_SATDB.purpose_detailed,
             'object_secondary_purpose', ucs_SATDB.comments,
-            'object_observation_quality', '%(QUALITY)s',
+            'object_observation_quality', %(QUALITY)s,
             'time_last_tracked', date_format(IODs.obs_time, '%M %d, %Y'),
             'address_last_tracked', Obs.eth_addr,
             'username_last_tracked',Obs.user_name)
@@ -2484,11 +2484,11 @@ class Database:
             'object_secondary_purpose', ucs_SATDB.comments,
             'year_launched', YEAR(celestrak_SATCAT.launch_date),
             'time_last_tracked', date_format(ParsedIOD.obs_time, '%M %d, %Y'),
-            'number_users_tracked', '%(COUNT)s',
+            'number_users_tracked', %(COUNT)s,
             'time_last_tracked', %(LAST_TRACKED)s,
             'address_last_tracked', %(ETH_ADDR)s,
             'username_last_tracked', %(NAME)s,
-            'observation_quality', '%(QUALITY)s',
+            'observation_quality', %(QUALITY)s,
             'object_background', ucs_SATDB.detailed_comments,
             'heavens_above_url', %(URL)s
             )
@@ -2533,9 +2533,9 @@ class Database:
             'user_location', Obs.location,
             'username', Obs.user_name,
             'user_address', Obs.eth_addr,
-            'observation_quality', %((\1))s,
-            'observation_time_difference', '%(TIME_DIFF)s',
-            'observation_weight', '%(OBS_WEIGHT)s')
+            'observation_quality', %(QUALITY)s,
+            'observation_time_difference', %(TIME_DIFF)s,
+            'observation_weight', %(OBS_WEIGHT)s)
             FROM ParsedIOD
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             JOIN (SELECT
@@ -2547,7 +2547,7 @@ class Database:
                     Observer.location as location
                     FROM Station,Observer
                     WHERE Station.user = Observer.id
-                    AND Observer.eth_addr = '%(ETH_ADDR)s'
+                    AND Observer.eth_addr = %(ETH_ADDR)s
                     LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
             WHERE ParsedIOD.object_number = %(NORAD_NUM)s
             ORDER BY obs_time DESC
@@ -2588,9 +2588,9 @@ class Database:
             'object_origin', celestrak_SATCAT.source,
             'user_location', Obs.location,
             'username', Obs.user_name,
-            'observation_quality', '%(QUALITY)s',
-            'observation_time_difference', '%(TIME_DIFF)s',
-            'observation_weight', '%(OBS_WEIGHT)s',
+            'observation_quality', %(QUALITY)s,
+            'observation_time_difference', %(TIME_DIFF)s,
+            'observation_weight', %(OBS_WEIGHT)s,
             'user_address', Obs.eth_addr)
             FROM ParsedIOD
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
