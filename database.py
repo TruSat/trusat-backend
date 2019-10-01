@@ -2467,7 +2467,7 @@ class Database:
             GROUP BY Observer.id
             ORDER BY ParsedIOD.obs_time DESC
             LIMIT 1;"""
-        query_parameters = {'NORAD_NUMBER': norad_num}
+        query_parameters = {'NORAD_NUM': norad_num}
         self.c.execute(query_tmp_count, query_parameters)
         try:
             (user_count, eth_addr, name, last_tracked) = self.c.fetchone()
@@ -2485,12 +2485,12 @@ class Database:
             'year_launched', YEAR(celestrak_SATCAT.launch_date),
             'time_last_tracked', date_format(ParsedIOD.obs_time, '%M %d, %Y'),
             'number_users_tracked', '%(COUNT)s',
-            'time_last_tracked', '%(LAST_TRACKED)s',
-            'address_last_tracked', '%(ETH_ADDR)s',
-            'username_last_tracked', '%(NAME)s',
+            'time_last_tracked', %(LAST_TRACKED)s,
+            'address_last_tracked', %(ETH_ADDR)s,
+            'username_last_tracked', %(NAME)s,
             'observation_quality', '%(QUALITY)s',
             'object_background', ucs_SATDB.detailed_comments,
-            'heavens_above_url', '%(URL)s'
+            'heavens_above_url', %(URL)s
             )
             FROM ParsedIOD
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
@@ -2533,7 +2533,7 @@ class Database:
             'user_location', Obs.location,
             'username', Obs.user_name,
             'user_address', Obs.eth_addr,
-            'observation_quality', '%(QUALITY)s',
+            'observation_quality', %((\1))s,
             'observation_time_difference', '%(TIME_DIFF)s',
             'observation_weight', '%(OBS_WEIGHT)s')
             FROM ParsedIOD
