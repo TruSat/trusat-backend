@@ -33,7 +33,7 @@ import iod
 
 PORT_NUMBER = 8080
 
-def encode_jwt(user_jwt, addr):
+def encode_jwt(addr):
     with open('unsafe_private.pem', 'r') as file:
         private_key = file.read()
     private_rsa_key = load_pem_private_key(bytes(private_key, 'utf-8'), password=None, backend=default_backend())
@@ -41,6 +41,7 @@ def encode_jwt(user_jwt, addr):
     return encoded_jwt
 
 def decode_jwt(user_jwt):
+    print(user_jwt)
     with open('public.pem', 'r') as file:
         public_key = file.read()
     public_rsa_key = load_pem_public_key(bytes(public_key,'utf-8'), backend=default_backend())
@@ -113,8 +114,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(body_bytes)
 
     def do_OPTIONS(self):
-        print('PATH IS:')
-        print(self.path)
         self.send_response(200)
         self.send_header('Accept', 'GET')
         self.send_header('Access-Control-Allow-Origin', '*')
@@ -262,18 +261,18 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 return
             real_entry = self.db.selectObjectHistoryByMonth_JSON(norad_number, year)
             year_response = {
-                    "January": [],
-                    "February": [],
-                    "March": [],
-                    "April": [],
-                    "May": [],
-                    "June": [],
-                    "July": [],
-                    "August": [],
-                    "September": [],
-                    "October": [],
+                    "December": [],
                     "November": [],
-                    "December": []
+                    "October": [],
+                    "September": [],
+                    "August": [],
+                    "July": [],
+                    "June": [],
+                    "May": [],
+                    "April": [],
+                    "March": [],
+                    "February": [],
+                    "January": []
                 }
             for items in real_entry:
                 timestamp = datetime.fromtimestamp(float(items["observation_time"]))
@@ -370,7 +369,10 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         ### LOGIN ENDPOINT ###
         elif self.path == "/login":
             old_nonce = self.db.getObserverNonce(json_body["address"])
-            email = json_body["email"]
+            try:
+                email = json_body["email"]
+            except:
+                email = None
             nonce = str(old_nonce[0]).encode('utf-8')
             message_hash = sha3.keccak_256(nonce).hexdigest()
             message_hash = encode_defunct(hexstr=message_hash)
@@ -469,7 +471,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     }
                 encoded_jwt = encode(jwt_payload, private_rsa_key, algorithm='RS256')
                 self.db.updateObserverPassword(encoded_jwt.decode('utf-8'), results.decode('utf-8'))
-                google_email.send_recovery_email(email, 'http://trusat.consensys.space/claim/' + encoded_jwt.decode('utf-8'))
+                google_email.send_recovery_email(email, 'http://trusat.org/claim/' + encoded_jwt.decode('utf-8'))
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
@@ -483,21 +485,20 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             print(user_jwt)
             #Lookup number and old address
             try:
-                with open('public.pem', 'r') as file:
-                    public_key = file.read()
-                public_rsa_key = load_pem_public_key(bytes(public_key,'utf-8'), backend=default_backend())
-                decoded_jwt = decode(user_jwt, public_rsa_key, algorithms='RS256')
+                decoded_jwt = decode_jwt(user_jwt)
+                print("Secret")
                 secret = decoded_jwt["secret"]
+                print("email")
                 to = decoded_jwt["email"]
+                print("post email")
                 old_address = self.db.selectObserverAddressFromPassword(user_jwt).decode('utf-8')
                 #replace address
-                key = str(secrets.randbits(10))
-                encoded_jwt = encode({'address':address}, key, algorithm='HS256')
+                encoded_jwt = encode_jwt(address)
                 self.db.updateObserverAddress(address, old_address)
                 print(old_address)
                 print(address)
                 google_email.send_email(to, message_text)
-                self.db.updateObserverJWT(encoded_jwt, key, json_body["address"])
+                self.db.updateObserverJWT(encoded_jwt, "", json_body["address"])
                 response_message = b'{"jwt":"'
                 response_message += encoded_jwt
                 response_message += b'"}'
@@ -614,7 +615,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     if entry_value[0] == 0:
                         error_messages.append("Observation on line {} has already been submitted.".format(it))
             except Exception as e:
-                error_messages.append("Could not deteremine observation format.")
+                error_messages.append("Could not determine observation format.")
                 print(e)
             if success > 0:
                 db.commit_IOD_db_writes();
@@ -629,6 +630,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             email_information = json_body["message"]["data"]
             email_history = urlsafe_b64decode(email_information).decode('utf-8')
             email_history = json.loads(email_history)
+            print(email_history)
             print(google_email.get_email_history(email_history['historyId']))
             self.send_response(204)
             self.end_headers()
