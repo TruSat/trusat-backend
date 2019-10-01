@@ -2349,44 +2349,22 @@ class Database:
     # https://consensys-cpl.atlassian.net/browse/MVP-327
     def selectCatalog_All_JSON(self, fetch_row_count=100, offset_row_count=0):
         """ Return a full list of all objects in the DB which have been observed, 
-        ordered by the time they were last tracked.  Should contain only one entry per umique object.
+        ordered by the time they were last tracked.  Should contain only one entry per unique object.
         """
         quality = 99 # !TODO
-        query_tmp = """SELECT Json_Object(
-            'object_norad_number', IODs.object_number,
-            'object_name', celestrak_SATCAT.name,
-            'object_origin', ucs_SATDB.country_owner,
-            'object_type', ucs_SATDB.purpose,
-            'object_primary_purpose', ucs_SATDB.purpose_detailed,
-            'object_secondary_purpose', ucs_SATDB.comments,
-            'object_observation_quality', %(QUALITY)s,
-            'time_last_tracked', date_format(IODs.obs_time, '%M %d, %Y'),
-            'address_last_tracked', Obs.eth_addr,
-            'username_last_tracked',Obs.user_name)
-            FROM
-            (SELECT object_number, obs_time, station_number
-            		FROM ParsedIOD
-            		WHERE ParsedIOD.valid_position = 1
-            		ORDER BY obs_time DESC
-                    LIMIT %(OFFSET)s,%(FETCH)s) AS IODs
-            JOIN (SELECT
-                    Station.station_num as station_num,
-                    Station.user as station_user,
-                    Observer.id as obs_id,
-                    Observer.eth_addr as eth_addr,
-                    Observer.name as user_name
-                    FROM Station,Observer
-                    WHERE Station.user = Observer.id) Obs ON IODs.station_number = Obs.station_num
-            LEFT JOIN ucs_SATDB ON IODs.object_number = ucs_SATDB.norad_number
-            LEFT JOIN celestrak_SATCAT ON IODs.object_number = celestrak_SATCAT.sat_cat_id;"""
-        
-        # !TODO: here and everywhere, use bind variables rather than string formatting, for security and performance:
-        # mysql connector uses the pyformat paramstyle (https://www.python.org/dev/peps/pep-0249/#paramstyle), so this looks something like:
-        # self.c.execute("SELECT ... WHERE my_column = %(name)s", {"name": value}) 
-        self.c.execute(query_tmp,
-          { 'OFFSET': offset_row_count,
-            'FETCH':fetch_row_count,
-            'QUALITY': quality })
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
         observations = stringArrayToJSONArray_JSON(self.c.fetchall())
         convert_country_names(observations)
         return json.dumps(observations)
