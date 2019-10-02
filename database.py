@@ -2600,7 +2600,7 @@ class Database:
         quality = 99 # !TODO
 
         # Get user-related info first
-        query_tmp_count = """SELECT COUNT(Observer.id), Observer.eth_addr, Observer.name,date_format(ParsedIOD.obs_time, '%M %d, %Y')
+        query_tmp_count = """SELECT COUNT(Observer.id), Observer.eth_addr
             FROM ParsedIOD
             JOIN Station ON ParsedIOD.station_number = Station.station_num
             JOIN Observer ON Observer.id = Station.user
@@ -2611,7 +2611,20 @@ class Database:
         query_parameters = {'NORAD_NUMBER': norad_num}
         self.c.execute(query_tmp_count, query_parameters)
         try:
-            (user_count, eth_addr, name, last_tracked) = self.c.fetchone()
+            (user_count, eth_addr, name) = self.c.fetchone()
+        except Exception as e:
+            print(e)
+            return None
+
+         query_tmp_tracked = """SELECT date_format(ParsedIOD.obs_time, '%M %d, %Y')
+            FROM ParsedIOD
+            WHERE ParsedIOD.object_number = %(NORAD_NUM)s
+            ORDER BY ParsedIOD.obs_time DESC
+            LIMIT 1;"""
+        query_parameters = {'NORAD_NUMBER': norad_num}
+        self.c.execute(query_tmp_tracked, query_parameters)
+        try:
+            last_tracked = self.c.fetchone()[0]
         except Exception as e:
             print(e)
             return None
