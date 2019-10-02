@@ -806,10 +806,13 @@ class Database:
         """ Add an IOD entry to the database         
         Input: IOD-formatted line
         """
+        iteration = 0
+        error_messages = []
         for entry in entryList:
             # Create fingerprint string from the time and position data only
             # Should uniquely identify the observation
             # Note that this will have uniqueness problems with people who report time but not position (roll call posts)
+            iteration += 1
             if (entry.IODType == "IOD"):
                 obsFingerPrintString = entry.line[23:64].strip()
             elif (entry.IODType == "UK"):
@@ -822,6 +825,7 @@ class Database:
             obsFingerPrint = md5(obsFingerPrintString.encode('utf-8')).hexdigest()
 
             if(self.selectIODFingerprint(obsFingerPrint)):
+                error_messages.append("Observation on line: {} has already submitted.".format(iteration))
                 log.warning(" Skipping IOD - fingerprint {} already in database.".format(obsFingerPrint))
                 log.debug("      Offending entry:\n      {}".format(entry.line))
                 if (fast_import):
@@ -879,9 +883,12 @@ class Database:
                     except sqlite3.IntegrityError as e:
                         log.error("{}".format(e))
                 else:
-                    self._IODentryList.append(newentryTuple)
-                    self._IODPendingEntryFingerprintList.append(obsFingerPrint)
-        return len(self._IODentryList)
+                    try:
+                        self._IODentryList.append(newentryTuple)
+                        self._IODPendingEntryFingerprintList.append(obsFingerPrint)
+                    except Exception as e:
+                        log.error("{}".format(e))
+        return (len(self._IODentryList), error_messages)
         # return self.c_addParsedIOD.lastrowid
 
     def addObserver(self,
