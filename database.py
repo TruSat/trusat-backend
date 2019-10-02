@@ -245,6 +245,8 @@ class Database:
             self.c_addSATCAT_query = self.conn.cursor(prepared=True)
             self.c_addUCSDB_query = self.conn.cursor(prepared=True)
             self.c_selectObserverID_query = self.conn.cursor(prepared=True)
+            self.c_selectObserverAddressFromEmail_query = self.conn.cursor(prepared=True)
+            self.c_selectObserverAddressFromPassword_query = self.conn.cursor(prepared=True)
             self.selectObserverID_query = '''SELECT max(id) from Observer'''
             try:
                 self.c_selectObserverID_query.execute(self.selectObserverID_query, [])
@@ -277,6 +279,8 @@ class Database:
         self.getCommunityObservationByYear_query = '''SELECT YEAR(obs_time), COUNT(*) as querycount from ParsedIOD where valid_position>0 GROUP BY YEAR(obs_time) order by YEAR(obs_time) ASC'''
         self.getCommunityObservationByMonth_query = '''SELECT MONTH(obs_time), COUNT(*) as querycount from ParsedIOD where valid_position>0 GROUP BY MONTH(obs_time) order by MONTH(obs_time) ASC'''
         self.getObserverCountByID_query = '''SELECT id, COUNT(*) from Observer WHERE eth_addr=?'''
+        self.selectObserverAddressFromEmail_query = '''SELECT Observer.eth_addr FROM Observer INNER JOIN Observer_email ON Observer.id=Observer_email.user_id WHERE Observer_email.email=? LIMIT 1'''
+        self.selectObserverAddressFromPassword_query = '''SELECT eth_addr FROM Observer WHERE password=? LIMIT 1'''
         self.getRecentObservations_query = '''SELECT * FROM ParsedIOD where valid_position>0 ORDER BY obs_time DESC LIMIT 5'''
         self.selectTLEFile_query = '''SELECT file_fingerprint FROM TLEFILE WHERE file_fingerprint LIKE ? LIMIT 1'''
         self.selectTLEFingerprint_query = '''SELECT tle_fingerprint FROM TLE WHERE tle_fingerprint LIKE ? LIMIT 1'''
@@ -1313,6 +1317,31 @@ class Database:
         else:
             self.c_selectObserver_query.execute(self.selectObserver_query, [observer_name])
             results = self.c_selectObserver_query.fetchone()
+        return results
+
+        def selectObserverAddressFromEmail(self, email):
+        if self._dbtype == "sqlite":
+            self.c.execute(self.selectObserverAddressFromEmail_query, [email])
+            results = self.c.fetchone()
+        else:
+            self.c_selectObserverAddressFromEmail_query.execute(self.selectObserverAddressFromEmail_query, [email])
+            try:
+                results = self.c_selectObserverAddressFromEmail_query.fetchone()[0]
+            except:
+                return None
+        return results
+
+     def selectObserverAddressFromPassword(self, password):
+        if self._dbtype == "sqlite":
+            self.c.execute(self.selectObserverAddressFromPassword_query, [password])
+            results = self.c.fetchone()
+        else:
+            self.c_selectObserverAddressFromPassword_query.execute(self.selectObserverAddressFromPassword_query, [password])
+            try:
+                results = self.c_selectObserverAddressFromPassword_query.fetchone()[0]
+            except Exception as e:
+                print(e)
+                return None
         return results
 
     def getObserverNonce(self, public_address):
