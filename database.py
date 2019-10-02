@@ -227,6 +227,8 @@ class Database:
             self.c_updateObserverBio_query = self.conn.cursor(prepared=True)
             self.c_updateObserverLocation_query = self.conn.cursor(prepared=True)
             self.c_updateObserverPrivate_query = self.conn.cursor(prepared=True)
+            self.c_updateObserverPassword_query = self.conn.cursor(prepared=True)
+            self.c_updateObserverAddress_query = self.conn.cursor(prepared=True)
             self.c_getObserverNonce_query = self.conn.cursor(prepared=True)
             self.c_getObserverJWT_query = self.conn.cursor(prepared=True)
             self.c_getObservationCount_query = self.conn.cursor(prepared=True)
@@ -267,6 +269,8 @@ class Database:
         self.updateObserverEmail_query = '''UPDATE Observer_email INNER JOIN Observer ON Observer_email.user_id=Observer.id SET Observer_email.email=? WHERE Observer.eth_addr=?'''
         self.updateObserverLocation_query = '''UPDATE Observer SET location=? WHERE eth_addr=?'''
         self.updateObserverBio_query = '''UPDATE Observer SET bio=? WHERE eth_addr=?'''
+        self.updateObserverPassword_query = '''UPDATE Observer SET password=? WHERE eth_addr=?'''
+        self.updateObserverAddress_query = '''UPDATE Observer SET eth_addr=? WHERE eth_addr=?'''
         self.getObserverNonce_query = '''SELECT nonce FROM Observer WHERE eth_addr=?'''
         self.getObserverJWT_query = '''SELECT jwt FROM Observer WHERE eth_addr=?'''
         self.getObservationCount_query = '''SELECT object_number, COUNT(object_number) as querycount from ParsedIOD where valid_position>0 GROUP BY object_number order by querycount DESC'''
@@ -1324,6 +1328,24 @@ class Database:
             results = self.c.fetchone()
         else:
             self.c_updateObserverLocation_query.execute(self.updateObserverLocation_query, [location, public_address])
+            self.conn.commit()
+        return True
+
+        def updateObserverPassword(self, password, public_address):
+        if self._dbtype == "sqlite:":
+            self.c.execute(self.updateObserverPassword_query, [password, public_address])
+            results = self.c.fetchone()
+        else:
+            self.c_updateObserverPassword_query.execute(self.updateObserverPassword_query, [password, public_address])
+            self.conn.commit()
+        return True
+
+     def updateObserverAddress(self, new_address, public_address):
+        if self._dbtype == "sqlite":
+            self.c.execute(self.updateObserverAddress_query, [new_address, public_address])
+            results = self.c.fetchone()
+        else:
+            self.c_updateObserverAddress_query.execute(self.updateObserverAddress_query, [new_address, public_address])
             self.conn.commit()
         return True
 
