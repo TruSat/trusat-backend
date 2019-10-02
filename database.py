@@ -1800,7 +1800,7 @@ class Database:
         self.c.execute(query_tmp, query_parameters)
         return stringArrayToJSONArray(self.c.fetchall())
 
-    def selectObjectHistoryByMonth_JSON(self, norad_number, year, month):
+    def selectObjectHistoryByMonth_JSON(self, norad_number, year):
         """ For a particular object, provide a navigation structure of its full observatio history
 
             Inputs: NORAD number of interest, year, month
@@ -1809,6 +1809,7 @@ class Database:
             Note (Chris) - not sure this is being used currently
         """
         query_tmp = """SELECT Json_Object(
+            'id', ParsedIOD.obs_id,
             'observation_time', UNIX_TIMESTAMP(ParsedIOD.obs_time),
             'username', user_string,
             'user_address', 'FILLER',
@@ -1819,14 +1820,38 @@ class Database:
             FROM ParsedIOD
             WHERE object_number=%(NORAD_NUMBER)s
             AND Year(obs_time)=%(YEAR)s
-            AND Month(obs_time)=%(MONTH)s
             ORDER BY obs_time DESC"""
         query_parameters = {
                 'NORAD_NUMBER': norad_number,
-                'YEAR': year,
-                'MONTH': month}
+                'YEAR': year}
         self.c.execute(query_tmp, query_parameters)
-        return stringArrayToJSONArray_JSON(self.c.fetchall())
+        history_by_month = stringArrayToJSONArray_JSON(self.c.fetchall())
+        for entry in history_by_month:
+            try:
+                user_information_query = '''SELECT station_number
+                FROM ParsedIOD
+                WHERE obs_id=%(ID)s'''
+                query_parameters = {'ID': entry["id"]}
+                entry.pop('id', None)
+                self.c.execute(user_information_query, query_parameters)
+                station_number = self.c.fetchone()[0]
+                user_information_query = '''SELECT Observer.name, Observer.eth_addr, Observer.location
+                FROM Observer
+                INNER JOIN Station
+                ON Station.user=Observer.id
+                WHERE Station.station_num=%(STATION_NUMBER)s'''
+                query_parameters = {'STATION_NUMBER': station_number}
+                self.c.execute(user_information_query, query_parameters)
+                (username, address, location) = self.c.fetchone()
+                entry['username'] = username
+                entry['user_address'] = address
+                if location == None:
+                    entry['user_location'] = ''
+                else:
+                    entry['user_location'] = location
+            except Exception as e:
+                print(e)
+        return history_by_month
 
     # Supports user profile https://consensys-cpl.atlassian.net/browse/MVP-311
     # /object/history https://consensys-cpl.atlassian.net/browse/MVP-334
