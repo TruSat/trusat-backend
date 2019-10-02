@@ -60,6 +60,13 @@ def stringArrayToJSONArray_JSON(string_array):
         json_array.append(json.loads(item[0]))
     return json_array
 
+def QueryTupleListToList(var):
+    """ Take the result of a SQL fetchall single variable query tuple list and make a regular python list """
+    list = []
+    for i in var:
+        list.append(i[0])
+    return list    
+
 def datetime_from_sqldatetime(sql_date_string):
     """ The 4 digit sub-seconds are not the standard 3 or 6, which creates problems with datetime.fromisoformat """
     date_format = '%Y-%m-%d %H:%M:%S.%f'
@@ -1500,7 +1507,7 @@ class Database:
 
             Returns
             -------
-            list of one-element (int) tuples
+            list (int)
                 All observation IDs relating to the specified object within the qualifying time window.
         """
         assert (noradNumber is not None), "No NORAD number supplied"
@@ -1558,7 +1565,7 @@ class Database:
           }
 
         self.c.execute(query, queryParams)
-        return self.c.fetchall()
+        return QueryTupleListToList(self.c.fetchall())
 
     def findObjectsWithIODsButNoTLEs(self):
         """ Find the objects that have IODs but no TLEs. Such objects are candidates for a rebuild of TLE history.
@@ -1569,12 +1576,13 @@ class Database:
                 The NORAD numbers of all objects for which we are aware of one or more IODs but zero TLEs.
         """
         query = """
-            select distinct object_number from ParsedIOD
-            where valid_position = 1
-            AND not exists (
-                select null
-                from TLE
-                where TLE.satellite_number = ParsedIOD.object_number);"""
+            SELECT DISTINCT object_number FROM ParsedIOD
+            WHERE valid_position = 1
+            AND NOT EXISTS (
+                SELECT null
+                FROM TLE
+                WHERE TLE.satellite_number = ParsedIOD.object_number)
+            ORDER BY obs_time DESC;"""
 
         self.c.execute(query)
         return self.c.fetchall()
@@ -1589,17 +1597,18 @@ class Database:
                 The NORAD numbers of all objects for which we are aware of IODs newer than their TLE.
         """
         query = """
-            with most_recent_iods as (select max(obs_time) as iod_time, object_number from ParsedIOD
-                                      where valid_position = 1			                  
-                                      group by object_number)
-                ,most_recent_tles as (select satellite_number, max(epoch) as tle_time from TLE
-                                      group by satellite_number)
-              select object_number
-              from most_recent_iods
-              inner join most_recent_tles
-                on (most_recent_iods.object_number = most_recent_tles.satellite_number)
-              where iod_time > tle_time
-              order by object_number;"""
+            WITH most_recent_iods AS (SELECT max(obs_time) AS iod_time, object_number FROM ParsedIOD
+                                      WHERE valid_position = 1			                  
+                                      GROUP BY object_number),
+                most_recent_tles AS (SELECT satellite_number, max(epoch) AS tle_time FROM TLE
+                                      GROUP BY satellite_number)
+              SELECT object_number
+              FROM most_recent_iods
+              INNER JOIN most_recent_tles
+                ON (most_recent_iods.object_number = most_recent_tles.satellite_number)
+              WHERE iod_time > tle_time
+              AND object_number < 70000 /* Skip analyst objects for now */
+              ORDER BY object_number;"""
 
         self.c.execute(query)
         return self.c.fetchall()
@@ -1627,17 +1636,17 @@ class Database:
                 The NORAD numbers of all objects for which we are aware of one or more IODs but zero TLEs.
         """
         query = """           
-            with most_recent_two_tles as (
-              select epoch from TLE
-              where satellite_number = %(noradNumber)s
-              order by epoch desc
+            WITH most_recent_two_tles AS (
+              SELECT epoch FROM TLE
+              WHERE satellite_number = %(noradNumber)s
+              ORDER BY epoch desc
               LIMIT 2)
-            select obs_id from
-            ParsedIOD
-            where object_number = %(noradNumber)s
+            SELECT obs_id 
+            FROM ParsedIOD            
+            WHERE object_number = %(noradNumber)s
             AND valid_position = 1
-            and obs_time > (select * from most_recent_two_tles
-                    order by epoch
+            AND obs_time > (SELECT * FROM most_recent_two_tles
+                    ORDER BY epoch
                     LIMIT 1);"""
 
         self.c.execute(query, {'noradNumber': noradNumber})
@@ -1771,11 +1780,11 @@ class Database:
             TLE = tle_util.TruSatellite()
 
             TLE.tle_id			 = row["tle_id"]
-            TLE.line0 = TLE.name = row["line0"]
+            TLE.line0            = row["line0"]
             TLE.line1			 = row["line1"]
             TLE.line2			 = row["line2"]
 
-            TLE.sat_name			            = row["sat_name"]
+            TLE.sat_name = TLE.name	            = row["sat_name"]
             TLE.satellite_number	            = row["satellite_number"]
             TLE.classification		            = row["classification"]
             TLE.designation			            = row["designation"]
@@ -1876,7 +1885,7 @@ class Database:
             LIMIT 1"""
         query_parameters = {'EPOCH_DATETIME': query_epoch_datetime,
             'SATELLITE_NUMBER': satellite_number}
-        self.c.execute(query_tmp, query_parameters)
+        self.cdict.execute(query_tmp, query_parameters)
         row = [self.cdict.fetchone()]    # Put single result into an array
         return self.cdictQueryToTruSatelliteObj(row)[0]  # Unpack the array to the object, for just one result
 
