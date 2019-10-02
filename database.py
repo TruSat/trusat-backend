@@ -2222,7 +2222,7 @@ class Database:
         # Get unique list of observed objects for this user
         # TODO: Seems like there's a way to get a count in the query instead of counting the result in python
         query_tmp_num_obj_tracked = """SELECT ParsedIOD.object_number
-            FROM ParsedIOD
+            FROM ParsedIOD, Station.station_num
             JOIN Station ON ParsedIOD.station_number = Station.station_num
             JOIN Observer ON Observer.id = Station.user
             WHERE Observer.eth_addr = %(ETH_ADDR)s
@@ -2232,8 +2232,12 @@ class Database:
         try:
             obj_tracked = self.c.fetchall()
             num_obj_tracked = len(obj_tracked)
-        except:
+            station_number = obj_tracked[0][1]
+        except Exception as e:
+            print("number of objects fail")
+            print(e)
             num_obj_tracked = 0
+            station_number = 'NULL'
 
         # Get count of observations for this user
         query_tmp_obs_count = """SELECT COUNT(ParsedIOD.object_number) as obs_count
@@ -2245,29 +2249,64 @@ class Database:
         self.c.execute(query_tmp_obs_count, query_parameters)
         try:
             [(obs_count)] = self.c.fetchone()
-        except:
+        except Exception as e:
+            print("object count failed")
+            print(e)
             obs_count = 0
+
+        query_tmp_first_obs = """SELECT date_format(ParsedIOD.obs_time, '%M %d, %Y')
+            FROM ParsedIOD
+            JOIN Station ON ParsedIOD.station_number = Station.station_num 
+            JOIN Observer ON Observer.id = Station.user 
+            WHERE Observer.eth_addr = %(ETH_ADDR)s
+            ORDER BY obs_time ASC LIMIT 1;"""
+        query_parameters = {'ETH_ADDR': eth_addr}
+        self.c.execute(query_tmp_first_obs, query_parameters)
+        try:
+            [(user_first_observation)] = self.c.fetchone()
+        except Exception as e:
+            print("first object failed")
+            print(e)
+            user_first_observation = ''
+
+         query_tmp_email = """SELECT Observer_email.email
+            FROM Observer_email
+            INNER JOIN Observer
+            ON Observer_email.user_id=Observer.id
+            WHERE Observer.eth_addr=%(ETH_ADDR)s LIMIT 1"""
+        query_parameters = {'ETH_ADDR': eth_addr}
+        self.c.execute(query_tmp_email, query_parameters)
+        try:
+            email = self.c.fetchone()[0]
+        except Exception as e:
+            print(e)
+            email = ''
 
         query_tmp = """SELECT Json_Object(
             'user_name', Observer.name,
-            'email', Observer.reference,
+            'email', '%(EMAIL)s',
             'user_address', Observer.eth_addr,
             'user_location', Observer.location,
             'number_objects_tracked', %(NUM_OBJ_TRACKED)s,
             'observation_count', %(OBS_COUNT)s,
+            'user_first_observation', %(USER_FIRST_OBS)s,
             'average_observation_quality', %(AVG_OBS_QUALITY)s,
             'user_bio', Observer.bio,
-            'user_image', Observer.url_image)
+            'user_image', Observer.url_image,
+            'observation_station', '%(STATION_NUM)s')
             FROM Observer
             WHERE Observer.eth_addr = %(ETH_ADDR)s
             LIMIT 1;"""
         query_parameters = {
+                'EMAIL': email,
                 'NUM_OBJ_TRACKED': num_obj_tracked,
                 'OBS_COUNT': obs_count,
+                'USER_FIRST_OBS': user_first_observation,
                 'AVG_OBS_QUALITY': avg_obs_quality,
+                'STATION_NUM': station_number,
                 'ETH_ADDR': eth_addr}
         self.c.execute(query_tmp, query_parameters)
-        return QueryRowToJSON(self.c.fetchone())
+        return QueryRowToJSON_JSON(self.c.fetchone())
 
     # Supports user profile https://consensys-cpl.atlassian.net/browse/MVP-311
     # Notes about endpoint https://consensys-cpl.atlassian.net/browse/MVP-328
