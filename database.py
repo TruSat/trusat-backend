@@ -1381,7 +1381,10 @@ class Database:
         """ TODO: Kenan to document """
         query_tmp = '''SELECT eth_addr FROM Observer WHERE jwt="%(JWT)s"'''
         self.c.execute(query_tmp, {'JWT': jwt})
-        return self.c.fetchone()[0]
+        try:
+            return self.c.fetchone()[0]
+        except:
+            return None
 
     #######################
     ### IOD-related queries
