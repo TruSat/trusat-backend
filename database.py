@@ -218,6 +218,7 @@ class Database:
             self.c_addParsedIOD = self.conn.cursor(prepared=True)
             self.c_addStation_query = None
             self.c_addObserver_query = self.conn.cursor(prepared=True)
+            self.c_addObserverEmail_query = self.conn.cursor(prepared=True)
             self.c_selectObserver_query = self.conn.cursor(prepared=True)
             self.c_updateObserverNonce_query = self.conn.cursor(prepared=True)
             self.c_updateObserverJWT_query = self.conn.cursor(prepared=True)
@@ -258,11 +259,12 @@ class Database:
         #  %s only works for sqlserver, ? works for both sqlite and sqlserver
         self.addStation_query = None
         self.addObserver_query = '''INSERT INTO Observer(id, eth_addr, name, reputation, reference) VALUES(?,?,?,?,?)'''
+        self.addObserverEmail_query = '''INSERT INTO Observer_email(user_id, email) VALUES(?,?)'''
         self.selectObserver_query = '''SELECT id FROM Observer WHERE verified LIKE ? LIMIT 1'''
         self.updateObserverNonce_query = '''UPDATE Observer SET nonce=? WHERE eth_addr=?'''
         self.updateObserverJWT_query = '''UPDATE Observer SET jwt=?, password=? WHERE eth_addr=?'''
         self.updateObserverUsername_query = '''UPDATE Observer SET name=? WHERE eth_addr=?'''
-        self.updateObserverEmail_query = '''UPDATE Observer SET reference=? WHERE eth_addr=?'''
+        self.updateObserverEmail_query = '''UPDATE Observer_email INNER JOIN Observer ON Observer_email.user_id=Observer.id SET Observer_email.email=? WHERE Observer.eth_addr=?'''
         self.updateObserverLocation_query = '''UPDATE Observer SET location=? WHERE eth_addr=?'''
         self.updateObserverBio_query = '''UPDATE Observer SET bio=? WHERE eth_addr=?'''
         self.getObserverNonce_query = '''SELECT nonce FROM Observer WHERE eth_addr=?'''
@@ -857,12 +859,19 @@ class Database:
             first_line
             )
 
+        observerEmailTuple = (
+            self._new_observerid,
+            verification
+            )
+
         if self._dbtype == "INFILE": # Make CSV files
             self._writer_Observer.writerow(observerTuple)
+            self.c.execute(self.addObserverEmail_query, observerEmailTuple)
             self._observerDict[verification] = self._new_observerid
         elif self._dbtype == "sqlite":
             try:
                 self.c.execute(self.addObserver_query,observerTuple)
+                self.c_addObserverEmail_query.execute(self.addObserverEmail_query, observerEmailTuple)
                 self.conn.commit()
             except sqlite3.IntegrityError as e:
                 log.error("{}".format(e))
@@ -873,6 +882,15 @@ class Database:
             except Exception as e:
                 log.error("MYSQL ERROR: {}".format(e))
         return self._new_observerid
+
+    def addObserverEmail(self, user_id, email):
+        try:
+            self.c_addObserverEmail_query.execute(self.addObserverEmail_query, [user_id, email])
+            self.conn.commit()
+            return user_id
+        except Exception as e:
+            log.error("MYSQL ERROR: {}".format(e))
+            return None
 
 
     def addTLE(self, entry):
