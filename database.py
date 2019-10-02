@@ -2231,7 +2231,7 @@ class Database:
 
     # Supports user profile https://consensys-cpl.atlassian.net/browse/MVP-311
     # Notes about endpoint https://consensys-cpl.atlassian.net/browse/MVP-328
-    def selectUserObservationHistory_JSON(self, eth_addr, fetch_row_count=10, offset_row_count=0):
+    def selectUserObservationHistory_JSON(self, eth_addr, fetch_row_count=100, offset_row_count=0):
         """ Return the observation history for a particular ETH addresses, starting with most 
         recent observations.
         """
@@ -2276,7 +2276,7 @@ class Database:
         self.c.execute(query_tmp, query_parameters)
         return stringArrayToJSONArray_JSON(self.c.fetchall())
 
-    def selectUserObjectsObserved_JSON(self, eth_addr, fetch_row_count=10, offset_row_count=0):
+    def selectUserObjectsObserved_JSON(self, eth_addr, fetch_row_count=100, offset_row_count=0):
         """ For a given ETH address, return list of objects they have observed along with context detail.
         """
         # FIXME: Fancier query logic needed to get the last eth_addr to track in the summary of a selected-users observations.
@@ -2284,7 +2284,7 @@ class Database:
             'object_origin', ucs_SATDB.country_owner,
             'object_type', ucs_SATDB.purpose,
             'object_primary_purpose', ucs_SATDB.purpose_detailed,
-            'object_secondary_purpose', 'Michael to define type, primary and secondary purpose',
+            'object_secondary_purpose', '',
             'observation_quality', ParsedIOD.station_status_code,
             'object_name',celestrak_SATCAT.name,
             'object_norad_number', ParsedIOD.object_number,
@@ -2371,7 +2371,6 @@ class Database:
         """ Return list of catalog objects in priority observation order
         """
 
-        quality = 99 # !TODO
         quality = 99 # !TODO # make it deterministic
         # TODO: No priorities in database yet, just sort by reverse obs order for something interesting/different to look at
         # https://consensys-cpl.atlassian.net/browse/MVP-389
@@ -2688,8 +2687,8 @@ class Database:
                     Observer.location as location
                     FROM Station,Observer
                     WHERE Station.user = Observer.id
-                    AND Observer.eth_addr = '%(ETH_ADDR)s'
-                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
+                    AND Observer.eth_addr = '%(ETH_ADDR)s')
+                    Obs ON ParsedIOD.station_number = Obs.station_num
             WHERE ParsedIOD.object_number = %(NORAD_NUM)s
             ORDER BY obs_time DESC
             LIMIT %(OFFSET)s,%(FETCH)s;"""
@@ -2742,8 +2741,8 @@ class Database:
                     Observer.name as user_name,
                     Observer.location as location
                     FROM Station,Observer
-                    WHERE Station.user = Observer.id
-                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
+                    WHERE Station.user = Observer.id)
+                    Obs ON ParsedIOD.station_number = Obs.station_num
             WHERE ParsedIOD.object_number = %(NORAD_NUM)s
             ORDER BY obs_time DESC
             LIMIT %(OFFSET)s,%(FETCH)s;"""
