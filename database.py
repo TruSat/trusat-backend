@@ -262,7 +262,7 @@ class Database:
         self.addObserverEmail_query = '''INSERT INTO Observer_email(user_id, email) VALUES(?,?)'''
         self.selectObserver_query = '''SELECT id FROM Observer WHERE verified LIKE ? LIMIT 1'''
         self.updateObserverNonce_query = '''UPDATE Observer SET nonce=? WHERE eth_addr=?'''
-        self.updateObserverJWT_query = '''UPDATE Observer SET jwt=?, password=? WHERE eth_addr=?'''
+        self.updateObserverJWT_query = '''UPDATE Observer SET jwt=?, jwt_secret=? WHERE eth_addr=?'''
         self.updateObserverUsername_query = '''UPDATE Observer SET name=? WHERE eth_addr=?'''
         self.updateObserverEmail_query = '''UPDATE Observer_email INNER JOIN Observer ON Observer_email.user_id=Observer.id SET Observer_email.email=? WHERE Observer.eth_addr=?'''
         self.updateObserverLocation_query = '''UPDATE Observer SET location=? WHERE eth_addr=?'''
