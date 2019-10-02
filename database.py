@@ -41,7 +41,10 @@ def QueryRowToJSON(var):
 
 def QueryRowToJSON_JSON(var):
     """ TODO: Kenan to document """
-    return json.loads(var[0])
+    try:
+        return json.loads(var[0])
+    except:
+        return {}
 
 def stringArrayToJSONArray(string_array):
     """ TODO: Kenan to document """
