@@ -2194,6 +2194,20 @@ class Database:
         except:
             return None
 
+    def selectUserStationNumbers_JSON(self, eth_addr):
+        query_tmp = """SELECT Json_Object(
+            'station_number', Station.station_num)
+            FROM Station
+            JOIN Observer ON Observer.id = Station.user
+            WHERE Observer.eth_addr = %(ETH_ADDR)s
+            ORDER BY Station.station_num ASC;"""
+        query_parameters = {'ETH_ADDR': eth_addr}
+        try:
+            self.c.execute(query_tmp, query_parameters)
+            return stringArrayToJSONArray_JSON(self.c.fetchall())
+        except:
+            return None
+
 
     def selectProfileInfo_JSON(self, eth_addr):
         """ Return profile info for a given user ETH address, including:
