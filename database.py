@@ -2310,7 +2310,7 @@ class Database:
 
     # Supports user profile https://consensys-cpl.atlassian.net/browse/MVP-311
     # Notes about endpoint https://consensys-cpl.atlassian.net/browse/MVP-328
-    def selectUserObservationHistory_JSON(self, eth_addr, fetch_row_count=10, offset_row_count=0):
+    def selectUserObservationHistory_JSON(self, eth_addr, fetch_row_count=100, offset_row_count=0):
         """ Return the observation history for a particular ETH addresses, starting with most 
         recent observations.
         """
@@ -2363,7 +2363,7 @@ class Database:
         self.c.execute(query, queryParams)
         return stringArrayToJSONArray_JSON(self.c.fetchall())
 
-    def selectUserObjectsObserved_JSON(self, eth_addr, fetch_row_count=10, offset_row_count=0):
+    def selectUserObjectsObserved_JSON(self, eth_addr, fetch_row_count=100, offset_row_count=0):
         #!TODO: seems odd that we don't return the time at which the user in question last tracked this object.
         """ For a given ETH address, return list of objects they have observed along with context detail.
 
@@ -2791,8 +2791,8 @@ class Database:
                     Observer.name as user_name,
                     Observer.location as location
                     FROM Station,Observer
-                    WHERE Station.user = Observer.id
-                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
+                    WHERE Station.user = Observer.id)
+                    Obs ON ParsedIOD.station_number = Obs.station_num
             WHERE ParsedIOD.object_number = %(NORAD_NUM)s
             ORDER BY obs_time DESC
             LIMIT %(OFFSET)s,%(FETCH)s;"""
