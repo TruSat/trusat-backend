@@ -2575,6 +2575,7 @@ class Database:
               LEFT JOIN Observer Obs on (IODs.obs_user = Obs.id)
               LEFT JOIN ucs_SATDB U ON (IODs.object_number = U.norad_number)
               LEFT JOIN celestrak_SATCAT SatCat ON (IODs.object_number = SatCat.sat_cat_id)
+
             )
             select Json_Object(
               'object_name', obj_name,
