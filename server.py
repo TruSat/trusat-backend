@@ -15,6 +15,15 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import load_pem_private_key, load_pem_public_key
 import database
 import google_email
+
+# The following 7 lines are necessary until the iod module is public
+import inspect
+import os
+import sys
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+iod_path = os.path.join(parentdir, "trusat-iod")
+sys.path.insert(1,iod_path)
 import iod
 
 PORT_NUMBER = 8080
@@ -479,5 +488,10 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         self.db.clean()
 
 httpd = ThreadingHTTPServer(('', PORT_NUMBER), SimpleHTTPRequestHandler)
-httpd.socket = ssl.wrap_socket(httpd.socket, keyfile='./privkey.pem', certfile='./fullchain.pem', server_side=True)
+
+if os.getenv('TRUSAT_DISABLE_HTTPS', False):
+  print('HTTPS disabled!')
+else:
+  httpd.socket = ssl.wrap_socket(httpd.socket, keyfile='./privkey.pem', certfile='./fullchain.pem', server_side=True)
+
 httpd.serve_forever()

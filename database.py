@@ -285,6 +285,56 @@ class Database:
         self.selectTLEFile_query = '''SELECT file_fingerprint FROM TLEFILE WHERE file_fingerprint LIKE ? LIMIT 1'''
         self.selectTLEFingerprint_query = '''SELECT tle_fingerprint FROM TLE WHERE tle_fingerprint LIKE ? LIMIT 1'''
         self.selectIODFingerprint_query = '''SELECT obsFingerPrint FROM ParsedIOD WHERE obsFingerPrint LIKE ? LIMIT 1'''
+        # !TODO: there may be more than one IOD for a given {object, observation time}. Limit to 1, perhaps arbitrarily if we have no way of discriminating.
+        self.selectLatestTLEPerObject = """
+            select TLE.line0, TLE.line1, TLE.line2,  TLE.satellite_number, TLE.epoch from
+              (SELECT max(epoch) as epoch, satellite_number
+              FROM TLE
+              GROUP BY satellite_number) as latest_tles
+            left join TLE on (TLE.satellite_number = latest_tles.satellite_number and TLE.epoch = latest_tles.epoch)"""
+
+        self.selectCatalogQueryPrefix = """
+            WITH catalog as (
+              WITH latest_obs_times as (SELECT object_number, max(obs_time) max_obs_time
+                            FROM ParsedIOD
+                            WHERE ParsedIOD.valid_position = 1
+                            and object_number is not null
+                            group by object_number)
+                -- There can be multiple obs_ids per {object_number, obs_time}, so we GROUP BY object_number again to ensure only one match
+                ,latest_obs_ids as (SELECT P.obs_id, P.object_number, P.obs_time, P.station_number obs_station_number
+                            FROM latest_obs_times L
+                            LEFT JOIN ParsedIOD P on (L.object_number = P.object_number and L.max_obs_time = P.obs_time)
+                            group by object_number)
+                -- There can theoretically be multiple users per station, so we GROUP BY object_number again to ensure only one match
+                ,latest_obs_with_users as (SELECT L.*, S.user obs_user
+                              FROM latest_obs_ids L
+                              LEFT JOIN Station S on (S.station_num = L.obs_station_number)
+                              group by object_number)
+              SELECT
+                IODs.*,
+                Obs.eth_addr obs_eth_addr, Obs.name obs_user_name,
+                    U.comments obj_comments, U.purpose obj_purpose, U.purpose_detailed obj_purpose_detailed, U.country_owner obj_country_owner,
+                    SatCat.name obj_name, SatCat.launch_date obj_launch_date, SatCat.orbit_status_code
+              FROM latest_obs_with_users as IODs
+              LEFT JOIN Observer Obs on (IODs.obs_user = Obs.id)
+              LEFT JOIN ucs_SATDB U ON (IODs.object_number = U.norad_number)
+              LEFT JOIN celestrak_SATCAT SatCat ON (IODs.object_number = SatCat.sat_cat_id)
+            )
+        """
+        self.selectCatalogJsonObject = """
+          Json_Object(
+              'object_norad_number', object_number,
+              'object_name', obj_name,
+              'object_origin', obj_country_owner,
+              'object_type', obj_purpose,
+              'object_primary_purpose', obj_purpose_detailed,
+              'object_secondary_purpose', obj_comments,
+              'object_observation_quality', %(QUALITY)s,
+              'object_launch_date', obj_launch_date,
+              'time_last_tracked', date_format(obs_time, '%M %d, %Y'),
+              'address_last_tracked', obs_eth_addr,
+              'username_last_tracked',obs_user_name)
+        """
         self.addParsedIOD_query = '''INSERT INTO ParsedIOD (
             submitted,
             user_string,
@@ -1959,7 +2009,7 @@ class Database:
         Returns TruSatellite() object
         """
         query_tmp = """SELECT * FROM TLE
-            WHERE epoch <= '%(EPOCH_DATETIME)s'
+            WHERE epoch <= %(EPOCH_DATETIME)s
             AND satellite_number=%(SATELLITE_NUMBER)s
             ORDER BY epoch DESC
             LIMIT 1"""
@@ -1977,7 +2027,7 @@ class Database:
         Could be before or after the provided date.
         Returns TruSatellite() object
         """
-        query_tmp = """SELECT *,ABS(TIMEDIFF(epoch,'%(EPOCH_DATETIME)s')) as diff FROM TLE
+        query_tmp = """SELECT *,ABS(TIMEDIFF(epoch,%(EPOCH_DATETIME)s)) as diff FROM TLE
             WHERE satellite_number=%(SATELLITE_NUMBER)s
             ORDER BY diff ASC
             LIMIT 1"""
@@ -1994,13 +2044,11 @@ class Database:
         Not currently used.
         """
 
-        query_tmp = """SELECT line0, line1, line2, satellite_number
-            FROM TLE
-            GROUP BY satellite_number
-            ORDER BY TLE.epoch DESC;"""
+        query_tmp = self.selectLatestTLEPerObject + """
+            ORDER BY TLE.satellite_number;"""
         self.c.execute(query_tmp)
         result = ""
-        for (line0, line1, line2, _) in self.c.fetchall():
+        for (line0, line1, line2, _, _) in self.c.fetchall():
             result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
         return result
 
@@ -2009,13 +2057,11 @@ class Database:
         """ Create a full list of TLEs for all unique objects in the database.
         """
 
-        query_tmp = """SELECT line0, line1, line2, satellite_number
-            FROM TLE
-            GROUP BY satellite_number
-            ORDER BY satellite_number ASC;"""
+        query_tmp = self.selectLatestTLEPerObject + """
+            ORDER BY TLE.satellite_number;"""
         self.c.execute(query_tmp)
         result = ""
-        for (line0, line1, line2, _) in self.c.fetchall():
+        for (line0, line1, line2, _, _) in self.c.fetchall():
             result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
         return result
 
@@ -2025,15 +2071,13 @@ class Database:
         """ Create list of priority TLEs
         """
         # TODO: Replace with real priority sort. https://consensys-cpl.atlassian.net/browse/MVP-389
-        # In the meantime, return TLEs older than 30 days
-        query_tmp = """SELECT line0, line1, line2, satellite_number
-            FROM TLE
-            WHERE DATEDIFF(NOW(),epoch) > 30
-            GROUP BY satellite_number
-            ORDER BY TLE.epoch DESC;"""
+        # In the meantime, return TLEs older than 30 days, oldest first
+        query_tmp = self.selectLatestTLEPerObject + """
+            WHERE DATEDIFF(NOW(),TLE.epoch) > 30
+            ORDER BY TLE.epoch ASC;"""
         self.c.execute(query_tmp)
         result = ""
-        for (line0, line1, line2, _) in self.c.fetchall():
+        for (line0, line1, line2, _, _) in self.c.fetchall():
             result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
         return result
 
@@ -2043,14 +2087,12 @@ class Database:
         """
         # TODO: Replace with real confidence sort. https://consensys-cpl.atlassian.net/browse/MVP-390
         # In the meantime, return TLEs younger than 30 days, newest first
-        query_tmp = """SELECT line0, line1, line2, satellite_number
-            FROM TLE
-            WHERE DATEDIFF(NOW(),epoch) < 30
-            GROUP BY satellite_number
-            ORDER BY TLE.epoch ASC;"""
+        query_tmp = self.selectLatestTLEPerObject + """
+            WHERE DATEDIFF(NOW(),TLE.epoch) < 30
+            ORDER BY TLE.epoch DESC;"""
         self.c.execute(query_tmp)
         result = ""
-        for (line0, line1, line2, _) in self.c.fetchall():
+        for (line0, line1, line2, _, _) in self.c.fetchall():
             result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
         return result
 
@@ -2106,7 +2148,7 @@ class Database:
             'station_details', Station.details)
             FROM Station
             JOIN Observer ON Observer.id = Station.user
-            WHERE Observer.eth_addr = '%(ETH_ADDR)s'
+            WHERE Observer.eth_addr = %(ETH_ADDR)s
             ORDER BY Station.station_num ASC;"""
         query_parameters = {'ETH_ADDR': eth_addr}
         try:
@@ -2146,7 +2188,7 @@ class Database:
             FROM ParsedIOD
             JOIN Station ON ParsedIOD.station_number = Station.station_num
             JOIN Observer ON Observer.id = Station.user
-            WHERE Observer.eth_addr = '%(ETH_ADDR)s'
+            WHERE Observer.eth_addr = %(ETH_ADDR)s
             GROUP BY ParsedIOD.object_number;"""
         query_parameters = {'ETH_ADDR': eth_addr}
         self.c.execute(query_tmp_num_obj_tracked, query_parameters)
@@ -2165,7 +2207,7 @@ class Database:
             FROM ParsedIOD
             JOIN Station ON ParsedIOD.station_number = Station.station_num
             JOIN Observer ON Observer.id = Station.user
-            WHERE Observer.eth_addr = '%(ETH_ADDR)s';"""
+            WHERE Observer.eth_addr = %(ETH_ADDR)s;"""
         query_parameters = {'ETH_ADDR': eth_addr}
         self.c.execute(query_tmp_obs_count, query_parameters)
         try:
@@ -2208,15 +2250,15 @@ class Database:
             'email', '%(EMAIL)s',
             'user_address', Observer.eth_addr,
             'user_location', Observer.location,
-            'number_objects_tracked', '%(NUM_OBJ_TRACKED)s',
-            'observation_count', '%(OBS_COUNT)s',
-            'user_first_observation', '%(USER_FIRST_OBS)s',
-            'average_observation_quality', '%(AVG_OBS_QUALITY)s',
+            'number_objects_tracked', %(NUM_OBJ_TRACKED)s,
+            'observation_count', %(OBS_COUNT)s,
+            'user_first_observation', %(USER_FIRST_OBS)s,
+            'average_observation_quality', %(AVG_OBS_QUALITY)s,
             'user_bio', Observer.bio,
             'user_image', Observer.url_image,
             'observation_station', '%(STATION_NUM)s')
             FROM Observer
-            WHERE Observer.eth_addr = '%(ETH_ADDR)s'
+            WHERE Observer.eth_addr = %(ETH_ADDR)s
             LIMIT 1;"""
         query_parameters = {
                 'EMAIL': email,
@@ -2240,14 +2282,15 @@ class Database:
         time_difference = 3 # !TODO
         obs_weight = 0.123456 # !TODO
 
+        # TODO: inadvertantly limits to single station?
         query_tmp = """SELECT Json_Object(
             'observation_time',date_format(ParsedIOD.obs_time, '%M %d, %Y'),
             'object_name',celestrak_SATCAT.name,
             'station_number', Obs.station_num,
             'object_norad_number', ParsedIOD.object_number,
-            'observation_quality', '%(QUALITY)s',
-            'observation_time_difference', '%(TIME_DIFF)s',
-            'observation_weight', '%(OBS_WEIGHT)s',
+            'observation_quality', %(QUALITY)s,
+            'observation_time_difference', %(TIME_DIFF)s,
+            'observation_weight', %(OBS_WEIGHT)s,
             'observation_iod', ParsedIOD.iod_string
             )
             FROM ParsedIOD
@@ -2259,7 +2302,7 @@ class Database:
                     Observer.name as user_name
                     FROM Station,Observer
                     WHERE Station.user = Observer.id
-                    AND Observer.eth_addr = '%(ETH_ADDR)s'
+                    AND Observer.eth_addr = %(ETH_ADDR)s
                     LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.norad_num
             LEFT JOIN station_status ON ParsedIOD.station_status_code = station_status.code
@@ -2280,6 +2323,7 @@ class Database:
         """ For a given ETH address, return list of objects they have observed along with context detail.
         """
         # FIXME: Fancier query logic needed to get the last eth_addr to track in the summary of a selected-users observations.
+        # TODO: inadvertantly limits to single station?
         query_tmp = """SELECT Json_Object(
             'object_origin', ucs_SATDB.country_owner,
             'object_type', ucs_SATDB.purpose,
@@ -2300,7 +2344,7 @@ class Database:
                     Observer.name as user_name
                     FROM Station,Observer
                     WHERE Station.user = Observer.id
-                    AND Observer.eth_addr = '%(ETH_ADDR)s'
+                    AND Observer.eth_addr = %(ETH_ADDR)s
                     LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number=ucs_SATDB.norad_number
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
@@ -2366,46 +2410,26 @@ class Database:
 
     # /catalog/priorities
     # https://consensys-cpl.atlassian.net/browse/MVP-323
-    # FIXME: Optimization - this query is slow, because of the Join to Observer not using the index
     def selectCatalog_Priorities_JSON(self, fetch_row_count=100, offset_row_count=0):
-        """ Return list of catalog objects in priority observation order
-        """
-
-        quality = 99 # !TODO # make it deterministic
+        """ Create list of 'Priority'' objects. For now, this just means those that have been tracked least recently.
+            Returns all (or fetch_row_count) objects.
+            Ordered by the time they were last tracked (least recent first)."""
+        quality = 99 # !TODO
+        # !TODO: return only objects for which we also know a (TruSat?) TLE, once we have a critical mass of such objects
         # TODO: No priorities in database yet, just sort by reverse obs order for something interesting/different to look at
         # https://consensys-cpl.atlassian.net/browse/MVP-389
-        query_tmp = """select Json_Object(
-            'object_norad_number', ParsedIOD.object_number,
-            'object_name', celestrak_SATCAT.name,
-            'object_origin', ucs_SATDB.country_owner,
-            'object_type', ucs_SATDB.purpose,
-            'object_primary_purpose', ucs_SATDB.purpose_detailed,
-            'object_secondary_purpose', ucs_SATDB.comments,
-            'object_observation_quality', '%(QUALITY)s',
-            'time_last_tracked', date_format(ParsedIOD.obs_time, '%M %d, %Y'),
-            'address_last_tracked', Obs.eth_addr,
-            'username_last_tracked',Obs.user_name)
-            FROM ParsedIOD
-            JOIN (SELECT
-                    Station.station_num as station_num,
-                    Station.user as station_user,
-                    Observer.id as obs_id,
-                    Observer.eth_addr as eth_addr,
-                    Observer.name as user_name
-                    FROM Station,Observer
-                    WHERE Station.user = Observer.id
-                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
-            LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
-            LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
-            WHERE ParsedIOD.valid_position = 1
-            ORDER BY obs_time DESC
-            LIMIT %(OFFSET)s,%(FETCH)s;"""
-        query_parameters = {
-                'OFFSET': offset_row_count,
-                'FETCH': fetch_row_count,
-                'QUALITY': quality}
-
-        self.c.execute(query_tmp, query_parameters)
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          ORDER BY obs_time
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
         observations = stringArrayToJSONArray_JSON(self.c.fetchall())
         convert_country_names(observations)
         return json.dumps(observations)
@@ -2413,43 +2437,24 @@ class Database:
     # /catalog/undisclosed
     # https://consensys-cpl.atlassian.net/browse/MVP-324
     def selectCatalog_Undisclosed_JSON(self, fetch_row_count=100, offset_row_count=0):
-        """ Create list of Classified TLEs - those that have 'NEA' (no elements available) status via Celestrak
-        """
+        """ Create list of Classified objects. 
+            Returns all (or fetch_row_count) objects that have 'NEA' (no elements available) status in Celestrak.
+            Ordered by the time they were last tracked (most recent first)."""
+        # !TODO: return only objects for which we also know a (TruSat?) TLE, once we have a critical mass of such objects
         quality = 99 # !TODO
-        query_tmp = """select Json_Object(
-            'object_norad_number', ParsedIOD.object_number,
-            'object_name', celestrak_SATCAT.name,
-            'object_origin', ucs_SATDB.country_owner,
-            'object_type', ucs_SATDB.purpose,
-            'object_primary_purpose', ucs_SATDB.purpose_detailed,
-            'object_secondary_purpose', ucs_SATDB.comments,
-            'object_observation_quality', '%(QUALITY)s',
-            'time_last_tracked', date_format(ParsedIOD.obs_time, '%M %d, %Y'),
-            'address_last_tracked', Obs.eth_addr,
-            'username_last_tracked',Obs.user_name)
-            FROM ParsedIOD
-            JOIN (SELECT
-                    Station.station_num as station_num,
-                    Station.user as station_user,
-                    Observer.id as obs_id,
-                    Observer.eth_addr as eth_addr,
-                    Observer.name as user_name
-                    FROM Station,Observer
-                    WHERE Station.user = Observer.id
-                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
-            JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
-            JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
-            WHERE ParsedIOD.valid_position = 1
-            AND celestrak_SATCAT.orbit_status_code = 'NEA'
-            GROUP BY ParsedIOD.object_number
-            ORDER BY obs_time DESC
-            LIMIT %(OFFSET)s,%(FETCH)s;"""
-        query_parameters = {
-                'OFFSET': offset_row_count,
-                'FETCH': fetch_row_count,
-                'QUALITY': quality}
-
-        self.c.execute(query_tmp, query_parameters)
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          WHERE orbit_status_code = 'NEA'
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
         observations = stringArrayToJSONArray_JSON(self.c.fetchall())
         convert_country_names(observations)
         return json.dumps(observations)
@@ -2457,41 +2462,25 @@ class Database:
     # /catalog/debris
     # https://consensys-cpl.atlassian.net/browse/MVP-325
     def selectCatalog_Debris_JSON(self, fetch_row_count=100, offset_row_count=0):
-        """ Create list of Debris objects.  Most catalog items have DEB in the tital.  
-        There are probably some exceptions """
+        """ Create list of Debris objects. 
+            Returns all (or fetch_row_count) objects that have 'DEB' in their object name.
+            Ordered by the time they were last tracked (most recent first).
+            This heuristic may be too simple and we may miss some debris."""
+         # !TODO: return only objects for which we also know a (TruSat?) TLE, once we have a critical mass of such objects
         quality = 99 # !TODO
-        query_tmp = """select Json_Object(
-            'object_norad_number', ParsedIOD.object_number,
-            'object_name', celestrak_SATCAT.name,
-            'object_origin', ucs_SATDB.country_owner,
-            'object_primary_purpose', ucs_SATDB.purpose_detailed,
-            'object_secondary_purpose', ucs_SATDB.comments,
-            'object_observation_quality', '%(QUALITY)s',
-            'time_last_tracked', date_format(ParsedIOD.obs_time, '%M %d, %Y'),
-            'address_last_tracked', Obs.eth_addr,
-            'username_last_tracked',Obs.user_name)
-            FROM ParsedIOD
-            JOIN (SELECT
-                    Station.station_num as station_num,
-                    Station.user as station_user,
-                    Observer.id as obs_id,
-                    Observer.eth_addr as eth_addr,
-                    Observer.name as user_name
-                    FROM Station,Observer
-                    WHERE Station.user = Observer.id
-                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
-            LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
-            LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
-            WHERE ParsedIOD.valid_position = 1
-            AND celestrak_SATCAT.name LIKE '%DEB%'
-            GROUP BY ParsedIOD.object_number
-            ORDER BY obs_time DESC
-            LIMIT %(OFFSET)s,%(FETCH)s;"""
-        query_parameters = {
-                'OFFSET': offset_row_count,
-                'FETCH': fetch_row_count,
-                'QUALITY': quality}
-        self.c.execute(query_tmp, query_parameters)
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          WHERE obj_name LIKE '%DEB%'
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
         observations = stringArrayToJSONArray_JSON(self.c.fetchall())
         convert_country_names(observations)
         return json.dumps(observations)
@@ -2499,46 +2488,25 @@ class Database:
     # /catalog/latest
     # https://consensys-cpl.atlassian.net/browse/MVP-326
     def selectCatalog_Latest_JSON(self, fetch_row_count=100, offset_row_count=0):
-        """ Provide a list of the most recently launched objects (last 12 months) """
+        """ Provide a list of the most recently launched objects that have been observed.
+            Returns all (or fetch_row_count) objects with a launch date.
+            Ordered by launch date, newest first. """
+        # !TODO: return only objects for which we also know a (TruSat?) TLE, once we have a critical mass of such objects
         quality = 99 # !TODO
-        now = datetime.utcnow()
-        date_delta = now - timedelta(days=365)
-        launch_date_string  = date_delta.strftime("%Y-%m-%d")
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          WHERE obj_launch_date IS NOT NULL
+          ORDER BY obj_launch_date DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
 
-        query_tmp = """select Json_Object(
-            'object_norad_number', ParsedIOD.object_number,
-            'object_name', celestrak_SATCAT.name,
-            'object_origin', ucs_SATDB.country_owner,
-            'object_type', ucs_SATDB.purpose,
-            'object_primary_purpose', ucs_SATDB.purpose_detailed,
-            'object_secondary_purpose', ucs_SATDB.comments,
-            'object_observation_quality', '%(QUALITY)s',
-            'time_last_tracked', date_format(ParsedIOD.obs_time, '%M %d, %Y'),
-            'address_last_tracked', Obs.eth_addr,
-            'username_last_tracked',Obs.user_name)
-            FROM ParsedIOD
-            JOIN (SELECT
-                    Station.station_num as station_num,
-                    Station.user as station_user,
-                    Observer.id as obs_id,
-                    Observer.eth_addr as eth_addr,
-                    Observer.name as user_name
-                    FROM Station,Observer
-                    WHERE Station.user = Observer.id
-                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
-            LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
-            LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
-            WHERE ParsedIOD.valid_position = 1
-            AND celestrak_SATCAT.launch_date > %(LAUNCH_DATE)s
-            ORDER BY obs_time DESC
-            LIMIT %(OFFSET)s,%(FETCH)s;"""
-        query_parameters = {
-                'LAUNCH_DATE': launch_date_string,
-                'OFFSET': offset_row_count,
-                'FETCH': fetch_row_count,
-                'QUALITY': quality}
-
-        self.c.execute(query_tmp, query_parameters)
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
         observations = stringArrayToJSONArray_JSON(self.c.fetchall())
         convert_country_names(observations)
         return json.dumps(observations)
@@ -2546,45 +2514,26 @@ class Database:
     # /catalog/all
     # https://consensys-cpl.atlassian.net/browse/MVP-327
     def selectCatalog_All_JSON(self, fetch_row_count=100, offset_row_count=0):
-        """ Return a full list of all objects in the DB which have been observed, 
-        ordered by the time they were last tracked.  Should contain only one entry per umique object.
+        """ Return a full list of all observed objects in the DB. 
+            Returns all (or fetch_row_count) objects that have been observed.
+            Ordered by the time they were last tracked (most recent first).
+            Should contain only one entry per unique object.
         """
+        # !TODO: return only objects for which we also know a (TruSat?) TLE, once we have a critical mass of such objects
         quality = 99 # !TODO
-        query_tmp = """SELECT Json_Object(
-            'object_norad_number', IODs.object_number,
-            'object_name', celestrak_SATCAT.name,
-            'object_origin', ucs_SATDB.country_owner,
-            'object_type', ucs_SATDB.purpose,
-            'object_primary_purpose', ucs_SATDB.purpose_detailed,
-            'object_secondary_purpose', ucs_SATDB.comments,
-            'object_observation_quality', '%(QUALITY)s',
-            'time_last_tracked', date_format(IODs.obs_time, '%M %d, %Y'),
-            'address_last_tracked', Obs.eth_addr,
-            'username_last_tracked',Obs.user_name)
-            FROM
-            (SELECT object_number, obs_time, station_number
-            		FROM ParsedIOD
-            		WHERE ParsedIOD.valid_position = 1
-            		ORDER BY obs_time DESC
-                    LIMIT %(OFFSET)s,%(FETCH)s) AS IODs
-            JOIN (SELECT
-                    Station.station_num as station_num,
-                    Station.user as station_user,
-                    Observer.id as obs_id,
-                    Observer.eth_addr as eth_addr,
-                    Observer.name as user_name
-                    FROM Station,Observer
-                    WHERE Station.user = Observer.id) Obs ON IODs.station_number = Obs.station_num
-            LEFT JOIN ucs_SATDB ON IODs.object_number = ucs_SATDB.norad_number
-            LEFT JOIN celestrak_SATCAT ON IODs.object_number = celestrak_SATCAT.sat_cat_id;"""
-        
-        # !TODO: here and everywhere, use bind variables rather than string formatting, for security and performance:
-        # mysql connector uses the pyformat paramstyle (https://www.python.org/dev/peps/pep-0249/#paramstyle), so this looks something like:
-        # self.c.execute("SELECT ... WHERE my_column = %(name)s", {"name": value}) 
-        self.c.execute(query_tmp,
-          { 'OFFSET': offset_row_count,
-            'FETCH':fetch_row_count,
-            'QUALITY': quality })
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
         observations = stringArrayToJSONArray_JSON(self.c.fetchall())
         convert_country_names(observations)
         return json.dumps(observations)
@@ -2638,13 +2587,13 @@ class Database:
             'object_secondary_purpose', ucs_SATDB.comments,
             'year_launched', YEAR(celestrak_SATCAT.launch_date),
             'time_last_tracked', date_format(ParsedIOD.obs_time, '%M %d, %Y'),
-            'number_users_tracked', '%(COUNT)s',
-            'time_last_tracked', '%(LAST_TRACKED)s',
-            'address_last_tracked', '%(ETH_ADDR)s',
-            'username_last_tracked', '%(NAME)s',
-            'observation_quality', '%(QUALITY)s',
+            'number_users_tracked', %(COUNT)s,
+            'time_last_tracked', %(LAST_TRACKED)s,
+            'address_last_tracked', %(ETH_ADDR)s,
+            'username_last_tracked', %(NAME)s,
+            'observation_quality', %(QUALITY)s,
             'object_background', ucs_SATDB.detailed_comments,
-            'heavens_above_url', '%(URL)s'
+            'heavens_above_url', %(URL)s
             )
             FROM ParsedIOD
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
@@ -2680,15 +2629,16 @@ class Database:
         time_difference = 3 # !TODO
         obs_weight = 0.123456 # !TODO
 
+        # TODO: inadvertantly limits to single station?
         query_tmp = """SELECT Json_Object(
             'observation_time', date_format(obs_time, '%M %d, %Y'),
             'object_origin', celestrak_SATCAT.source,
             'user_location', Obs.location,
             'username', Obs.user_name,
             'user_address', Obs.eth_addr,
-            'observation_quality', '%(QUALITY)s',
-            'observation_time_difference', '%(TIME_DIFF)s',
-            'observation_weight', '%(OBS_WEIGHT)s')
+            'observation_quality', %(QUALITY)s,
+            'observation_time_difference', %(TIME_DIFF)s,
+            'observation_weight', %(OBS_WEIGHT)s)
             FROM ParsedIOD
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
             JOIN (SELECT
@@ -2700,7 +2650,7 @@ class Database:
                     Observer.location as location
                     FROM Station,Observer
                     WHERE Station.user = Observer.id
-                    AND Observer.eth_addr = '%(ETH_ADDR)s')
+                    AND Observer.eth_addr = %(ETH_ADDR)s)
                     Obs ON ParsedIOD.station_number = Obs.station_num
             WHERE ParsedIOD.object_number = %(NORAD_NUM)s
             ORDER BY obs_time DESC
@@ -2735,14 +2685,15 @@ class Database:
         time_difference = 3 # !TODO
         obs_weight = 0.123456 # !TODO
 
+        # TODO: inadvertantly limits to single station?
         query_tmp = """SELECT Json_Object(
             'observation_time', date_format(obs_time, '%M %d, %Y'),
             'object_origin', celestrak_SATCAT.source,
             'user_location', Obs.location,
             'username', Obs.user_name,
-            'observation_quality', '%(QUALITY)s',
-            'observation_time_difference', '%(TIME_DIFF)s',
-            'observation_weight', '%(OBS_WEIGHT)s',
+            'observation_quality', %(QUALITY)s,
+            'observation_time_difference', %(TIME_DIFF)s,
+            'observation_weight', %(OBS_WEIGHT)s,
             'user_address', Obs.eth_addr)
             FROM ParsedIOD
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
