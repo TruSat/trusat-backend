@@ -1335,7 +1335,7 @@ class Database:
             self.conn.commit()
         return True
 
-        def updateObserverPassword(self, password, public_address):
+    def updateObserverPassword(self, password, public_address):
         if self._dbtype == "sqlite:":
             self.c.execute(self.updateObserverPassword_query, [password, public_address])
             results = self.c.fetchone()
@@ -1344,7 +1344,7 @@ class Database:
             self.conn.commit()
         return True
 
-     def updateObserverAddress(self, new_address, public_address):
+    def updateObserverAddress(self, new_address, public_address):
         if self._dbtype == "sqlite":
             self.c.execute(self.updateObserverAddress_query, [new_address, public_address])
             results = self.c.fetchone()
@@ -1369,7 +1369,7 @@ class Database:
             results = self.c_selectObserver_query.fetchone()
         return results
 
-        def selectObserverAddressFromEmail(self, email):
+    def selectObserverAddressFromEmail(self, email):
         if self._dbtype == "sqlite":
             self.c.execute(self.selectObserverAddressFromEmail_query, [email])
             results = self.c.fetchone()
@@ -1381,7 +1381,7 @@ class Database:
                 return None
         return results
 
-     def selectObserverAddressFromPassword(self, password):
+    def selectObserverAddressFromPassword(self, password):
         if self._dbtype == "sqlite":
             self.c.execute(self.selectObserverAddressFromPassword_query, [password])
             results = self.c.fetchone()
@@ -2185,7 +2185,7 @@ class Database:
         # Get unique list of observed objects for this user
         # TODO: Seems like there's a way to get a count in the query instead of counting the result in python
         query_tmp_num_obj_tracked = """SELECT ParsedIOD.object_number
-            FROM ParsedIOD, Station.station_num
+            FROM ParsedIOD
             JOIN Station ON ParsedIOD.station_number = Station.station_num
             JOIN Observer ON Observer.id = Station.user
             WHERE Observer.eth_addr = %(ETH_ADDR)s
@@ -2232,7 +2232,7 @@ class Database:
             print(e)
             user_first_observation = ''
 
-         query_tmp_email = """SELECT Observer_email.email
+        query_tmp_email = """SELECT Observer_email.email
             FROM Observer_email
             INNER JOIN Observer
             ON Observer_email.user_id=Observer.id
@@ -2575,7 +2575,6 @@ class Database:
               LEFT JOIN Observer Obs on (IODs.obs_user = Obs.id)
               LEFT JOIN ucs_SATDB U ON (IODs.object_number = U.norad_number)
               LEFT JOIN celestrak_SATCAT SatCat ON (IODs.object_number = SatCat.sat_cat_id)
-
             )
             select Json_Object(
               'object_name', obj_name,
