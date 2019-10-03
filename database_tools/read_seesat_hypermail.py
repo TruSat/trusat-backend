@@ -16,15 +16,16 @@ from dateutil import parser
 import logging
 log = logging.getLogger(__name__)
 
-import database
-
 # The following 5 lines are necessary until our modules are public
 import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
-iod_path = os.path.join(parentdir, "trusat-iod")
+iod_path = os.path.join(parentdir, "../trusat-orbit")
 sys.path.insert(1,iod_path) 
 import iod
+
+sys.path.insert(1,os.path.dirname(currentdir)) 
+import database
 
 # Find COSPAR (case insensitive) followed by a space and a 1-4 digit number
 #cospar_format_re = re.compile('(?i)\bCOSPAR\b \d{1,4}') # pylint: disable=anomalous-backslash-in-string
@@ -198,40 +199,18 @@ if __name__ == '__main__':
                 if(fname == ".DS_Store"):
                     continue
 
-                fileIODCount = 0
-                fileUKCount = 0
-                fileRDEcount = 0
-
                 fileName = os.path.join(dirName, fname)
+                with open(fileName) as fp:
+                    body = fp.read()
 
-                # Start with most numerous records, move to least
-                # Assume there's only one record type per file
-                IOD_records = []
-                try:
-                    IOD_records = iod.get_iod_records_from_file(fileName)
-                    fileIODCount = len(IOD_records)
-                    TotalCount_IOD += fileIODCount
-                    TotalObsCount += fileIODCount
-                except:
-                    pass
+                IOD_records = iod.get_obs_from_text(body)
+                IOD_record_counts = iod.get_IOD_record_counts(IOD_records)
 
-                if not (len(IOD_records)):
-                    try: 
-                        IOD_records = iod.get_uk_records_from_file(fileName)
-                        fileUKCount = len(IOD_records)
-                        TotalCount_UK += fileUKCount
-                        TotalObsCount += fileUKCount
-                    except:
-                        pass
+                TotalObsCount  += IOD_record_counts["total"]
+                TotalCount_IOD += IOD_record_counts["IOD"]
+                TotalCount_RDE += IOD_record_counts["RDE"]
+                TotalCount_UK  += IOD_record_counts["UK"]
 
-                if not (len(IOD_records)):
-                    try: 
-                        IOD_records = iod.get_rde_records_from_file(fileName)
-                        fileRDEcount = len(IOD_records)
-                        TotalCount_RDE += fileRDEcount
-                        TotalObsCount += fileRDEcount
-                    except:
-                        pass
 
                 if (len(IOD_records)):
                     IODpeek = IOD_records[0]
@@ -283,9 +262,9 @@ if __name__ == '__main__':
                     time_end = time()
                     delta = (time_end-time_start)
                     log.debug(' File ({}/{}) in dir "{}" contained'.format(dirfileCount,dirfileTotal,dirName))
-                    log.debug('                                    ({}/{}) IOD records'.format(fileIODCount,TotalCount_IOD))
-                    log.debug('                                    ({}/{}) UK records'.format(fileUKCount,TotalCount_UK))
-                    log.debug('                                    ({}/{}) RDE records'.format(fileRDEcount,TotalCount_RDE))
+                    log.debug('                                    ({}/{}) IOD records'.format(IOD_record_counts["IOD"],TotalCount_IOD))
+                    log.debug('                                    ({}/{}) UK records'.format(IOD_record_counts["UK"],TotalCount_UK))
+                    log.debug('                                    ({}/{}) RDE records'.format(IOD_record_counts["RDE"],TotalCount_RDE))
                     log.debug('                                        of {} records\n'.format(TotalObsCount))
     except KeyboardInterrupt as ex:
         log.warning("Terminated by user.")
