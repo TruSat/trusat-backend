@@ -16,15 +16,16 @@ from getpass import getpass
 import logging
 log = logging.getLogger(__name__)
 
-import database
-
 # The following 5 lines are necessary until our modules are public
 import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
-iod_path = os.path.join(parentdir, "trusat-iod")
+iod_path = os.path.join(parentdir, "../trusat-orbit")
 sys.path.insert(1,iod_path) 
 import iod
+
+sys.path.insert(1,os.path.dirname(currentdir)) 
+import database
 
 # Find COSPAR (case insensitive) followed by a space and a 1-4 digit number
 #cospar_format_re = re.compile('(?i)\bCOSPAR\b \d{1,4}') # pylint: disable=anomalous-backslash-in-string
@@ -196,6 +197,9 @@ def main():
      conf_parser.add_argument("-q", "--quiet", help="Suppress console output",
                               dest='quiet',
                               action="store_true")
+     conf_parser.add_argument("-o", "--userinfo", help="Write out additional info about users",
+                              dest='userinfo',
+                              action="store_true")
      conf_parser.add_argument("-V", "--verbose", 
                               help="increase verbosity: 0 = only warnings, 1 = info, 2 = debug. No number means info. Default is no verbosity.",
                               const=1, 
@@ -222,6 +226,7 @@ def main():
      message_resume = args.message_resume
      verbose = args.verbose
      quiet = args.quiet
+     userinfo = args.userinfo
 
      # https://stackoverflow.com/questions/14097061/easier-way-to-enable-verbose-logging
      # https://stackoverflow.com/questions/15727420/using-python-logging-in-multiple-modules
@@ -247,7 +252,7 @@ def main():
      if (dbtype == "sqlserver"):
           # Temporary database credentials hack
           try:
-               with open('../login.txt', 'r') as f:
+               with open('../../login.txt', 'r') as f:
                     lines = f.readlines()
                     dbname = lines[0].strip()
                     dbtype = lines[1].strip()
@@ -280,17 +285,18 @@ def main():
      TotalCount_UK  = 0
      TotalCount_RDE = 0
      TotalObsCount  = 0
-     message_RDE_count = 0
-     UserDict = []
-     COSPAR_Dict = []
 
-     # Set up to write out what we learn about user records for external processing
-     UserFile =  open("seesat_mbox_users.csv", 'w')
-     writer_UserFile = writer(UserFile, dialect='unix')
+     if (userinfo):
+          UserDict = []
+          COSPAR_Dict = []
 
-     # Set up to write out what we learn about user records for external processing
-     CosparFile = open("seesat_mbox_cospar.csv", 'w')
-     writer_COSPAR_Dict = writer(CosparFile, dialect='unix')
+          # Set up to write out what we learn about user records for external processing
+          UserFile =  open("seesat_mbox_users.csv", 'w')
+          writer_UserFile = writer(UserFile, dialect='unix')
+
+          # Set up to write out what we learn about user records for external processing
+          CosparFile = open("seesat_mbox_cospar.csv", 'w')
+          writer_COSPAR_Dict = writer(CosparFile, dialect='unix')
  
      last_msgID = None
      for message in mbox(mbox_filename):
@@ -328,7 +334,7 @@ def main():
           body = getbodyfromemail(message)
 
           IOD_records = iod.get_obs_from_text(body)
-          IOD_record_counts = iod.get_IOD_record_counts(IOD_record_counts)
+          IOD_record_counts = iod.get_IOD_record_counts(IOD_records)
 
           TotalObsCount  += IOD_record_counts["total"]
           TotalCount_IOD += IOD_record_counts["IOD"]
@@ -349,16 +355,17 @@ def main():
                     date_parsed = date_parsed.replace(tzinfo=None)
                submit_time = date_parsed.strftime('%Y-%m-%d %H:%M:%S')
 
-               for line in body.split('\n'):
-                    if(find_cospar_mention(line)):
-                        line = line.strip()
-                        if (line not in COSPAR_Dict):
-                            COSPAR_Dict.append(line)
-                            writer_COSPAR_Dict.writerow( [IODpeek.Station, email_address, line])
+               if (userinfo):
+                    for line in body.split('\n'):
+                         if(find_cospar_mention(line)):
+                              line = line.strip()
+                              if (line not in COSPAR_Dict):
+                                   COSPAR_Dict.append(line)
+                                   writer_COSPAR_Dict.writerow( [IODpeek.Station, email_address, line])
 
-               if (IODpeek.Station not in UserDict):
-                    UserDict.append(IODpeek.Station)
-                    writer_UserFile.writerow( [email_address, name, IODpeek.Station, "mbox"])
+                    if (IODpeek.Station not in UserDict):
+                         UserDict.append(IODpeek.Station)
+                         writer_UserFile.writerow( [email_address, name, IODpeek.Station, "mbox"])
           
                db_obs_count = db.addParsedIOD(IOD_records, email_address, submit_time, fast)
 
