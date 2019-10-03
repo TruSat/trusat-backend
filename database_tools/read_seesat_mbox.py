@@ -276,16 +276,13 @@ def main():
           except:
                log.warning("Tables already exist or there is a big problem buddy.")
 
-     FileIODCount = 0
-     FileUKCount = 0 
-     FileRDECount = 0
      TotalCount_IOD = 0
-     TotalCount_UK = 0
+     TotalCount_UK  = 0
      TotalCount_RDE = 0
+     TotalObsCount  = 0
      message_RDE_count = 0
      UserDict = []
      COSPAR_Dict = []
-     TotalObsCount = 0
 
      # Set up to write out what we learn about user records for external processing
      UserFile =  open("seesat_mbox_users.csv", 'w')
@@ -330,42 +327,17 @@ def main():
                     continue
           body = getbodyfromemail(message)
 
-          fileIODCount = 0
-          fileUKCount = 0
-          fileRDEcount = 0
+          IOD_records = iod.get_obs_from_text(body)
+          IOD_record_counts = iod.get_IOD_record_counts(IOD_record_counts)
 
-          # Start with most numerous records, move to least
-          # Assume there's only one record type per file
-          IOD_records = []
-          try:
-               IOD_records = iod.get_iod_records(body)
-               fileIODCount = len(IOD_records)
-               TotalCount_IOD += fileIODCount
-               TotalObsCount += fileIODCount
-          except:
-               pass
-
-          if not (len(IOD_records)):
-               try: 
-                    IOD_records = iod.get_uk_records(body)
-                    fileUKCount = len(IOD_records)
-                    TotalCount_UK += fileUKCount
-                    TotalObsCount += fileUKCount
-               except:
-                    pass
-
-          if not (len(IOD_records)):
-               try: 
-                    IOD_records = iod.get_rde_records(body)
-                    fileRDEcount = len(IOD_records)
-                    TotalCount_RDE += fileRDEcount
-                    TotalObsCount += fileRDEcount
-               except:
-                    pass
+          TotalObsCount  += IOD_record_counts["total"]
+          TotalCount_IOD += IOD_record_counts["IOD"]
+          TotalCount_RDE += IOD_record_counts["RDE"]
+          TotalCount_UK  += IOD_record_counts["UK"]
 
           if (len(IOD_records)):
                IODpeek = IOD_records[0]
-               log.info("Found {:3d} {:3s} obs in msg: {} {}".format(len(IOD_records), IODpeek.IODType,date,subject))
+               log.info("Found {:3d} {:3s} obs in msg: {} {}".format(IOD_record_counts["total"], IODpeek.IODType,date,subject))
                
                try:
                     date_parsed = datetime.strptime(date,"%Y-%m-%d %H:%M:%S%z")
