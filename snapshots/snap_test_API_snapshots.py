@@ -13729,26 +13729,6 @@ CONTENT:[
     }
 ]'''
 
-snapshots['test_object_info 1'] = '''STATUS: 200
-
-HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.1', 'Date': 'XXX', 'Content-type': 'application/json', 'Access-Control-Allow-Origin': '*'}
-
-CONTENT:{
-    "address_last_tracked": "0x730A8Ce1ad08d9FcCb162eD94416Ab5135823742",
-    "heavens_above_url": "https://www.heavens-above.com/SatInfo.aspx?satid=40538",
-    "number_users_tracked": 5,
-    "object_background": "",
-    "object_name": "IGS O-5",
-    "object_origin": "JP",
-    "object_purpose": "Optical Imaging",
-    "object_secondary_purpose": "Optical reconnaissance.",
-    "object_type": "Earth Observation",
-    "observation_quality": 99,
-    "time_last_tracked": "July 22, 2019",
-    "username_last_tracked": "Pierros Papadeas",
-    "year_launched": 2015
-}'''
-
 snapshots['test_tle_object 1'] = '''STATUS: 200
 
 HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.1', 'Date': 'XXX', 'Content-type': 'text/plain', 'Access-Control-Allow-Origin': '*'}
@@ -13757,3 +13737,23 @@ CONTENT:IGS Opt 5r
 1 40538U 15015A   19235.85317892 0.00000000  00000-0  00000-0 0    08
 2 40538  97.4630 309.8098 0001995 290.6915  69.3083 15.17628735    08
 '''
+
+snapshots['test_object_info 1'] = '''STATUS: 200
+
+HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.1', 'Date': 'XXX', 'Content-type': 'application/json', 'Access-Control-Allow-Origin': '*'}
+
+CONTENT:{
+    "address_last_tracked": "0xc5f1194555D8328Bdf6EBBc37f7C49d4B5125bA9",
+    "heavens_above_url": "https://www.heavens-above.com/SatInfo.aspx?satid=40538",
+    "number_users_tracked": 11,
+    "object_background": "",
+    "object_name": "IGS O-5",
+    "object_origin": "JP",
+    "object_purpose": "Optical Imaging",
+    "object_secondary_purpose": "Optical reconnaissance.",
+    "object_type": "Earth Observation",
+    "observation_quality": 99,
+    "time_last_tracked": "2019-08-28 22:33:56.9200",
+    "username_last_tracked": "David Brierley",
+    "year_launched": 2015
+}'''

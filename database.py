@@ -2388,55 +2388,56 @@ class Database:
         info_url = "https://www.heavens-above.com/SatInfo.aspx?satid={}".format(norad_num)
         quality = 99 # !TODO
 
-        # Get user-related info first
-        query_tmp_count = """SELECT COUNT(Observer.id), Observer.eth_addr, Observer.name,date_format(ParsedIOD.obs_time, '%M %d, %Y')
-            FROM ParsedIOD
-            JOIN Station ON ParsedIOD.station_number = Station.station_num
-            JOIN Observer ON Observer.id = Station.user
-            WHERE ParsedIOD.object_number = %(NORAD_NUM)s
-            GROUP BY Observer.id
-            ORDER BY ParsedIOD.obs_time DESC
-            LIMIT 1;"""
-        query_parameters = {'NORAD_NUM': norad_num}
-        self.c.execute(query_tmp_count, query_parameters)
-        try:
-            (user_count, eth_addr, name, last_tracked) = self.c.fetchone()
-        except Exception as e:
-            print(e)
-            return None
-
-        # Get object info and patch in user-info
-        query_tmp = """select Json_Object(
-            'object_name', celestrak_SATCAT.name,
-            'object_origin', ucs_SATDB.country_owner,
-            'object_type', ucs_SATDB.purpose,
-            'object_purpose', ucs_SATDB.purpose_detailed,
-            'object_secondary_purpose', ucs_SATDB.comments,
-            'year_launched', YEAR(celestrak_SATCAT.launch_date),
-            'time_last_tracked', date_format(ParsedIOD.obs_time, '%M %d, %Y'),
-            'number_users_tracked', %(COUNT)s,
-            'time_last_tracked', %(LAST_TRACKED)s,
-            'address_last_tracked', %(ETH_ADDR)s,
-            'username_last_tracked', %(NAME)s,
-            'observation_quality', %(QUALITY)s,
-            'object_background', ucs_SATDB.detailed_comments,
-            'heavens_above_url', %(URL)s
+        query = """
+            WITH obj_info as (
+              WITH latest_obs_times as (SELECT object_number, max(obs_time) max_obs_time, count(distinct(user_string)) user_count
+                            FROM ParsedIOD
+                            WHERE ParsedIOD.valid_position = 1
+                            and object_number = %(NORAD_NUM)s)
+                -- There can be multiple obs_ids per {object_number, obs_time}, so we GROUP BY object_number again to ensure only one match
+                ,latest_obs_ids as (SELECT P.obs_id, P.object_number, P.obs_time, P.station_number obs_station_number, L.user_count
+                            FROM latest_obs_times L
+                            LEFT JOIN ParsedIOD P on (L.object_number = P.object_number and L.max_obs_time = P.obs_time)
+                            group by object_number)
+                -- There can theoretically be multiple users per station, so we GROUP BY object_number again to ensure only one match
+                ,latest_obs_with_users as (SELECT L.*, S.user obs_user
+                              FROM latest_obs_ids L
+                              LEFT JOIN Station S on (S.station_num = L.obs_station_number)
+                              group by object_number)
+              SELECT
+                IODs.*,
+                Obs.eth_addr obs_eth_addr, Obs.name obs_user_name,
+                    U.comments obj_comments, U.detailed_comments obj_detailed_comments, U.purpose obj_purpose, U.purpose_detailed obj_purpose_detailed, U.country_owner obj_country_owner,
+                    SatCat.name obj_name, SatCat.launch_date obj_launch_date, SatCat.orbit_status_code
+              FROM latest_obs_with_users as IODs
+              LEFT JOIN Observer Obs on (IODs.obs_user = Obs.id)
+              LEFT JOIN ucs_SATDB U ON (IODs.object_number = U.norad_number)
+              LEFT JOIN celestrak_SATCAT SatCat ON (IODs.object_number = SatCat.sat_cat_id)
             )
-            FROM ParsedIOD
-            LEFT JOIN ucs_SATDB ON ParsedIOD.object_number = ucs_SATDB.norad_number
-            LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
-            WHERE ParsedIOD.valid_position = 1
-            AND ParsedIOD.object_number = %(NORAD_NUM)s
-            LIMIT 1;"""
-        query_parameters = {
-                'COUNT': user_count,
-                'LAST_TRACKED': last_tracked,
-                'ETH_ADDR': eth_addr,
-                'NAME': name,
-                'QUALITY': quality,
-                'URL': info_url,
-                'NORAD_NUM': norad_num}
-        self.c.execute(query_tmp, query_parameters)
+            select Json_Object(
+              'object_name', obj_name,
+              'object_origin', obj_country_owner,
+              'object_type', obj_purpose,
+              'object_purpose', obj_purpose_detailed,
+              'object_secondary_purpose', obj_comments,
+              'year_launched', YEAR(obj_launch_date),
+              'time_last_tracked', date_format(obs_time, '%M %d, %Y'),
+              'number_users_tracked', user_count,
+              'time_last_tracked', obs_time,
+              'address_last_tracked', obs_eth_addr,
+              'username_last_tracked', obs_user_name,
+              'observation_quality', %(QUALITY)s,
+              'object_background', obj_detailed_comments,
+              'heavens_above_url', %(INFO_URL)s
+            )
+            FROM obj_info;"""
+
+        queryParams = {
+          'NORAD_NUM': norad_num,
+          'QUALITY': quality,
+          'INFO_URL': "https://www.heavens-above.com/SatInfo.aspx?satid={}".format(norad_num)
+          }
+        self.c.execute(query, queryParams)
         try:
             observations = QueryRowToJSON_JSON(self.c.fetchone())
             convert_country_names_single(observations)
