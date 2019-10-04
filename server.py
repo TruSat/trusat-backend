@@ -63,6 +63,12 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         self.db = database.Database(db_name, db_type, endpoint, username, password)
         super().__init__(request, client_address, server)
 
+    def send_500(self):
+        self.send_response(500)
+
+    def send_400(self):
+        self.send-response(400)
+
     def send_200_JSON(self, body_data):
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
@@ -136,40 +142,103 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             print(e)
             parameters_map = {}
         if path == "/catalog/priorities":
-            json_object = self.db.selectCatalog_Priorities_JSON()
-            self.send_200_JSON_cache(json_object)
+            try:
+                json_object = self.db.selectCatalog_Priorities_JSON()
+            except:
+                self.send_500()
+                return
+            if json_object is not False:
+                self.send_200_JSON_cache(json_object)
+            else:
+                self.send_500()
         
         elif path == "/catalog/undisclosed":
-            json_object = self.db.selectCatalog_Undisclosed_JSON()
-            self.send_200_JSON_cache(json_object)
+            try:
+                json_object = self.db.selectCatalog_Undisclosed_JSON()
+            except:
+                self.send_500()
+                return
+            if json_object is not False:
+                self.send_200_JSON_cache(json_object)
+            else:
+                self.send_500()
 
         elif path == "/catalog/debris":
-            json_object = self.db.selectCatalog_Debris_JSON()
-            self.send_200_JSON_cache(json_object)
+            try:
+                json_object = self.db.selectCatalog_Debris_JSON()
+            except:
+                self.send_500()
+                return
+            if json_object is not False:
+                self.send_200_JSON_cache(json_object)
+            else:
+                self.send_500()
 
         elif path == "/catalog/latest":
-            json_object = self.db.selectCatalog_Latest_JSON()
-            self.send_200_JSON_cache(json_object)
+            try:
+                json_object = self.db.selectCatalog_Latest_JSON()
+            except:
+                self.send_500()
+                return
+            if json_object is not False:
+                self.send_200_JSON_cache(json_object)
+            else:
+                self.send_500()
 
         elif path == "/catalog/all":
-            json_object = self.db.selectCatalog_All_JSON()
-            self.send_200_JSON_cache(json_object)
+            try:
+                json_object = self.db.selectCatalog_All_JSON()
+            except:
+                self.send_500()
+                return
+            if json_object is not False:
+                self.send_200_JSON_cache(json_object)
+            else:
+                self.send_500()
 
         elif path == "/tle/trusat_all.txt":
-            two_line_elements = self.db.selectTLE_all()
-            self.send_200_text_cache(two_line_elements)
+            try:
+                two_line_elements = self.db.selectTLE_all()
+            except:
+                self.send_500()
+                return
+            if two_line_elements is not False:
+                self.send_200_text_cache(two_line_elements)
+            else:
+                self.send_500()
 
         elif path == "/tle/trusat_priorities.txt":
-            two_line_elements = self.db.selectTLE_priorities()
-            self.send_200_text_cache(two_line_elements)
+            try:
+                two_line_elements = self.db.selectTLE_priorities()
+            except:
+                self.send_500()
+                return
+            if two_line_elements is not False:
+                self.send_200_text_cache(two_line_elements)
+            else:
+                self.send_500()
 
         elif path == "/tle/trusat_high_confidence.txt":
-            two_line_elements = self.db.selectTLE_high_confidence()
-            self.send_200_text_cache(two_line_elements)
+            try:
+                two_line_elements = self.db.selectTLE_high_confidence()
+            except:
+                self.send_500()
+                return
+            if two_line_elements is not False:
+                self.send_200_text_cache(two_line_elements)
+            else:
+                self.send_500()
 
         elif path == "/astriagraph":
-            tles_json = self.db.selectTLE_Astriagraph()
-            self.send_200_text_cache(tles_json)
+            try:
+                tles_json = self.db.selectTLE_Astriagraph()
+            except:
+                self.send_500()
+                return
+            if tle_json is not False:
+                self.send_200_text_cache(tles_json)
+            else:
+                self.send_500()
 
         elif path == "/profile":
             try:
@@ -177,7 +246,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 print("PROFILE EXCEPTION")
                 print(e)
-                self.send_response(400)
+                self.send_400()
                 return
             #user_jwt = json_body["jwt"]
             #try:
@@ -237,30 +306,48 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_200_JSON_cache(user_profile)
 
         elif path == '/object/influence':
-            norad_number = parameters_map['norad_number']
-            json_object = self.db.selectObjectInfluence_JSON(norad_number)
-            self.send_200_JSON_cache(json_object)
+            try:
+                norad_number = parameters_map['norad_number']
+            except:
+                self.send_400()
+                return
+            try:
+                json_object = self.db.selectObjectInfluence_JSON(norad_number)
+            except:
+                self.send_500()
+                return
+            if json_object:
+                self.send_200_JSON_cache(json_object)
+            else:
+                self.send_500()
 
         elif path == '/object/info':
-            norad_number = parameters_map['norad_number']
-            json_object = self.db.selectObjectInfo_JSON(norad_number)
-            self.send_200_JSON_cache(json_object)
+            try:
+                norad_number = parameters_map['norad_number']
+            except:
+                self.send_400()
+                return
+            try:
+                json_object = self.db.selectObjectInfo_JSON(norad_number)
+            except:
+                self.send_500()
+                return
+            if json_object:
+                self.send_200_JSON_cache(json_object)
+            else:
+                self.send_500()
 
         elif path == '/object/history':
-            norad_number = parameters_map['norad_number']
-            year = None
             try:
+                norad_number = parameters_map['norad_number']
                 year = parameters_map["year"]
             except Exception as e:
                 print(e)
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(b'[]')
+                self.send_400()
                 return
-            real_entry = self.db.selectObjectHistoryByMonth_JSON(norad_number, year)
-            year_response = {
+            try:
+                real_entry = self.db.selectObjectHistoryByMonth_JSON(norad_number, year)
+                year_response = {
                     "December": [],
                     "November": [],
                     "October": [],
@@ -274,36 +361,56 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     "February": [],
                     "January": []
                 }
-            for items in real_entry:
-                timestamp = datetime.fromtimestamp(float(items["observation_time"]))
-                month_string = timestamp.strftime("%B")
-                date = timestamp.day
-                items["observation_date"] = date
-                year_response[month_string].append(items)
-            response_body = json.dumps(year_response)
-            self.send_200_JSON_cache(response_body)
+                for items in real_entry:
+                    timestamp = datetime.fromtimestamp(float(items["observation_time"]))
+                    month_string = timestamp.strftime("%B")
+                    date = timestamp.day
+                    items["observation_date"] = date
+                    year_response[month_string].append(items)
+                response_body = json.dumps(year_response)
+                self.send_200_JSON_cache(response_body)
+            except:
+                self.send_500()
 
         elif path == '/object/userSightings':
-            norad_number = parameters_map['norad_number']
+            try:
+                norad_number = parameters_map['norad_number']
+                public_address = parameters_map['address']
+            except:
+                self.send_400()
+                return
+            try:
+                #user_jwt = json_body['jwt']
+                #decoded_jwt = decode_jwt(user_jwt)
+                #try:
+                #    public_address = decoded_jwt["address"]
+                #except:
+                #    self.send_response(403)
+                #    self.end_headers()
+                #    self.wfile.write(b'')
+                #    return
 
-            public_address = parameters_map['address']
-            #user_jwt = json_body['jwt']
-            #decoded_jwt = decode_jwt(user_jwt)
-            #try:
-            #    public_address = decoded_jwt["address"]
-            #except:
-            #    self.send_response(403)
-            #    self.end_headers()
-            #    self.wfile.write(b'')
-            #    return
-
-            response_body = self.db.selectObjectUserSightings_JSON(norad_number, public_address)
-            self.send_200_JSON_cache(response_body)
+                response_body = self.db.selectObjectUserSightings_JSON(norad_number, public_address)
+                self.send_200_JSON_cache(response_body)
+            except:
+                self.send_500()
 
         elif path == "/tle/object":
-            norad_number = parameters_map["norad_number"]
-            two_line_elements = self.db.selectTLE_single(norad_number)
-            self.send_200_text_cache(two_line_elements)
+            try:
+                norad_number = parameters_map["norad_number"]
+            except:
+                self.send_400()
+                return
+            try:
+                two_line_elements = self.db.selectTLE_single(norad_number)
+            except:
+                self.send_500()
+                return
+            if two_line_elements:
+                self.send_200_text_cache(two_line_elements)
+            else:
+                self.send_500()
+                return
 
         elif path == "/findObject":
             object_name = parameters_map["objectName"]
@@ -395,7 +502,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 response_body = response_message
             else:
                 print("public key is incorrect")
-                response_body = bytes('{}', 'utf-8')
+                self.send_400()
+                return
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
