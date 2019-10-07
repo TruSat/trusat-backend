@@ -99,15 +99,17 @@ This is recommended for python if you do or will ever use python for any other p
  - checkout the appropriate branch of [`trusat-tle`](https://github.com/consensys-space/trusat-tle) to path `../trusat-tle` (i.e. its parent directory should match this repo's parent directory). Install any dependencies defined within that repo.
  - checkout the appropriate branch of [`trusat-iod`](https://github.com/consensys-space/trusat-iod) to path `../trusat-iod` (i.e. its parent directory should match this repo's parent directory). Install any dependencies defined within that repo.
 
-### Secure your HTTPS connections
-
-!TODO Instructions for generating `privkey.pem` and `fullchain.pem`, or just change code so that it (configurably) uses unsecured HTTP.
-
 ### Run the code
 
 After doing all of the above, and creating a valid `login.txt` file (see further above), simply run:
 
-`python3.7 server.py`
+`TRUSAT_DISABLE_HTTPS=T python3.7 server.py`
+
+### Secure your HTTPS connections
+
+If you want to omit `TRUSAT_DISABLE_HTTPS=T` above and test with a proper TLS-secured connection, you will need to generate the appropriate keys.
+
+!TODO Instructions for generating `privkey.pem` and `fullchain.pem`.
 
 ### Manual tests
 
@@ -123,6 +125,6 @@ Run:
    - These assume you are running an API server on your local machine and that it is pointing at a database identical to (a 2019-09-13 clone of) the "production" database.
    - The test makes some API requests, and compares each result to an expected result that's stored in the `snapshots` folder
 
- - Run `pytest -s` to add timing information to the output
+ - Run `pytest` with a `-s` or `--durations 50` flag to add timing information to the output
 
- - Run `pytest --snapshot-update` to update the snapshots if either the expected behavior or the underlying data changes
+ - Run `pytest --snapshot-update` to update the snapshots if either the expected behavior or the underlying data changes.
