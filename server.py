@@ -122,11 +122,36 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(body_bytes)
 
     def do_OPTIONS(self):
-        self.send_response(200)
-        self.send_header('Accept', 'GET')
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Headers', 'Cache-Control')
-        self.end_headers()
+        try:
+            path = self.path.split('?')[0]
+            parameters = self.path.split('?')[1]
+        except Exception as e:
+            print(e)
+            path = self.path
+
+        if path == "/catalog/priorities" or \
+                path == "/catalog/undisclosed" or \
+                path == "/catalog/debris" or \
+                path == "/catalog/latest" or \
+                path == "/catalog/all" or \
+                path == "/tle/trusat_all.txt" or \
+                path == "/tle/trusat_priorities.txt" or \
+                path == "/tle/trusat_high_confidence.txt" or \
+                path == "/astriagraph" or \
+                path == "/profile" or \
+                path == "/object/influence" or \
+                path == "/object/info" or \
+                path == "/object/history" or \
+                path == "/object/userSightings" or \
+                path == "/tle/object" or \
+                path == "/findObject":
+            self.send_response(200)
+            self.send_header('Accept', 'GET')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Access-Control-Allow-Headers', 'Cache-Control')
+            self.end_headers()
+        else:
+            self.send_404()
 
     def do_GET(self):
         try:
