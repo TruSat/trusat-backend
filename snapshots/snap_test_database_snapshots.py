@@ -21493,3 +21493,249 @@ snapshots['test_user_sightings2 1'] = [
         'username': 'Ted Molczan'
     }
 ]
+
+snapshots['test_user_objects_observed1 1'] = [
+    {
+        'address_last_tracked': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'object_name': 'SL-8 R/B',
+        'object_norad_number': 21231,
+        'object_origin': '',
+        'object_primary_purpose': None,
+        'object_secondary_purpose': '',
+        'object_type': None,
+        'observation_quality': 'excellent',
+        'time_last_tracked': 'August 27, 2019',
+        'username_last_tracked': 'Leo Barhorst'
+    },
+    {
+        'address_last_tracked': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'object_name': 'SL-14 R/B',
+        'object_norad_number': 15890,
+        'object_origin': '',
+        'object_primary_purpose': None,
+        'object_secondary_purpose': '',
+        'object_type': None,
+        'observation_quality': 'excellent',
+        'time_last_tracked': 'August 27, 2019',
+        'username_last_tracked': 'Leo Barhorst'
+    },
+    {
+        'address_last_tracked': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'object_name': 'TITAN 4 R/B',
+        'object_norad_number': 20642,
+        'object_origin': '',
+        'object_primary_purpose': None,
+        'object_secondary_purpose': '',
+        'object_type': None,
+        'observation_quality': 'excellent',
+        'time_last_tracked': 'August 27, 2019',
+        'username_last_tracked': 'Leo Barhorst'
+    },
+    {
+        'address_last_tracked': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'object_name': 'PEGASUS R/B',
+        'object_norad_number': 22639,
+        'object_origin': '',
+        'object_primary_purpose': None,
+        'object_secondary_purpose': '',
+        'object_type': None,
+        'observation_quality': 'excellent',
+        'time_last_tracked': 'August 27, 2019',
+        'username_last_tracked': 'Leo Barhorst'
+    },
+    {
+        'address_last_tracked': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'object_name': 'SL-14 R/B',
+        'object_norad_number': 17192,
+        'object_origin': '',
+        'object_primary_purpose': None,
+        'object_secondary_purpose': '',
+        'object_type': None,
+        'observation_quality': 'excellent',
+        'time_last_tracked': 'August 27, 2019',
+        'username_last_tracked': 'Leo Barhorst'
+    },
+    {
+        'address_last_tracked': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'object_name': 'SL-14 R/B',
+        'object_norad_number': 20827,
+        'object_origin': '',
+        'object_primary_purpose': None,
+        'object_secondary_purpose': '',
+        'object_type': None,
+        'observation_quality': 'excellent',
+        'time_last_tracked': 'August 27, 2019',
+        'username_last_tracked': 'Leo Barhorst'
+    },
+    {
+        'address_last_tracked': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'object_name': 'COSMOS 2227',
+        'object_norad_number': 22284,
+        'object_origin': '',
+        'object_primary_purpose': None,
+        'object_secondary_purpose': '',
+        'object_type': None,
+        'observation_quality': 'excellent',
+        'time_last_tracked': 'August 27, 2019',
+        'username_last_tracked': 'Leo Barhorst'
+    },
+    {
+        'address_last_tracked': '0x77E365e4BdCEF3e0C513d2ADbFC09B829ad24Ac8',
+        'object_name': 'USA 264 DEB',
+        'object_norad_number': 40981,
+        'object_origin': 'US',
+        'object_primary_purpose': 'Electronic Intelligence',
+        'object_secondary_purpose': '',
+        'object_type': 'Earth Observation',
+        'observation_quality': 'excellent',
+        'time_last_tracked': 'August 29, 2019',
+        'username_last_tracked': 'Cees Bassa'
+    },
+    {
+        'address_last_tracked': '0x77E365e4BdCEF3e0C513d2ADbFC09B829ad24Ac8',
+        'object_name': 'USA 264',
+        'object_norad_number': 40964,
+        'object_origin': 'US',
+        'object_primary_purpose': 'Electronic Intelligence',
+        'object_secondary_purpose': '',
+        'object_type': 'Earth Observation',
+        'observation_quality': 'excellent',
+        'time_last_tracked': 'August 29, 2019',
+        'username_last_tracked': 'Cees Bassa'
+    },
+    {
+        'address_last_tracked': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'object_name': 'USA 215',
+        'object_norad_number': 37162,
+        'object_origin': 'US',
+        'object_primary_purpose': 'Radar Imaging',
+        'object_secondary_purpose': '',
+        'object_type': 'Earth Observation',
+        'observation_quality': 'excellent',
+        'time_last_tracked': 'August 27, 2019',
+        'username_last_tracked': 'Leo Barhorst'
+    }
+]
+
+snapshots['test_user_objects_observed2 1'] = [
+    {
+        'address_last_tracked': '0x26AB8322449c07C8C291C037DD1819Ca91b7D46b',
+        'object_name': 'OFEQ 11',
+        'object_norad_number': 41759,
+        'object_origin': 'IL',
+        'object_primary_purpose': 'Optical Imaging',
+        'object_secondary_purpose': '',
+        'object_type': 'Earth Observation',
+        'observation_quality': 'good',
+        'time_last_tracked': 'June 15, 2019',
+        'username_last_tracked': 'Alberto Rango'
+    },
+    {
+        'address_last_tracked': '0xc5f1194555D8328Bdf6EBBc37f7C49d4B5125bA9',
+        'object_name': 'USA 186',
+        'object_norad_number': 28888,
+        'object_origin': 'US',
+        'object_primary_purpose': 'Optical Imaging',
+        'object_secondary_purpose': '',
+        'object_type': 'Earth Observation',
+        'observation_quality': 'good',
+        'time_last_tracked': 'August 25, 2019',
+        'username_last_tracked': 'David Brierley'
+    },
+    {
+        'address_last_tracked': '0x7C21fa08867F3bF07E8ECd793CA4719f431e1edd',
+        'object_name': 'ATLAS 5 CENTAUR R/B',
+        'object_norad_number': 40978,
+        'object_origin': '',
+        'object_primary_purpose': None,
+        'object_secondary_purpose': '',
+        'object_type': None,
+        'observation_quality': 'good',
+        'time_last_tracked': 'August 28, 2019',
+        'username_last_tracked': 'Russell Eberst'
+    },
+    {
+        'address_last_tracked': '0x4286c41Cd7FBf5Cdc63B107f8f570585dFf09948',
+        'object_name': 'LIGHTSAIL-A',
+        'object_norad_number': 40661,
+        'object_origin': '',
+        'object_primary_purpose': None,
+        'object_secondary_purpose': '',
+        'object_type': None,
+        'observation_quality': 'good',
+        'time_last_tracked': 'June 13, 2015',
+        'username_last_tracked': 'Andriy Makeyev'
+    },
+    {
+        'address_last_tracked': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'object_name': None,
+        'object_norad_number': 99448,
+        'object_origin': '',
+        'object_primary_purpose': None,
+        'object_secondary_purpose': '',
+        'object_type': None,
+        'observation_quality': 'good',
+        'time_last_tracked': 'June 06, 2015',
+        'username_last_tracked': 'Ted Molczan'
+    },
+    {
+        'address_last_tracked': '0xBc1e255dE9074CC08931109b501a755964be647a',
+        'object_name': 'OTV 3 (USA 240)',
+        'object_norad_number': 39025,
+        'object_origin': '',
+        'object_primary_purpose': None,
+        'object_secondary_purpose': '',
+        'object_type': None,
+        'observation_quality': 'good',
+        'time_last_tracked': 'October 06, 2014',
+        'username_last_tracked': 'Derek C Breit'
+    },
+    {
+        'address_last_tracked': '0x26AB8322449c07C8C291C037DD1819Ca91b7D46b',
+        'object_name': 'OFEQ 10',
+        'object_norad_number': 39650,
+        'object_origin': 'IL',
+        'object_primary_purpose': 'Radar Imaging',
+        'object_secondary_purpose': '',
+        'object_type': 'Earth Observation',
+        'observation_quality': 'good',
+        'time_last_tracked': 'August 27, 2019',
+        'username_last_tracked': 'Alberto Rango'
+    },
+    {
+        'address_last_tracked': '0x980ae7f4f611ea7172999F79c79003647fb43571',
+        'object_name': None,
+        'object_norad_number': 78817,
+        'object_origin': '',
+        'object_primary_purpose': None,
+        'object_secondary_purpose': '',
+        'object_type': None,
+        'observation_quality': 'good',
+        'time_last_tracked': 'December 08, 2013',
+        'username_last_tracked': 'Greg Roberts'
+    },
+    {
+        'address_last_tracked': '0x980ae7f4f611ea7172999F79c79003647fb43571',
+        'object_name': None,
+        'object_norad_number': 78820,
+        'object_origin': '',
+        'object_primary_purpose': None,
+        'object_secondary_purpose': '',
+        'object_type': None,
+        'observation_quality': 'good',
+        'time_last_tracked': 'December 08, 2013',
+        'username_last_tracked': 'Greg Roberts'
+    },
+    {
+        'address_last_tracked': '0x77E365e4BdCEF3e0C513d2ADbFC09B829ad24Ac8',
+        'object_name': 'USA 245',
+        'object_norad_number': 39232,
+        'object_origin': 'US',
+        'object_primary_purpose': 'Optical Imaging',
+        'object_secondary_purpose': '',
+        'object_type': 'Earth Observation',
+        'observation_quality': 'good',
+        'time_last_tracked': 'August 29, 2019',
+        'username_last_tracked': 'Cees Bassa'
+    }
+]
