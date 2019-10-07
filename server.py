@@ -65,9 +65,11 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
     def send_500(self):
         self.send_response(500)
+        self.db.clean()
 
     def send_400(self):
-        self.send-response(400)
+        self.send_response(400)
+        self.db.clean()
 
     def send_200_JSON(self, body_data):
         self.send_response(200)
@@ -151,6 +153,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_200_JSON_cache(json_object)
             else:
                 self.send_500()
+                return
         
         elif path == "/catalog/undisclosed":
             try:
@@ -162,6 +165,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_200_JSON_cache(json_object)
             else:
                 self.send_500()
+                return
 
         elif path == "/catalog/debris":
             try:
@@ -173,6 +177,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_200_JSON_cache(json_object)
             else:
                 self.send_500()
+                return
 
         elif path == "/catalog/latest":
             try:
@@ -184,6 +189,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_200_JSON_cache(json_object)
             else:
                 self.send_500()
+                return
 
         elif path == "/catalog/all":
             try:
@@ -195,6 +201,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_200_JSON_cache(json_object)
             else:
                 self.send_500()
+                return
 
         elif path == "/tle/trusat_all.txt":
             try:
@@ -206,6 +213,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_200_text_cache(two_line_elements)
             else:
                 self.send_500()
+                return
 
         elif path == "/tle/trusat_priorities.txt":
             try:
@@ -217,6 +225,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_200_text_cache(two_line_elements)
             else:
                 self.send_500()
+                return
 
         elif path == "/tle/trusat_high_confidence.txt":
             try:
@@ -228,6 +237,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_200_text_cache(two_line_elements)
             else:
                 self.send_500()
+                return
 
         elif path == "/astriagraph":
             try:
@@ -239,6 +249,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_200_text_cache(tles_json)
             else:
                 self.send_500()
+                return
 
         elif path == "/profile":
             try:
@@ -320,6 +331,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_200_JSON_cache(json_object)
             else:
                 self.send_500()
+                return
 
         elif path == '/object/info':
             try:
@@ -336,6 +348,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_200_JSON_cache(json_object)
             else:
                 self.send_500()
+                return
 
         elif path == '/object/history':
             try:
@@ -371,6 +384,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_200_JSON_cache(response_body)
             except:
                 self.send_500()
+                return
 
         elif path == '/object/userSightings':
             try:
@@ -394,6 +408,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_200_JSON_cache(response_body)
             except:
                 self.send_500()
+                return
 
         elif path == "/tle/object":
             try:
