@@ -19487,3 +19487,2009 @@ snapshots['test_user_observation_history2 1'] = [
         'station_number': 9802
     }
 ]
+
+snapshots['test_user_sightings1 1'] = [
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'April 02, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'April 02, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'April 02, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'March 30, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'March 30, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'March 30, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'March 29, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'March 29, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'March 29, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'March 19, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'March 19, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'March 19, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'March 13, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'March 13, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'March 13, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'March 05, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'March 05, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 27, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 27, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 27, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 27, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 27, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 27, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 26, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 26, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 26, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 26, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 25, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 25, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 25, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 23, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 23, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 23, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 21, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 21, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 21, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 18, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 18, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 18, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 17, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 17, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 17, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 17, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 17, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 17, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 16, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 16, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 16, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 15, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 15, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 15, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 15, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 14, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 14, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 14, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 12, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 12, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 11, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 11, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 11, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 04, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 04, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 03, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 03, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 03, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 03, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 03, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'February 03, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'January 28, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'January 28, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'January 28, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'January 21, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'January 21, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'January 21, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'January 19, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'January 19, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'January 19, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'January 18, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'January 18, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'January 18, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'January 08, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'January 08, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'January 08, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'January 08, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'December 04, 2018',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'December 04, 2018',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'December 04, 2018',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'November 30, 2018',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'November 30, 2018',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'November 30, 2018',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'November 18, 2018',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'November 18, 2018',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'November 18, 2018',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'November 17, 2018',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'November 17, 2018',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'November 17, 2018',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'November 16, 2018',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'November 16, 2018',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'November 16, 2018',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'November 15, 2018',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312',
+        'user_location': None,
+        'username': 'Leo Barhorst'
+    }
+]
+
+snapshots['test_user_sightings2 1'] = [
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'June 18, 2016',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'June 18, 2016',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'June 18, 2016',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'June 08, 2016',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'June 08, 2016',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'June 08, 2016',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'May 21, 2011',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'May 21, 2011',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'August 07, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'August 07, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'August 07, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'August 07, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'August 07, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'August 07, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'August 07, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'August 06, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'August 06, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 29, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 29, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 29, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 26, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 26, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 18, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 18, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 18, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 11, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 11, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 04, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 01, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'June 30, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'June 30, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'June 30, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'May 30, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'May 30, 2010',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 21, 2009',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 15, 2009',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 15, 2009',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 14, 2009',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'June 01, 2009',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'June 01, 2009',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'June 01, 2009',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'May 25, 2009',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'May 25, 2009',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'May 25, 2009',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'May 22, 2009',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'May 22, 2009',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'May 21, 2009',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'May 21, 2009',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'May 19, 2009',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'May 19, 2009',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'May 19, 2009',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'May 15, 2009',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'May 15, 2009',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'April 16, 2009',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'October 20, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'October 20, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'October 19, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'October 19, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'October 19, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'October 11, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'October 11, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'October 07, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'October 07, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'October 07, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'October 06, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'October 06, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'September 24, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'September 23, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'September 22, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'September 19, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'September 18, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'September 17, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'September 16, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'September 16, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'September 16, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'September 16, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'September 10, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'September 08, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'September 08, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'August 31, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'August 20, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'August 20, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'August 16, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'August 16, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'August 16, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 29, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 29, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 29, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 29, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 25, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 25, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 15, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 15, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 12, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 04, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 04, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 04, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'July 04, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'May 29, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    },
+    {
+        'object_origin': '',
+        'observation_quality': 99,
+        'observation_time': 'May 29, 2008',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'user_address': '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78',
+        'user_location': None,
+        'username': 'Ted Molczan'
+    }
+]
