@@ -529,29 +529,86 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(response_body)
 
-        ### LOGIN ENDPOINT ###
-        elif self.path == "/login":
-            old_nonce = self.db.getObserverNonce(json_body["address"])
+
+        elif self.path == "/signup":
             try:
+                addr = json_body["address"]
+                old_nonce = self.db.getObserverNonce(addr)
                 email = json_body["email"]
+                signed_message = json_body["signedMessage"]
+                payload = json_body["secret"]
             except:
-                email = None
+                self.send_400()
+                return
             nonce = str(old_nonce[0]).encode('utf-8')
+            self.db.updateObserverNonce(nonce=0, public_address=addr)
             message_hash = sha3.keccak_256(nonce).hexdigest()
             message_hash = encode_defunct(hexstr=message_hash)
             try:
-                signed_public_key = Account.recover_message(message_hash, signature=json_body["signedMessage"])
+                signed_public_key = Account.recover_message(message_hash, signature=signed_message)
             except:
                 print('message could not be checked')
-            if signed_public_key.lower() == json_body["address"].lower():
-                print(email)
-                if email != None:
-                    self.db.updateObserverEmail(email, json_body["address"])
+            if signed_public_key.lower() == addr.lower():
+                email_from_addr = self.db.selectEmailFromObserverAddress(addr)
+                if email_from_addr == None or email_from_addr == '' or email_from_addr == b'NULL':
+                    if email != None or email != 'null' or email != 'NULL' or email != '':
+                        try:
+                            self.db.updateObserverEmail(email, addr)
+                            google_email.send_email(email, payload)
+                            self.send_response(204)
+                            return
+                        except Exception as e:
+                            print(e)
+                            self.send_500()
+                            return
+            else:
+                print("public key is incorrect")
+                self.send_400()
+                return
+            self.send_500()
+            return
+
+
+        ### LOGIN ENDPOINT ###
+        elif self.path == "/login":
+            try:
+                addr = json_body["address"]
+                old_nonce = self.db.getObserverNonce(addr)
+                signed_message = json_body["signedMessage"]
+            except:
+                self.send_400()
+                return
+            try:
+                email = json_body["email"]
+                secret = json_body["secret"]
+            except:
+                email = None
+            nonce = str(old_nonce[0]).encode('utf-8')
+            self.db.updateObserverNonce(nonce=0, public_address=addr)
+            message_hash = sha3.keccak_256(nonce).hexdigest()
+            message_hash = encode_defunct(hexstr=message_hash)
+            try:
+                signed_public_key = Account.recover_message(message_hash, signature=signed_message)
+            except:
+                print('message could not be checked')
+            if signed_public_key.lower() == addr.lower():
+                email_from_addr = self.db.selectEmailFromObserverAddress(addr)
+                if email_from_addr == None or email_from_addr == '' or email_from_addr == b'NULL':
+                    if email != None:
+                        try:
+                            self.db.updateObserverEmail(email, addr)
+                            google_email.send_email(email, secret)
+                            self.send_response(204)
+                            return
+                        except Exception as e:
+                            print(e)
+                            self.send_500()
+                            return
                 with open('unsafe_private.pem', 'r') as file:
                     private_key = file.read()
                 private_rsa_key = load_pem_private_key(bytes(private_key, 'utf-8'), password=None, backend=default_backend())
-                encoded_jwt = encode({'address':json_body["address"].lower()}, private_rsa_key, algorithm='RS256')
-                db.updateObserverJWT(encoded_jwt, '', json_body["address"])
+                encoded_jwt = encode({'address':addr.lower()}, private_rsa_key, algorithm='RS256')
+                self.db.updateObserverJWT(encoded_jwt, '', addr)
                 response_message = b'{"jwt":"'
                 response_message += encoded_jwt
                 response_message += b'"}'
