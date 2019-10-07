@@ -19281,3 +19281,209 @@ snapshots['test_find_cluster_more_data 1'] = [
         247897
     ,)
 ]
+
+snapshots['test_user_observation_history1 1'] = [
+    {
+        'object_name': 'SL-8 R/B',
+        'object_norad_number': 21231,
+        'observation_iod': '21231 91 029B   4172 E 20190827032838092 17 25 0935617+604543 37 S',
+        'observation_quality': 99,
+        'observation_time': 'August 27, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'station_number': 4172
+    },
+    {
+        'object_name': 'SL-8 R/B',
+        'object_norad_number': 21231,
+        'observation_iod': '21231 91 029B   4172 E 20190827032828093 17 25 0955822+612645 37 S',
+        'observation_quality': 99,
+        'observation_time': 'August 27, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'station_number': 4172
+    },
+    {
+        'object_name': 'SL-14 R/B',
+        'object_norad_number': 15890,
+        'observation_iod': '15890 85 058B   4172 E 20190827032718094 17 25 0905680+584558 37 S',
+        'observation_quality': 99,
+        'observation_time': 'August 27, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'station_number': 4172
+    },
+    {
+        'object_name': 'SL-14 R/B',
+        'object_norad_number': 15890,
+        'observation_iod': '15890 85 058B   4172 E 20190827032708096 17 25 0935010+600545 37 S',
+        'observation_quality': 99,
+        'observation_time': 'August 27, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'station_number': 4172
+    },
+    {
+        'object_name': 'SL-14 R/B',
+        'object_norad_number': 15890,
+        'observation_iod': '15890 85 058B   4172 E 20190827032658090 17 25 1004358+605786 37 S',
+        'observation_quality': 99,
+        'observation_time': 'August 27, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'station_number': 4172
+    },
+    {
+        'object_name': 'TITAN 4 R/B',
+        'object_norad_number': 20642,
+        'observation_iod': '20642 90 050E   4172 E 20190827032532075 17 25 0919624+581146 37 S',
+        'observation_quality': 99,
+        'observation_time': 'August 27, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'station_number': 4172
+    },
+    {
+        'object_name': 'TITAN 4 R/B',
+        'object_norad_number': 20642,
+        'observation_iod': '20642 90 050E   4172 E 20190827032523073 17 25 0933863+602266 37 S',
+        'observation_quality': 99,
+        'observation_time': 'August 27, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'station_number': 4172
+    },
+    {
+        'object_name': 'TITAN 4 R/B',
+        'object_norad_number': 20642,
+        'observation_iod': '20642 90 050E   4172 E 20190827032514109 17 25 0950289+622704 37 S',
+        'observation_quality': 99,
+        'observation_time': 'August 27, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'station_number': 4172
+    },
+    {
+        'object_name': 'PEGASUS R/B',
+        'object_norad_number': 22639,
+        'observation_iod': '22639 93 026B   4172 E 20190827030658100 17 25 0707371+691730 37 S',
+        'observation_quality': 99,
+        'observation_time': 'August 27, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'station_number': 4172
+    },
+    {
+        'object_name': 'PEGASUS R/B',
+        'object_norad_number': 22639,
+        'observation_iod': '22639 93 026B   4172 E 20190827030648094 17 25 0733371+723814 37 S',
+        'observation_quality': 99,
+        'observation_time': 'August 27, 2019',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'station_number': 4172
+    }
+]
+
+snapshots['test_user_observation_history2 1'] = [
+    {
+        'object_name': 'OFEQ 11',
+        'object_norad_number': 41759,
+        'observation_iod': '41759 16 056A   9802 G 20160918023903662 17 25 1529369-163756 37 S',
+        'observation_quality': 99,
+        'observation_time': 'September 18, 2016',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'station_number': 9802
+    },
+    {
+        'object_name': 'OFEQ 11',
+        'object_norad_number': 41759,
+        'observation_iod': '41759 16 056A   9802 G 20160918023902228 17 25 1531866-170180 37 S',
+        'observation_quality': 99,
+        'observation_time': 'September 18, 2016',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'station_number': 9802
+    },
+    {
+        'object_name': 'OFEQ 11',
+        'object_norad_number': 41759,
+        'observation_iod': '41759 16 056A   9802 G 20160918023848247 17 25 1557526-204254 37 S',
+        'observation_quality': 99,
+        'observation_time': 'September 18, 2016',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'station_number': 9802
+    },
+    {
+        'object_name': 'OFEQ 11',
+        'object_norad_number': 41759,
+        'observation_iod': '41759 16 056A   9802 G 20160918023843843 17 25 1606325-215519 37 S',
+        'observation_quality': 99,
+        'observation_time': 'September 18, 2016',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'station_number': 9802
+    },
+    {
+        'object_name': 'OFEQ 11',
+        'object_norad_number': 41759,
+        'observation_iod': '41759 16 056A   9802 G 20160918023841841 17 25 1610395-222870 37 S',
+        'observation_quality': 99,
+        'observation_time': 'September 18, 2016',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'station_number': 9802
+    },
+    {
+        'object_name': 'OFEQ 11',
+        'object_norad_number': 41759,
+        'observation_iod': '41759 16 056A   9802 G 20160918023836535 17 25 1621459-235569 37 S',
+        'observation_quality': 99,
+        'observation_time': 'September 18, 2016',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'station_number': 9802
+    },
+    {
+        'object_name': 'OFEQ 11',
+        'object_norad_number': 41759,
+        'observation_iod': '41759 16 056A   9802 G 20160918023832431 17 25 1630269-250215 37 S',
+        'observation_quality': 99,
+        'observation_time': 'September 18, 2016',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'station_number': 9802
+    },
+    {
+        'object_name': 'OFEQ 11',
+        'object_norad_number': 41759,
+        'observation_iod': '41759 16 056A   9802 G 20160918023827927 17 25 1640274-261394 37 S',
+        'observation_quality': 99,
+        'observation_time': 'September 18, 2016',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'station_number': 9802
+    },
+    {
+        'object_name': 'OFEQ 11',
+        'object_norad_number': 41759,
+        'observation_iod': '41759 16 056A   9802 G 20160918023825758 17 25 1645218-264883 37 S',
+        'observation_quality': 99,
+        'observation_time': 'September 18, 2016',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'station_number': 9802
+    },
+    {
+        'object_name': 'OFEQ 11',
+        'object_norad_number': 41759,
+        'observation_iod': '41759 16 056A   9802 G 20160918023819718 17 25 1659086-282191 37 S',
+        'observation_quality': 99,
+        'observation_time': 'September 18, 2016',
+        'observation_time_difference': 3,
+        'observation_weight': 0.123456,
+        'station_number': 9802
+    }
+]
