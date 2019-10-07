@@ -2122,41 +2122,48 @@ class Database:
         time_difference = 3 # !TODO
         obs_weight = 0.123456 # !TODO
 
-        # TODO: inadvertantly limits to single station?
-        query_tmp = """SELECT Json_Object(
-            'observation_time',date_format(ParsedIOD.obs_time, '%M %d, %Y'),
+        query = """
+          WITH user AS (
+            SELECT id
+            FROM Observer
+            WHERE eth_addr = %(ETH_ADDR)s
+          )
+          , user_stations AS (
+            SELECT U.id user_id, S.station_num
+            FROM user U
+            LEFT JOIN Station S on (U.id = S.user)
+          )
+          , user_observations AS (
+            SELECT US.*, P.*
+            FROM user_stations US
+            LEFT JOIN ParsedIOD P on (US.station_num = P.station_number)
+            WHERE valid_position = 1
+            order by P.obs_time DESC
+            LIMIT %(OFFSET)s,%(FETCH)s
+          )
+          SELECT Json_Object(
+            'observation_time',date_format(Obs.obs_time, '%M %d, %Y'),
             'object_name',celestrak_SATCAT.name,
             'station_number', Obs.station_num,
-            'object_norad_number', ParsedIOD.object_number,
+            'object_norad_number', Obs.object_number,
             'observation_quality', %(QUALITY)s,
             'observation_time_difference', %(TIME_DIFF)s,
             'observation_weight', %(OBS_WEIGHT)s,
-            'observation_iod', ParsedIOD.iod_string
+            'observation_iod', Obs.iod_string
             )
-            FROM ParsedIOD
-            JOIN (SELECT
-                    Station.station_num as station_num,
-                    Station.user as station_user,
-                    Observer.id as obs_id,
-                    Observer.eth_addr as eth_addr,
-                    Observer.name as user_name
-                    FROM Station,Observer
-                    WHERE Station.user = Observer.id
-                    AND Observer.eth_addr = %(ETH_ADDR)s
-                    LIMIT 1) Obs ON ParsedIOD.station_number = Obs.station_num
-            LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.norad_num
-            LEFT JOIN station_status ON ParsedIOD.station_status_code = station_status.code
-            WHERE valid_position = 1
-            ORDER BY obs_time DESC
-            LIMIT %(OFFSET)s,%(FETCH)s;"""
-        query_parameters = {
-                'QUALITY': quality,
-                'TIME_DIFF': time_difference,
-                'OBS_WEIGHT': obs_weight,
-                'ETH_ADDR': eth_addr,
-                'OFFSET': offset_row_count,
-                'FETCH': fetch_row_count}
-        self.c.execute(query_tmp, query_parameters)
+          FROM user_observations Obs
+          LEFT JOIN celestrak_SATCAT ON Obs.object_number = celestrak_SATCAT.norad_num
+          LEFT JOIN station_status ON Obs.station_status_code = station_status.code;
+        """
+        queryParams = {
+            'QUALITY': quality,
+            'TIME_DIFF': time_difference,
+            'OBS_WEIGHT': obs_weight,
+            'ETH_ADDR': eth_addr,
+            'OFFSET': offset_row_count,
+            'FETCH': fetch_row_count
+        }
+        self.c.execute(query, queryParams)
         return stringArrayToJSONArray_JSON(self.c.fetchall())
 
     def selectUserObjectsObserved_JSON(self, eth_addr, fetch_row_count=10, offset_row_count=0):
