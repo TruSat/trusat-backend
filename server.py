@@ -453,27 +453,30 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 return
 
         elif path == "/findObject":
-            object_name = parameters_map["objectName"]
+            try:
+                object_name = parameters_map["objectName"]
+            except:
+                self.send_400()
+                return
             try:
                 object_name = int(object_name)
             except Exception as e:
                 print(e)
-            objects = self.db.selectFindObject(object_name)
-            self.send_response(200)
-            self.send_header('Content-type', 'text/plain')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.send_header('Cache-Control', 'max-age=300')
-            self.end_headers()
             try:
+                objects = self.db.selectFindObject(object_name)
+                self.send_response(200)
+                self.send_header('Content-type', 'text/plain')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Cache-Control', 'max-age=300')
+                self.end_headers()
                 self.wfile.write(bytes(objects, 'utf-8'))
             except Exception as e:
-                self.wfile.write(b'[]')
+                self.send_500()
                 print(e)
+                return
 
         else:
             self.send_response(404)
-            self.end_headers()
-            self.wfile.write(b'')
         self.db.clean()
 
 
@@ -481,30 +484,43 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         response_body = b""
         signed_public_key = '0'
 
-        content_length = int(self.headers['Content-Length'])
-        body = self.rfile.read(content_length)
-        #try:
-        #    self.db.createTables()
-        #except:
-        #    print("Tables already exist")
         try:
+            content_length = int(self.headers['Content-Length'])
+            body = self.rfile.read(content_length)
             json_body = json.loads(body)
         except:
-            print('json could not be parsed:' + str(body))
+            self.send_400()
             return
 
         ### GET NONCE ENDPOINT ###
         if self.path == "/getNonce":
-            public_address_count = self.db.getObserverCountByID(public_address=json_body["address"])
+            try:
+                addr = json_body["address"]
+            except:
+                self.send_400()
+                return
+            try:
+                public_address_count = self.db.getObserverCountByID(public_address=addr)
+            except:
+                self.send_500()
+                return
             random_number = secrets.randbits(16)
             response_message = '{"nonce":\"%s\"}' % random_number
             if public_address_count[0] == None or public_address_count[0] == 0:
                 # New User
-                self.db.addObserver(json_body["address"], "NULL", 0, "NULL")
-                self.db.updateObserverNonce(nonce=random_number, public_address=json_body["address"])
+                try:
+                    self.db.addObserver(addr, "NULL", 0, "NULL")
+                    self.db.updateObserverNonce(nonce=random_number, public_address=addr)
+                except:
+                    self.send_500()
+                    return
             elif public_address_count[0] >= 1:
                 # Old User
-                self.db.updateObserverNonce(nonce=random_number, public_address=json_body["address"])
+                try:
+                    self.db.updateObserverNonce(nonce=random_number, public_address=addr)
+                except:
+                    self.send_500()
+                    return
             response_body = bytes(response_message, 'utf-8')
 
             self.send_response(200)
@@ -551,11 +567,14 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(response_body)
 
         elif self.path == "/editProfile":
-            #public_address = json_body["address"]
-            user_jwt = json_body["jwt"]
-            decoded_jwt = decode_jwt(user_jwt)
-            public_address = decoded_jwt["address"]
-            if db.getObserverJWT(public_address)[0].decode("utf-8") == user_jwt:
+            try:
+                user_jwt = json_body["jwt"]
+                decoded_jwt = decode_jwt(user_jwt)
+                public_address = decoded_jwt["address"]
+            except:
+                self.send_400()
+                return
+            if self.db.getObserverJWT(public_address)[0].decode("utf-8") == user_jwt:
                 try:  
                     username = json_body["username"]
                     if username != "null" and username != None:
@@ -659,16 +678,21 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(response_body)
             except Exception as e:
                 print(e)
-                self.send_response(400)
-                self.send_header('Content-type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(b'{}')
+                self.send_500()
+                return
 
         elif self.path == '/emailSecret':
-            to = json_body['to']
-            message_text = json_body['payload']
-            google_email.send_email(to, message_text)
+            try:
+                to = json_body['to']
+                message_text = json_body['payload']
+            except:
+                self.send_400()
+                return
+            try:
+                google_email.send_email(to, message_text)
+            except:
+                self.send_500()
+                return
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
@@ -676,9 +700,13 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(b'{}')
 
         elif self.path == "/submitObservation":
-            user_jwt = json_body["jwt"]
-            decoded_jwt = decode_jwt(user_jwt)
-            user_addr = decoded_jwt["address"]
+            try:
+                user_jwt = json_body["jwt"]
+                decoded_jwt = decode_jwt(user_jwt)
+                user_addr = decoded_jwt["address"]
+            except:
+                self.send_400()
+                return
             #user_addr = db.getObserverFromJWT(user_jwt)
             parsed_iod_array = []
             success = 0
