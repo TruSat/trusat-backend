@@ -681,32 +681,39 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(response_body)
                     
         elif self.path == '/claimAccount':
-            email = json_body['email']
-            with open('unsafe_private.pem', 'r') as file:
-                private_key = file.read()
-            private_rsa_key = load_pem_private_key(bytes(private_key, 'utf-8'), password=None, backend=default_backend())
-            results = self.db.selectObserverAddressFromEmail(email)
-            if results != None:
-                number = str(secrets.randbits(64))
-                jwt_payload = {
-                        'email': email,
-                        'secret': number,
-                        'exp': datetime.utcnow() + timedelta(1800)
-                    }
-                encoded_jwt = encode(jwt_payload, private_rsa_key, algorithm='RS256')
-                self.db.updateObserverPassword(encoded_jwt.decode('utf-8'), results.decode('utf-8'))
-                google_email.send_recovery_email(email, 'http://trusat.org/claim/' + encoded_jwt.decode('utf-8'))
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(b'{}')
+            try:
+                email = json_body['email']
+            except:
+                self.send_400()
+                return
+            try:
+                with open('unsafe_private.pem', 'r') as file:
+                    private_key = file.read()
+                private_rsa_key = load_pem_private_key(bytes(private_key, 'utf-8'), password=None, backend=default_backend())
+                results = self.db.selectObserverAddressFromEmail(email)
+                if results != None:
+                    number = str(secrets.randbits(64))
+                    jwt_payload = {
+                            'email': email,
+                            'secret': number,
+                            'exp': datetime.utcnow() + timedelta(1800)
+                        }
+                    encoded_jwt = encode(jwt_payload, private_rsa_key, algorithm='RS256')
+                    self.db.updateObserverPassword(encoded_jwt.decode('utf-8'), results.decode('utf-8'))
+                    google_email.send_recovery_email(email, 'http://trusat.org/claim/' + encoded_jwt.decode('utf-8'))
+            except:
+                self.send_500()
+                return
+            self.send_response(204)
 
         elif self.path == "/verifyClaimAccount":
-            message_text = json_body["secret"]
-            address = json_body["address"]
-            user_jwt = json_body["jwt"]
-            print(user_jwt)
+            try:
+                message_text = json_body["secret"]
+                address = json_body["address"]
+                user_jwt = json_body["jwt"]
+            except:
+                self.send_400()
+                return
             #Lookup number and old address
             try:
                 decoded_jwt = decode_jwt(user_jwt)
