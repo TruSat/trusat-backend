@@ -19,7 +19,8 @@ def create_message(sender, to, subject, message_text):
       'To log into TruSat, you\'ll need your password AND this secret code:\n\n' + message_text + \
       '\n\nThis email is the only time we can send you this code. TruSat cannot restore your account or reset your password for you. Please save this email forever and make a note of the password you used.\n\n' + \
       'Why do we do it this way? Read more\n\n' + \
-      'Questions? Please email: Support@TruSat.org'
+      'Questions? Please email: Support@TruSat.org\n\n' + \
+      'Login here: trusat.org/login'
     message = MIMEText(message_text)
     message['to'] = to
     message['from'] = sender
@@ -33,6 +34,7 @@ def send_message(service, user_id, message):
         return message
     except Exception as error:
         print('An error occurred: %s' % error)
+        return False
 
 
 
@@ -41,24 +43,30 @@ def send_email(to, message_text):
 
     creds = None
 
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
-            creds = pickle.load(token)
+    try:
+        if os.path.exists('token.pickle'):
+            with open('token.pickle', 'rb') as token:
+                creds = pickle.load(token)
 
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-            creds = flow.run_console()
-        with open('token.pickle', 'wb') as token:
-            pickle.dump(creds, token)
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+                creds = flow.run_console()
+            with open('token.pickle', 'wb') as token:
+                pickle.dump(creds, token)
 
-    service = build('gmail', 'v1', credentials=creds)
+        service = build('gmail', 'v1', credentials=creds)
 
-    message_to_send = create_message('kenan.oneal@consensys.net', to, 'TruSat - Save this email: Recovery Info', message_text)
+        message_to_send = create_message('kenan.oneal@consensys.net', to, 'TruSat - Save this email: Recovery Info', message_text)
 
-    send_message(service, 'me', message_to_send)
+        sent_message = send_message(service, 'me', message_to_send)
+        if sent_message == False:
+            return False
+        return True
+    except:
+        return False
 
 
 
@@ -86,24 +94,30 @@ def send_recovery_email(to, message_text):
 
     creds = None
 
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
-            creds = pickle.load(token)
+    try:
+        if os.path.exists('token.pickle'):
+            with open('token.pickle', 'rb') as token:
+                creds = pickle.load(token)
 
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-            creds = flow.run_console()
-        with open('token.pickle', 'wb') as token:
-            pickle.dump(creds, token)
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+                creds = flow.run_console()
+            with open('token.pickle', 'wb') as token:
+                pickle.dump(creds, token)
 
-    service = build('gmail', 'v1', credentials=creds)
+        service = build('gmail', 'v1', credentials=creds)
 
-    message_to_send = create_recovery_message('kenan.oneal@consensys.net', to, 'TruSat - Recover Account', message_text)
+        message_to_send = create_recovery_message('kenan.oneal@consensys.net', to, 'TruSat - Recover Account', message_text)
 
-    send_message(service, 'me', message_to_send)
+        sent_message = send_message(service, 'me', message_to_send)
+        if sent_message == False:
+            return False
+        return True
+    except:
+        return False
     
 
 
