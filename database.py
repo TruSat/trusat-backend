@@ -1610,6 +1610,43 @@ class Database:
         self.c.execute(query, queryParams)
         return self.c.fetchall()
 
+    def findObjectsWithIODsNotUsedInTTLEs(self):
+        """ Find IODs that have not yet been used to construct any TruSat TLEs (TTLEs), and index them by their object number
+            for easy processing.
+        
+            IODs are considered to have been used to construct a TruSat TLE even if their allocated weight was zero, so this
+            search is really finding IODs that have not yet undergone any TTLE processing.
+
+            Such IODs / objects are candidates for processing an incremental TLE update.
+
+            Returns
+            -------
+            dict with an integer key and a non-empty list of integers as a value.
+                Key: NORAD number of the object
+                Value: the list of obs_ids for this object that have not yet been used for any TTLE processing.
+                
+        """
+        query = """
+            select object_number, obs_id from ParsedIOD P
+            where valid_position = 1
+            AND object_number is not null
+            AND not exists (
+                select null
+                from TLE_process
+                where P.obs_id = TLE_process.obs_id)
+            ORDER BY object_number, obs_id;"""
+        self.c.execute(query)
+        results = self.c.fetchall()
+
+        retVal = {}
+        for (key, value) in results:
+            if key in retVal:
+                retVal[key].append(value)
+            else:
+                retVal[key] = [value]
+        
+        return retVal
+
     def findObjectsWithIODsButNoTLEs(self):
         """ Find the objects that have IODs but no TLEs. Such objects are candidates for a rebuild of TLE history.
 
