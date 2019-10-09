@@ -1179,11 +1179,11 @@ class Database:
         first = True
         for station in requested_station_list:
             if (first):
-                query_tmp = query_tmp + " ? "
+                query_tmp = query_tmp + " %s "
                 query_tuple += (station,)
                 first = False
             else:
-                query_tmp = query_tmp + ", ? "
+                query_tmp = query_tmp + ", %s "
                 query_tuple += (station,)
         query_tmp = query_tmp + ") ORDER BY station_num ASC;"
 
@@ -1516,11 +1516,11 @@ class Database:
         first = True
         for id in obs_id_list:
             if (first):
-                query_tmp = query_tmp + " ? "
+                query_tmp = query_tmp + " %s "
                 query_tuple += (id,)
                 first = False
             else:
-                query_tmp = query_tmp + ", ? "
+                query_tmp = query_tmp + ", %s "
                 query_tuple += (id,)
         query_tmp = query_tmp + ") ORDER BY obs_time ASC;"
 
@@ -2069,6 +2069,8 @@ class Database:
         Could be before or after the provided date.
         Returns TruSatellite() object
         """
+        # query_epoch_datetime_string = query_epoch_datetime.isoformat(timespec='microseconds')
+
         query_tmp = """SELECT *,ABS(TIMEDIFF(epoch,%(EPOCH_DATETIME)s)) as diff FROM TLE
             WHERE satellite_number=%(SATELLITE_NUMBER)s
             ORDER BY diff ASC
