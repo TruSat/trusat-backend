@@ -1655,6 +1655,11 @@ class Database:
         assert (minSecondsBetweenObservations >= 0 and minSecondsBetweenObservations < maxMinutesBetweenObservations * 60), "Invalid minSecondsBetweenObservations"
         assert (minObserverCount >= 1), "minObserverCount must be positive"
         assert (minObservationCount >= 1), "minObservationCount must be positive"
+
+        # FIXME: Shouldn't be necessary, but we may have some incoming date-parsing problems skewing the results by milliseconds
+        plus1sec = timedelta(seconds=1)
+        startDate += plus1sec 
+        
         query = """
             WITH TIME_WINDOW AS (
                 WITH OBS_USER AS (
@@ -1828,6 +1833,39 @@ class Database:
 
         self.c.execute(query, {'noradNumber': noradNumber})
         return self.c.fetchall()
+
+
+    def findDateNewestTTLE(self, noradNumber):
+        """ For a particular object, return datetime of the most recent TTLE.
+            Such dates are required when resuming the bulk TLE processing from a manual start.
+
+            If no TLEs exist, we return FALSE.
+
+            Parameters
+            ----------
+            noradNumber : int
+                The NORAD number of the object we are interested in. Only observations of this object are considered.
+
+            Returns
+            -------
+            python datetime
+                The datetime of the resulting TTLE
+        """
+        query = """           
+            SELECT epoch 
+            FROM TLE            
+            WHERE satellite_number = %(noradNumber)s
+            AND classification = 'T'
+            ORDER BY epoch DESC
+            LIMIT 1;"""
+
+        self.cdict.execute(query, {'noradNumber': noradNumber})
+        row = [self.cdict.fetchone()] 
+        if (row[0] is not None):
+            TTLEepoch = row[0]["epoch"]
+            return TTLEepoch
+        else:
+            return False
 
 
     def selectObservationHistory_JSON(self, fetch_row_count=10, offset_row_count=0):
@@ -2057,18 +2095,23 @@ class Database:
 
 
     # FIXME: Make this function prefer TruSatellite TLEs
-    def selectTLEEpochBeforeDate(self, query_epoch_datetime, satellite_number):
+    def selectTLEEpochBeforeDate(self, query_epoch_datetime, satellite_number,classification=False):
         """ Query to return the first TLE with epoch *prior* to specified date for a specific satellite number
 
         Returns TruSatellite() object
         """
+        if not classification:
+            classification="U"
+
         query_tmp = """SELECT * FROM TLE
             WHERE epoch <= %(EPOCH_DATETIME)s
             AND satellite_number=%(SATELLITE_NUMBER)s
+            AND classification=%(CLASSIFICATION)s
             ORDER BY epoch DESC
             LIMIT 1"""
         query_parameters = {'EPOCH_DATETIME': query_epoch_datetime,
-            'SATELLITE_NUMBER': satellite_number}
+            'SATELLITE_NUMBER': satellite_number,
+            'CLASSIFICATION' : classification}
         self.cdict.execute(query_tmp, query_parameters)
         row = [self.cdict.fetchone()]   # Put single result into an array
         return self.cdictQueryToTruSatelliteObj(row)[0]  # Unpack the array to the object, for just one result
