@@ -153,10 +153,20 @@ class Database:
         dbname     - name of the database
         dbtype     - database type INFILE, sqlserver or sqlite3
         dbhostname - hostname for sqlserver
-        dbusernmae - username for sqlserver
+        dbusername - username for sqlserver
         dbpassword - password for sqlserver
     """
-    def __init__(self, dbname,dbtype,dbhostname,dbusername,dbpassword):
+    def __init__(self, dbname=None,dbtype="sqlserver",dbhostname=None,dbusername=None,dbpassword=None):
+
+        dbname = dbname or os.getenv('TRUSAT_DATABASE_NAME', None)
+        dbhostname = dbhostname or os.getenv('TRUSAT_DATABASE_HOST', None)
+        dbusername = dbusername or os.getenv('TRUSAT_DATABASE_USER', None)
+        dbpassword = dbpassword or os.getenv('TRUSAT_DATABASE_PASSWORD', "")
+
+        dbname or print("No database name specified")
+        dbhostname or print("No database host specified")
+        dbusername or print("No database user specified")
+
         self._dbname     = dbname
         self._dbtype     = dbtype
         self._dbhostname = dbhostname
@@ -955,10 +965,14 @@ class Database:
 
 
     def addTLE(self, entry):
-        """ Add an TLE entry to the database 
-        Input: TruSatellite() object """
+        """ Ready a TLE entry for INSERT into the database.
+
+        For a "sqlserver" database, the INSERT is not performed. This must be done by calling
+        write_TLEs_to_db() or commit_TLE_db_writes()
+
+        Input: TruSatellite() object
+        """
         # TODO: add mean_motion_radians_per_minute from the TLE class to here
-        self._tleid = 0 # Set this as a variable in case we want to generate our own in the future
         newentryTuple = (
             entry.line0,
             entry.line1,
@@ -1005,8 +1019,6 @@ class Database:
                 log.error("{}".format(e))
         else:
             self._TLEentryList.append(newentryTuple)
-        return self._tleid
-
 
     def addTruSatTLE(self, TruSatTLE, TLE_process, tle_source_id, tle_start_rms, tle_result_rms, remarks):
         """ Add an TruSat-derived TLE entry to the database, concurrently with its TLE_process records
@@ -2158,6 +2170,23 @@ class Database:
             print(e)
             return None
 
+    def write_TLEs_to_db(self):
+        """Process a stored query batch for all the TLEs in _TLEentryList.
+
+        Does not commit the transaction. Useful for testing where we do not want to commit changes.
+
+        Returns cursor.lastrowid after all inserts have completed, i.e. the ID of the most
+        recently inserted TLE.
+        """
+        assert(self._dbtype == "sqlserver")
+        if(len(self._TLEentryList) > 0):
+            try:
+                self.c_addTLE_query.executemany(self.addTLE_query,self._TLEentryList)
+                self._TLEentryList = []
+            except Exception as e:
+                log.error("MYSQL ERROR: {}".format(e))
+        return self.c_addTLE_query.lastrowid
+
     def commit_TLE_db_writes(self):
         """Process a stored query batch for all the TLEs in a file at once.
 
@@ -2165,15 +2194,23 @@ class Database:
         That's not an issue for the small McCants files
         """
         if (self._dbtype == "sqlserver"):
-            if(len(self._TLEentryList) > 0):
-                try:
-                    self.c_addTLE_query.executemany(self.addTLE_query,self._TLEentryList)
-                    self._TLEentryList = []
-                except Exception as e:
-                    log.error("MYSQL ERROR: {}".format(e))
+            self.write_TLEs_to_db()
         if (self._dbtype != "INFILE"):
             self.conn.commit()
 
+    def get_TLE(self, TLE_ID):
+        """Returns a TruSatellite with the specified TLE_ID, or None if no such TLE exists.
+        """
+        assert(self._dbtype == "sqlserver")
+        query = """SELECT * FROM TLE WHERE tle_id = %(TLE_ID)s;"""
+        queryParams = {'TLE_ID': TLE_ID}
+
+        self.cdict.execute(query, queryParams)
+        rows = self.cdict.fetchall()
+        if len(rows) > 0:
+            return self.cdictQueryToTruSatelliteObj(rows)[0]
+        else:
+            return None
 
     def selectUserStations_JSON(self, eth_addr):
         """ Create a list of observation Stations for a given ETH address
