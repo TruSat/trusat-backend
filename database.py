@@ -7,19 +7,15 @@ import pycountry
 import json
 
 
-# The following 7 lines are necessary until the tle_util module is public
+# The following 9 lines are necessary until the trusat-orbit repo is public
 import inspect
 import os
 import sys
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
-tle_path = os.path.join(parentdir, "trusat-tle")
+tle_path = os.path.join(parentdir, "trusat-orbit")
 sys.path.insert(1,tle_path)
 import tle_util
-
-# The following 5 lines are necessary until the iod module is public
-iod_path = os.path.join(parentdir, "trusat-iod")
-sys.path.insert(1,iod_path)
 import iod
 
 import logging
