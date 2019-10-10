@@ -44,7 +44,7 @@ def test_find_cluster_two_observers_1_to_15_mins_apart(snapshot):
     snapshot.assert_match(results)
 # END IOD cluster search section
 
-# START other query section
+# START other TLE generation queries section
 def test_find_objects_with_IODs_but_no_TLEs(snapshot):
     results = pytest.db.findObjectsWithIODsButNoTLEs()
     snapshot.assert_match(results)
@@ -60,6 +60,39 @@ def test_find_IODs_newer_than_TLEs1(snapshot):
 def test_find_IODs_newer_than_TLEs2(snapshot):
     results = pytest.db.findIODsNewerThanPenultimateTLE(11) # Empty result set
     snapshot.assert_match(results)
-# END other query section
+# END other TLE generation queries section
+
+# START user queries section
+def test_user_observation_history1(snapshot):
+    # Leo Barhorst
+    results = pytest.db.selectUserObservationHistory_JSON('0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312') 
+    snapshot.assert_match(results)
+
+def test_user_observation_history2(snapshot):
+    # Ted Molczan
+    results = pytest.db.selectUserObservationHistory_JSON('0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78') 
+    snapshot.assert_match(results)
+
+def test_user_objects_observed1(snapshot):
+    # Leo Barhorst
+    results = pytest.db.selectUserObjectsObserved_JSON('0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312') 
+    snapshot.assert_match(results)
+
+def test_user_objects_observed2(snapshot):
+    # Ted Molczan
+    results = pytest.db.selectUserObjectsObserved_JSON('0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78') 
+    snapshot.assert_match(results)
+
+def test_user_sightings1(snapshot):
+    # Leo Barhorst; sightings from two separate stations
+    results = pytest.db.selectObjectUserSightings_JSON(7816, '0x5C760Ba09C12E4fd33be49f1B05E6E1e648EB312') 
+    snapshot.assert_match(results)
+
+def test_user_sightings2(snapshot):
+    # Ted Molczan; sightings from two separate stations
+    results = pytest.db.selectObjectUserSightings_JSON(28888, '0xc3D80057C9f9bE7B34a96Dc2C1f943AEfd36dE78') 
+    snapshot.assert_match(results)
+# END user queries section
+
 
 
