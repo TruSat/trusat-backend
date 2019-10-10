@@ -240,7 +240,7 @@ def main():
                         log.warning("Skipping TLE in file: {} for sat {} - fingerprint {} already in database.".format(fname, sat_num, Sat.tle_fingerprint))   
                         continue # Already have the TLE
                     else:
-                        result = db.addTLE(Sat)
+                        db.addTLE(Sat)
 
                 TLETotalCount += len(TLEs.Satellites)
 
