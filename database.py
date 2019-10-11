@@ -2328,7 +2328,7 @@ class Database:
 
         query_tmp = """SELECT Json_Object(
             'user_name', Observer.name,
-            'email', '%(EMAIL)s',
+            'email', %(EMAIL)s,
             'user_address', Observer.eth_addr,
             'user_location', Observer.location,
             'number_objects_tracked', %(NUM_OBJ_TRACKED)s,
@@ -2337,7 +2337,7 @@ class Database:
             'average_observation_quality', %(AVG_OBS_QUALITY)s,
             'user_bio', Observer.bio,
             'user_image', Observer.url_image,
-            'observation_station', '%(STATION_NUM)s')
+            'observation_station', %(STATION_NUM)s)
             FROM Observer
             WHERE Observer.eth_addr = %(ETH_ADDR)s
             LIMIT 1;"""
@@ -2868,7 +2868,7 @@ class Database:
                 'norad_number', norad_num,
                 'name', name)
                 FROM celestrak_SATCAT
-                WHERE norad_num LIKE '%(PARTIAL)s%'
+                WHERE norad_num LIKE %(PARTIAL)s%
                 ORDER by norad_num ASC;
                 """
         else:
@@ -2876,7 +2876,7 @@ class Database:
                 'norad_number', norad_num,
                 'name', name)
                 FROM celestrak_SATCAT
-                WHERE name LIKE '%(PARTIAL)s%'
+                WHERE name LIKE %(PARTIAL)s%
                 ORDER by name ASC;
                 """
         print(query_tmp)
