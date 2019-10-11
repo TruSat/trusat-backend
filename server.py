@@ -516,6 +516,31 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             except:
                 self.send_400()
                 return
+
+            
+            #try:
+            #    results = self.db.selectObserverAddressFromEmail(email)
+            #    if len(results) == 42:
+            #        with open('unsafe_private.pem', 'r') as file:
+            #            private_key = file.read()
+            #        private_rsa_key = load_pem_private_key(bytes(private_key, 'utf-8'), password=None, backend=default_backend())
+            #        if results != None:
+            #            number = str(secrets.randbits(64))
+            #            jwt_payload = {
+            #                'email': email,
+            #                'secret': number,
+            #                'exp': datetime.utcnow() + timedelta(1800)
+            #                }
+            #            encoded_jwt = encode(jwt_payload, private_rsa_key, algorithm='RS256')
+            #            self.db.updateObserverPassword(encoded_jwt.decode('utf-8'), results.decode('utf-8'))
+            #            google_email.send_recovery_email(email, 'http://trusat.org/claim/' + encoded_jwt.decode('utf-8'))
+            #    self.send_200_JSON('{}')
+            #    return
+            #except Exception as e:
+            #    print(e)
+            #    pass
+
+
             nonce = str(old_nonce[0]).encode('utf-8')
             self.db.updateObserverNonce(nonce=0, public_address=addr)
             message_hash = sha3.keccak_256(nonce).hexdigest()
