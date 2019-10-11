@@ -12,7 +12,7 @@ class RequestMethod(Enum):
     GET = 1
     POST = 2
 
-def api_request(endpoint, expect_json_response, post_data):
+def api_request(endpoint, expect_json_response, post_data, get_params):
     """
     Issues a GET or a POST to an API endpoint, decoding the result and prettifying it if JSON.
     Also prints timing info.
@@ -26,7 +26,7 @@ def api_request(endpoint, expect_json_response, post_data):
     if post_data:
       r = requests.post(API_BASE_URL + endpoint, json=post_data)
     else:
-      r = requests.get(API_BASE_URL + endpoint)
+      r = requests.get(API_BASE_URL + endpoint, params=get_params, headers={'Accept': 'Cache-Control'})
 
     end = time.time()
     print(f"{'POST' if post_data else 'GET'} {endpoint} took {end - start} seconds")
@@ -49,14 +49,14 @@ def api_post(endpoint, data, expect_json_response=True):
     POSTs a resource to an API endpoint, decoding the response and prettifying it if JSON.
     Also prints timing info.
     """
-    return api_request(endpoint, expect_json_response, data)
+    return api_request(endpoint, expect_json_response, data,{})
 
-def api_get(endpoint, is_json):
+def api_get(endpoint, is_json, params):
     """
     GETs a resource from an API endpoint, decoding it and prettifying it if JSON.
     Also prints timing info.
     """
-    return api_request(endpoint, is_json, {})
+    return api_request(endpoint, is_json, False, params)
 
 def api_get_json(endpoint):
     """
@@ -64,7 +64,7 @@ def api_get_json(endpoint):
     of a previous test run.
     Also outputs timing info (to see this, run `pytest -s`)
     """
-    return api_get(endpoint, True)
+    return api_get(endpoint, True,{})
 
 def api_get_utf8(endpoint):
     """
@@ -72,7 +72,7 @@ def api_get_utf8(endpoint):
     of a previous test run.
     Also outputs timing info (to see this, run `pytest -s`)
     """
-    return api_get(endpoint, False)
+    return api_get(endpoint, False, {})
 
 # START GET request section
 def test_catalog_priorities(snapshot):
@@ -114,15 +114,15 @@ def test_astriagraph(snapshot):
 
 # START POST request section
 def test_object_influence(snapshot):
-    api_response = api_post('/object/influence', TEST_OBJECT_IDENTIFIER)
+    api_response = api_get('/object/influence', True, params=TEST_OBJECT_IDENTIFIER)
     snapshot.assert_match(api_response)
 
 def test_object_info(snapshot):
-    api_response = api_post('/object/info', TEST_OBJECT_IDENTIFIER)
+    api_response = api_get('/object/info', True, params=TEST_OBJECT_IDENTIFIER)
     snapshot.assert_match(api_response)
 
 def test_tle_object(snapshot):
-    api_response = api_post('/tle/object', TEST_OBJECT_IDENTIFIER, expect_json_response=False)
+    api_response = api_get('/tle/object', False, params=TEST_OBJECT_IDENTIFIER)
     snapshot.assert_match(api_response)
 # END POST request section
 
