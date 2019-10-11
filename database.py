@@ -2006,11 +2006,15 @@ class Database:
             'username', user_string,
             'user_address', 'FILLER',
             'user_location', station_number,
-            'observation_quality', station_status_code,
-            'observation_time_difference', '1.42',
-            'observation_weight', '5')
+            'observation_quality', TLE_process.tle_start_rms,
+            'observation_time_difference', TLE_process.time_err,
+            'observation_position_error', TLE_process.position_err,
+            'observation_cross_track_error', TLE_process.cross_track_err,
+            'observation_weight', TLE_process.obs_weight
+            )
             FROM ParsedIOD
-            WHERE object_number=%(NORAD_NUMBER)s
+            LEFT JOIN TLE_process ON ParsedIOD.obs_id = TLE_process.obs_id
+            WHERE ParsedIOD.object_number=%(NORAD_NUMBER)s
             AND Year(obs_time)=%(YEAR)s
             ORDER BY obs_time DESC"""
         query_parameters = {
@@ -2501,10 +2505,8 @@ class Database:
         """ Return the observation history for a particular ETH addresses, starting with most 
         recent observations.
         """
-        # TODO: Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
-        quality = 99 # !TODO
-        time_difference = 3 # !TODO
-        obs_weight = 0.123456 # !TODO
+        # TODO (work in progress): Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
+        # Need to remove observation_quality when John is done with front-end implementation 
 
         query = """
           WITH user AS (
@@ -2530,19 +2532,19 @@ class Database:
             'object_name',celestrak_SATCAT.name,
             'station_number', Obs.station_num,
             'object_norad_number', Obs.object_number,
-            'observation_quality', %(QUALITY)s,
-            'observation_time_difference', %(TIME_DIFF)s,
-            'observation_weight', %(OBS_WEIGHT)s,
+            'observation_quality', TLE_process.tle_start_rms,
+            'observation_time_difference', TLE_process.time_err,
+            'observation_weight', TLE_process.obs_weight,
+            'observation_position_error', TLE_process.position_err,
+            'observation_cross_track_error', TLE_process.cross_track_err,
             'observation_iod', Obs.iod_string
             )
           FROM user_observations Obs
           LEFT JOIN celestrak_SATCAT ON Obs.object_number = celestrak_SATCAT.norad_num
-          LEFT JOIN station_status ON Obs.station_status_code = station_status.code;
+          LEFT JOIN station_status ON Obs.station_status_code = station_status.code
+          LEFT JOIN TLE_process ON Obs.obs_id = TLE_process.obs_id;
         """
         queryParams = {
-            'QUALITY': quality,
-            'TIME_DIFF': time_difference,
-            'OBS_WEIGHT': obs_weight,
             'ETH_ADDR': eth_addr,
             'OFFSET': offset_row_count,
             'FETCH': fetch_row_count
@@ -2889,11 +2891,10 @@ class Database:
         """ For a given object and user ETH address, return a detailed list of their observation 
         history for that object, with most recent observations first.
         """
-        # TODO: Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
-        quality = 99 # !TODO
-        time_difference = 3 # !TODO
-        obs_weight = 0.123456 # !TODO
+        # TODO (work in progress): Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
+        # Remove observation_quality when front-end changes are implemented
 
+        # Note - query variable inconsistency: user_observations IODs insted of Obs
         query = """
           WITH user AS (
             SELECT id user_id, location, name user_name, eth_addr
@@ -2920,18 +2921,18 @@ class Database:
             'user_location', IODs.location,
             'username', IODs.user_name,
             'user_address', IODs.eth_addr,
-            'observation_quality', %(QUALITY)s,
-            'observation_time_difference', %(TIME_DIFF)s,
-            'observation_weight', %(OBS_WEIGHT)s
+            'observation_quality', TLE_process.tle_start_rms,
+            'observation_time_difference', TLE_process.time_err,
+            'observation_position_error', TLE_process.position_err,
+            'observation_cross_track_error', TLE_process.cross_track_err,
+            'observation_weight', TLE_process.obs_weight
             )
           FROM user_observations IODs
           LEFT JOIN celestrak_SATCAT ON IODs.object_number = celestrak_SATCAT.norad_num
-          LEFT JOIN station_status ON IODs.station_status_code = station_status.code;
+          LEFT JOIN station_status ON IODs.station_status_code = station_status.code
+          LEFT JOIN TLE_process ON IODs.obs_id = TLE_process.obs_id;
         """
         queryParams = {
-            'QUALITY': quality,
-            'TIME_DIFF': time_difference,
-            'OBS_WEIGHT': obs_weight,
             'NORAD_NUM': norad_num,
             'ETH_ADDR': eth_addr,
             'OFFSET': offset_row_count,
@@ -2953,10 +2954,8 @@ class Database:
 
         In the roadmap, this should probably narrow to only the selected (most recent?) TLE
         """
-        # TODO: Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
-        quality = 99 # !TODO
-        time_difference = 3 # !TODO
-        obs_weight = 0.123456 # !TODO
+        # TODO (work in progress): Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
+        # Need to remove observation_quality when John is done with front-end implementation 
 
         # TODO: inadvertantly limits to single station?
         query_tmp = """SELECT Json_Object(
@@ -2964,9 +2963,11 @@ class Database:
             'object_origin', celestrak_SATCAT.source,
             'user_location', Obs.location,
             'username', Obs.user_name,
-            'observation_quality', %(QUALITY)s,
-            'observation_time_difference', %(TIME_DIFF)s,
-            'observation_weight', %(OBS_WEIGHT)s,
+            'observation_quality', TLE_process.tle_start_rms,
+            'observation_time_difference', TLE_process.time_err,
+            'observation_position_error', TLE_process.position_err,
+            'observation_cross_track_error', TLE_process.cross_track_err,
+            'observation_weight', TLE_process.obs_weight,
             'user_address', Obs.eth_addr)
             FROM ParsedIOD
             LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
@@ -2980,13 +2981,11 @@ class Database:
                     FROM Station,Observer
                     WHERE Station.user = Observer.id)
                     Obs ON ParsedIOD.station_number = Obs.station_num
+            LEFT JOIN TLE_process ON Obs.obs_id = TLE_process.obs_id
             WHERE ParsedIOD.object_number = %(NORAD_NUM)s
             ORDER BY obs_time DESC
             LIMIT %(OFFSET)s,%(FETCH)s;"""
         query_parameters = {
-            'QUALITY': quality,
-            'TIME_DIFF': time_difference,
-            'OBS_WEIGHT': obs_weight,
             'NORAD_NUM': norad_num,
             'OFFSET': offset_row_count,
             'FETCH': fetch_row_count
