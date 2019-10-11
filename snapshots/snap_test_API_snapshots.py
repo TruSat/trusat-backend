@@ -9,7 +9,7 @@ snapshots = Snapshot()
 
 snapshots['test_catalog_priorities 1'] = '''STATUS: 200
 
-HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.1', 'Date': 'XXX', 'Content-type': 'application/json', 'Access-Control-Allow-Origin': '*'}
+HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.3', 'Date': 'XXX', 'Content-type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'max-age=300'}
 
 CONTENT:[
     {
@@ -1316,7 +1316,7 @@ CONTENT:[
 
 snapshots['test_catalog_undisclosed 1'] = '''STATUS: 200
 
-HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.1', 'Date': 'XXX', 'Content-type': 'application/json', 'Access-Control-Allow-Origin': '*'}
+HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.3', 'Date': 'XXX', 'Content-type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'max-age=300'}
 
 CONTENT:[
     {
@@ -2623,7 +2623,7 @@ CONTENT:[
 
 snapshots['test_catalog_debris 1'] = '''STATUS: 200
 
-HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.1', 'Date': 'XXX', 'Content-type': 'application/json', 'Access-Control-Allow-Origin': '*'}
+HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.3', 'Date': 'XXX', 'Content-type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'max-age=300'}
 
 CONTENT:[
     {
@@ -3930,7 +3930,7 @@ CONTENT:[
 
 snapshots['test_catalog_latest 1'] = '''STATUS: 200
 
-HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.1', 'Date': 'XXX', 'Content-type': 'application/json', 'Access-Control-Allow-Origin': '*'}
+HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.3', 'Date': 'XXX', 'Content-type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'max-age=300'}
 
 CONTENT:[
     {
@@ -5237,7 +5237,7 @@ CONTENT:[
 
 snapshots['test_catalog_all 1'] = '''STATUS: 200
 
-HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.1', 'Date': 'XXX', 'Content-type': 'application/json', 'Access-Control-Allow-Origin': '*'}
+HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.3', 'Date': 'XXX', 'Content-type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'max-age=300'}
 
 CONTENT:[
     {
@@ -6544,7 +6544,7 @@ CONTENT:[
 
 snapshots['test_tle_trusat_all 1'] = '''STATUS: 200
 
-HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.1', 'Date': 'XXX', 'Content-type': 'text/plain', 'Access-Control-Allow-Origin': '*'}
+HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.3', 'Date': 'XXX', 'Content-type': 'text/plain', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'max-age=300'}
 
 CONTENT:Canyon 1
 1 03334U 68063A   19056.54172494 0.00000000  00000-0  00000-0 0    06
@@ -8602,7 +8602,7 @@ Elisa 99450
 
 snapshots['test_tle_trusat_priorities 1'] = '''STATUS: 200
 
-HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.1', 'Date': 'XXX', 'Content-type': 'text/plain', 'Access-Control-Allow-Origin': '*'}
+HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.3', 'Date': 'XXX', 'Content-type': 'text/plain', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'max-age=300'}
 
 CONTENT:Unknown 050318
 1 90032U 05577A   05116.46023920 0.00000411  00000-0  00000-0 0    06
@@ -10660,13 +10660,13 @@ IGS 5A
 
 snapshots['test_tle_trusat_high_confidence 1'] = '''STATUS: 200
 
-HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.1', 'Date': 'XXX', 'Content-type': 'text/plain', 'Access-Control-Allow-Origin': '*'}
+HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.3', 'Date': 'XXX', 'Content-type': 'text/plain', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'max-age=300'}
 
 CONTENT:'''
 
 snapshots['test_astriagraph 1'] = '''STATUS: 200
 
-HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.1', 'Date': 'XXX', 'Content-type': 'text/plain', 'Access-Control-Allow-Origin': '*'}
+HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.3', 'Date': 'XXX', 'Content-type': 'text/plain', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'max-age=300'}
 
 CONTENT:Canyon 1
 1 03334U 68063A   19056.54172494 0.00000000  00000-0  00000-0 0    06
@@ -12724,7 +12724,7 @@ Elisa 99450
 
 snapshots['test_object_influence 1'] = '''STATUS: 200
 
-HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.1', 'Date': 'XXX', 'Content-type': 'application/json', 'Access-Control-Allow-Origin': '*'}
+HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.3', 'Date': 'XXX', 'Content-type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'max-age=300'}
 
 CONTENT:[
     {
@@ -13731,7 +13731,7 @@ CONTENT:[
 
 snapshots['test_tle_object 1'] = '''STATUS: 200
 
-HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.1', 'Date': 'XXX', 'Content-type': 'text/plain', 'Access-Control-Allow-Origin': '*'}
+HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.3', 'Date': 'XXX', 'Content-type': 'text/plain', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'max-age=300'}
 
 CONTENT:IGS Opt 5r
 1 40538U 15015A   19235.85317892 0.00000000  00000-0  00000-0 0    08
@@ -13740,7 +13740,7 @@ CONTENT:IGS Opt 5r
 
 snapshots['test_object_info 1'] = '''STATUS: 200
 
-HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.1', 'Date': 'XXX', 'Content-type': 'application/json', 'Access-Control-Allow-Origin': '*'}
+HEADERS:{'Server': 'BaseHTTP/0.6 Python/3.7.3', 'Date': 'XXX', 'Content-type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'max-age=300'}
 
 CONTENT:{
     "address_last_tracked": "0xc5f1194555D8328Bdf6EBBc37f7C49d4B5125bA9",
