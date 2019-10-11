@@ -274,7 +274,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             except:
                 self.send_500()
                 return
-            if tle_json is not False:
+            if tles_json is not False:
                 self.send_200_text_cache(tles_json)
             else:
                 self.send_500()
