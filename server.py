@@ -281,6 +281,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 return
 
         elif path == "/profile":
+            jwt_user_addr = ''
             try:
                 user_addr = parameters_map["address"]
             except Exception as e:
@@ -288,56 +289,33 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 print(e)
                 self.send_400()
                 return
-            #user_jwt = json_body["jwt"]
-            #try:
-            #    user_addr = json_body["addresss"]
-            #except:
-            #    try:
-            #        user_addr = json_body["address"]
-            #    except:
-            #        decoded_jwt = decode_jwt(user_jwt)
-            #        user_addr = decoded_jwt["address"]
+            try:
+                user_profile_json = self.db.selectProfileInfo_JSON(user_addr)
+                objects_observed_json = self.db.selectUserObjectsObserved_JSON(user_addr)
+                observation_history_json = self.db.selectUserObservationHistory_JSON(user_addr)
+                user_profile_json["objects_observed"] = objects_observed_json
+                user_profile_json["observation_history"] = observation_history_json
+                user_profile_json["observation_stations"] = []
+            except:
+                self.send_500()
+                return
+            try:
+                user_jwt = json_body["jwt"]
+                decoded_jwt = decode_jwt(user_jwt)
+                jwt_user_addr = decoded_jwt["address"]
+            except:
+                pass
+            if jwt_user_addr.lower() == user_addr.lower():
+                try:
+                    observation_station_numbers = self.db.selectUserStationNumbers_JSON(user_addr)
+                    for station in observation_station_numbers:
+                        user_profile_json["observation_stations"].append(station["station_number"])
+                except:
+                    self.send_500()
+                    return
+                #user_profile_json["public_username"] = False
+                #user_profile_json["public_location"] = False
 
-            #try:
-            #    with open('public.pem', 'r') as file:
-            #        public_key = file.read()
-            #    public_rsa_key = load_pem_public_key(bytes(public_key,'utf-8'), backend=default_backend())
-            #    decoded_jwt = decode(user_jwt, public_rsa_key, algorithms='RS256')
-            #    decoded_addr = decoded_jwt["address"]
-            #except:
-            #    print("need to update the jwt for user")
-
-
-
-
-
-
-            #try:
-            #    user_addr = json_body["address"]
-            #except:
-            #    try:
-            #        user_addr = db.getObserverFromJWT(user_jwt)
-            #    except:
-            #        self.send_response(418)
-            #        self.send_header('Content-type', 'applicaiton/json')
-            #        self.send_header('Access-Control-Allow-Origin', '*')
-            #        self.end_headers()
-            #        self.wfile.write(b'{}')
-            #        return
-            objects_observed_json = self.db.selectUserObjectsObserved_JSON(user_addr)
-            observation_history_json = self.db.selectUserObservationHistory_JSON(user_addr)
-            #credentials = self.db.getObserverJWT(user_addr)
-            observation_station_numbers = self.db.selectUserStationNumbers_JSON(user_addr)
-            user_profile_json = self.db.selectProfileInfo_JSON(user_addr)
-            user_profile_json["observation_stations"] = []
-            for station in observation_station_numbers:
-                user_profile_json["observation_stations"].append(station["station_number"])
-            user_profile_json["objects_observed"] = objects_observed_json
-            user_profile_json["observation_history"] = observation_history_json
-            user_profile_json["public_username"] = False
-            user_profile_json["public_location"] = False
-            #if credentials[0].decode("utf-8") == user_jwt:
-            #    response_body = bytes(json.dumps(user_profile_json), 'utf-8')
             for k,v in user_profile_json.items():
                 if v == None or v =='NULL':
                     user_profile_json[k] = ""
@@ -416,26 +394,21 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 return
 
         elif path == '/object/userSightings':
+            response_body = []
             try:
                 norad_number = parameters_map['norad_number']
-                public_address = parameters_map['address']
-            except:
+                user_jwt = parameters_map['jwt']
+                decoded_jwt = decode_jwt(user_jwt)
+                public_address = decoded_jwt["address"]
+            except Exception as e:
+                print(e)
                 self.send_400()
                 return
             try:
-                #user_jwt = json_body['jwt']
-                #decoded_jwt = decode_jwt(user_jwt)
-                #try:
-                #    public_address = decoded_jwt["address"]
-                #except:
-                #    self.send_response(403)
-                #    self.end_headers()
-                #    self.wfile.write(b'')
-                #    return
-
                 response_body = self.db.selectObjectUserSightings_JSON(norad_number, public_address)
                 self.send_200_JSON_cache(response_body)
-            except:
+            except Exception as e:
+                print(e)
                 self.send_500()
                 return
 
@@ -533,7 +506,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(response_body)
 
-
         elif self.path == "/signup":
             try:
                 addr = json_body["address"]
@@ -559,7 +531,11 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                         try:
                             self.db.updateObserverEmail(email, addr)
                             google_email.send_email(email, payload)
-                            self.send_response(204)
+                            self.send_200_JSON('{}')
+                            
+                            #self.send_header('Access-Control-Allow-Origin', '*')
+                            #self.end_headers()
+                            #self.send_response(204)
                             return
                         except Exception as e:
                             print(e)
