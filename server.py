@@ -71,6 +71,10 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         self.send_response(400)
         self.db.clean()
 
+    def send_404(self):
+        self.send_response(404)
+        self.db.clean()
+
     def send_200_JSON(self, body_data):
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
