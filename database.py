@@ -427,7 +427,7 @@ class Database:
             tle_start_rms,
             tle_result_rms,
             remarks
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)'''
+            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'''
         self.addSATCAT_query = '''INSERT INTO celestrak_SATCAT (
             intl_desg,
             norad_num,
@@ -1785,8 +1785,8 @@ class Database:
         query = """
             SELECT DISTINCT object_number from ParsedIOD
             WHERE valid_position=1 
-            AND object_number in (SELECT DISTINCT satellite_number from TLE)
-            AND obs_id NOT IN (SELECT DISTINCT obs_id FROM TLE_process)
+            AND object_number in (SELECT DISTINCT satellite_number from TLE) /* We have a TLE */
+            AND obs_id NOT IN (SELECT DISTINCT obs_id FROM TLE_process)      /* It has not been processed */
             ORDER BY object_number ASC;"""
         self.c.execute(query)
         results = self.c.fetchall()
