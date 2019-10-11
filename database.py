@@ -1020,7 +1020,8 @@ class Database:
         else:
             self._TLEentryList.append(newentryTuple)
 
-    def addTruSatTLE(self, TruSatTLE, TLE_process, tle_source_id, tle_start_rms, tle_result_rms, remarks):
+
+    def addTruSatTLE(self, TruSatTLE, TLE_process, tle_source_id, tle_start_rms, tle_result_rms, remarks, satellite_number=False, tle_result_id=False):
         """ Add an TruSat-derived TLE entry to the database, concurrently with its TLE_process records
         Perform as an atomic commit of all records, or bail.
 
@@ -1030,58 +1031,62 @@ class Database:
 
         Outputs:
          - Success/Fail
+
+        Set TruSatTLE = False to update process table from existing TLEs (testing)
         """
         TLE_process_list = []
 
-        # TODO: add mean_motion_radians_per_minute from the TLE class to here
-        newTLETuple = (
-            TruSatTLE.line0,
-            TruSatTLE.line1,
-            TruSatTLE.line2,
+        if (TruSatTLE):
+            # TODO: add mean_motion_radians_per_minute from the TLE class to here
+            satellite_number = TruSatTLE.satellite_number
+            newTLETuple = (
+                TruSatTLE.line0,
+                TruSatTLE.line1,
+                TruSatTLE.line2,
 
-            TruSatTLE.name,
-            TruSatTLE.satellite_number,
-            TruSatTLE.classification,
-            TruSatTLE.designation,
-            TruSatTLE.epoch_string,
-            TruSatTLE.mean_motion_derivative,
-            TruSatTLE.mean_motion_sec_derivative,
-            TruSatTLE.bstar,
-            TruSatTLE.ephemeris_type,
-            TruSatTLE.element_num,
-            TruSatTLE.inclination_degrees,
-            TruSatTLE.inclination_radians,
-            TruSatTLE.raan_degrees,
-            TruSatTLE.raan_radians,
+                TruSatTLE.name,
+                TruSatTLE.satellite_number,
+                TruSatTLE.classification,
+                TruSatTLE.designation,
+                TruSatTLE.epoch_string,
+                TruSatTLE.mean_motion_derivative,
+                TruSatTLE.mean_motion_sec_derivative,
+                TruSatTLE.bstar,
+                TruSatTLE.ephemeris_type,
+                TruSatTLE.element_num,
+                TruSatTLE.inclination_degrees,
+                TruSatTLE.inclination_radians,
+                TruSatTLE.raan_degrees,
+                TruSatTLE.raan_radians,
 
-            TruSatTLE.eccentricity,
-            TruSatTLE.arg_perigee_degrees,
-            TruSatTLE.arg_perigee_radians,
-            TruSatTLE.mean_anomaly_degrees,
-            TruSatTLE.mean_anomaly_radians,
-            TruSatTLE.mean_motion_orbits_per_day,
-            TruSatTLE.mean_motion_radians_per_second,
-            TruSatTLE.orbit_number,
+                TruSatTLE.eccentricity,
+                TruSatTLE.arg_perigee_degrees,
+                TruSatTLE.arg_perigee_radians,
+                TruSatTLE.mean_anomaly_degrees,
+                TruSatTLE.mean_anomaly_radians,
+                TruSatTLE.mean_motion_orbits_per_day,
+                TruSatTLE.mean_motion_radians_per_second,
+                TruSatTLE.orbit_number,
 
-            TruSatTLE.launch_piece_number,
-            TruSatTLE.analyst_object,
-            TruSatTLE.strict,
+                TruSatTLE.launch_piece_number,
+                TruSatTLE.analyst_object,
+                TruSatTLE.strict,
 
-            TruSatTLE.tle_fingerprint,
-            TruSatTLE._tle_file_fingerprint
-            )
+                TruSatTLE.tle_fingerprint,
+                TruSatTLE._tle_file_fingerprint
+                )
 
-        # Insert the TLE first, so that we can include the resulting tle_id as tle_result_id in the table TLE_process
-        try:
-            self.c_addTLE_query.execute(self.addTLE_query,newTLETuple)
-            tle_result_id = self.c_addTLE_query.lastrowid
-        except Exception as e:
-            log.error("MYSQL ERROR: {}".format(e))
-            return False
+            # Insert the TLE first, so that we can include the resulting tle_id as tle_result_id in the table TLE_process
+            try:
+                self.c_addTLE_query.execute(self.addTLE_query,newTLETuple)
+                tle_result_id = self.c_addTLE_query.lastrowid
+            except Exception as e:
+                log.error("MYSQL ERROR: {}".format(e))
+                return False
 
         for obs_id in TLE_process:
             TLE_process_tuple = (
-                TruSatTLE.satellite_number,
+                satellite_number,
                 obs_id,
                 tle_source_id,
                 tle_result_id,
@@ -1541,6 +1546,32 @@ class Database:
         return self.cdictQueryToObsObj(rows)
 
 
+    def selectIODlistSubmitRange(self,noradNumber,startTime,endTime):
+        """ For the given object, start and end times, return a list of Observeration objects """
+
+        query_tmp = """SELECT * FROM ParsedIOD
+                WHERE valid_position=1
+                AND object_number = %(noradNumber)s
+                AND submitted >= %(startTime)s
+                AND submitted <= %(endTime)s
+                AND obs_id NOT IN (SELECT DISTINCT obs_id FROM TLE_process where object_number=%(noradNumber)s)
+                AND station_number IN (SELECT DISTINCT station_num FROM Station)
+                ORDER BY obs_time ASC;"""
+
+        queryParams = {
+          'noradNumber' : noradNumber,
+          'startTime': startTime,
+          'endTime': endTime
+          }
+
+        self.cdict.execute(query_tmp, queryParams)
+        rows = self.cdict.fetchall()
+        if (len(rows)>0):
+            return self.cdictQueryToObsObj(rows)
+        else:
+            return False
+
+
     def getObservationCount(self):
         """ TODO: Kenan to document """
         """ GET OBSERVATION COUNT """
@@ -1712,7 +1743,7 @@ class Database:
         self.c.execute(query, queryParams)
         return QueryTupleListToList(self.c.fetchall())
 
-    def findObjectsWithIODsNotUsedInTTLEs(self):
+    def findIODsNotUsedInTTLEs(self):
         """ Find IODs that have not yet been used to construct any TruSat TLEs (TTLEs), and index them by their object number
             for easy processing.
         
@@ -1748,6 +1779,22 @@ class Database:
                 retVal[key] = [value]
         
         return retVal
+
+
+    def findObjectsWithIODsNotUsedInTTLEs(self):
+        query = """
+            SELECT DISTINCT object_number from ParsedIOD
+            WHERE valid_position=1 
+            AND object_number in (SELECT DISTINCT satellite_number from TLE)
+            AND obs_id NOT IN (SELECT DISTINCT obs_id FROM TLE_process)
+            ORDER BY object_number ASC;"""
+        self.c.execute(query)
+        results = self.c.fetchall()
+        if results:
+            return QueryTupleListToList(results)
+        else:
+            return False
+
 
     def findObjectsWithIODsButNoTLEs(self):
         """ Find the objects that have IODs but no TLEs. Such objects are candidates for a rebuild of TLE history.
@@ -1864,6 +1911,59 @@ class Database:
         if (row[0] is not None):
             TTLEepoch = row[0]["epoch"]
             return TTLEepoch
+        else:
+            return False
+
+
+    def findFirstIODandTLE(self, noradNumber):
+        """ For testing.  For a particular object, find the (submitted) date of the first observation, and the first TLE after it.
+        Using submitted time instead of obs_time as the TLEs get created in the order the observations are submitted/received.
+
+        Return TLE as TruSatellite() object.  
+        We can assume the first range starts at zero time, and use the epoch of the TLE as the end of the next range.
+        """
+
+        # Get submitted time of next obs_id NOT in TLE_process
+        query_tmp = """SELECT submitted FROM ParsedIOD
+            WHERE object_number=%(SATELLITE_NUMBER)s
+            AND obs_id NOT IN (SELECT DISTINCT obs_id FROM TLE_process where object_number=%(SATELLITE_NUMBER)s)
+            AND station_number IN (SELECT DISTINCT station_num from Station)
+            ORDER BY submitted ASC
+            LIMIT 1"""
+        query_parameters = {'SATELLITE_NUMBER': noradNumber}
+        self.cdict.execute(query_tmp, query_parameters)
+        row = [self.cdict.fetchone()][0]    # Put single result into an array
+        earliest_submitted = row["submitted"]
+
+        query_tmp = """SELECT * FROM TLE
+            WHERE satellite_number=%(SATELLITE_NUMBER)s
+            AND epoch > %(EPOCH)s
+            ORDER BY epoch ASC
+            LIMIT 1"""
+        query_parameters = {'SATELLITE_NUMBER': noradNumber,
+                            'EPOCH': earliest_submitted}
+        self.cdict.execute(query_tmp, query_parameters)
+        row = [self.cdict.fetchone()]    # Put single result into an array
+        return self.cdictQueryToTruSatelliteObj(row)[0]  # Unpack the array to the object, for just one result
+        
+
+    def findNextUnprocessedTLE(self,noradNumber,epoch):
+        """ For testing.  For a particular object, the next TLE by epoch time.
+        Consult TLE process where there might be multiple TLEs for a given epoch.
+
+        Return TLE as TruSatellite() object."""  
+        query_tmp = """SELECT * FROM TLE
+            WHERE satellite_number=%(SATELLITE_NUMBER)s
+            AND epoch > %(EPOCH)s
+            AND tle_id NOT IN (SELECT DISTINCT tle_result_id from TLE_process)
+            ORDER BY epoch ASC
+            LIMIT 1"""
+        query_parameters = {'SATELLITE_NUMBER': noradNumber,
+                            'EPOCH': epoch}
+        self.cdict.execute(query_tmp, query_parameters)
+        row = [self.cdict.fetchone()]    # Put single result into an array
+        if row[0] is not None:
+            return self.cdictQueryToTruSatelliteObj(row)[0]  # Unpack the array to the object, for just one result
         else:
             return False
 
