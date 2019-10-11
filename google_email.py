@@ -175,7 +175,7 @@ def get_email_history(history_id):
     #return wait_for_email(history_id)#"waiting for email info"
 
 def wait_for_email(history_id):
-    sleep(30)
+    sleep(300)
 
 
     f = open('login.txt', 'r')
@@ -241,6 +241,8 @@ def wait_for_email(history_id):
                                 email_body_base64 = j["body"]["data"]
                                 email_body = base64.urlsafe_b64decode(email_body_base64).decode('utf-8')
                                 print("EMAIL BODY")
+                                body = email_body.split('\n')
+                                print(body)
                                 print(email_body)
                     except:
                         pass
