@@ -97,6 +97,9 @@ if __name__ == '__main__':
     conf_parser.add_argument("-q", "--quiet", help="Suppress console output",
                              dest='quiet',
                              action="store_true")
+    conf_parser.add_argument("-o", "--userinfo", help="Write out additional info about users",
+                             dest='userinfo',
+                             action="store_true")
     conf_parser.add_argument("-V", "--verbose", 
                              help="increase verbosity: 0 = only warnings, 1 = info, 2 = debug. No number means info. Default is no verbosity.",
                              const=1, 
@@ -114,6 +117,7 @@ if __name__ == '__main__':
     dbtype = args.dbtype
     verbose = args.verbose
     quiet = args.quiet
+    userinfo = args.userinfo
     app_start_time = time()
 
     # https://stackoverflow.com/questions/14097061/easier-way-to-enable-verbose-logging
@@ -169,15 +173,16 @@ if __name__ == '__main__':
     TotalObsCount = 0
     FileCount_running = 0
     UserCount_running = 0
-    UserDict = []
-    COSPAR_Dict = []
 
-    # Set up to write out what we learn about user records for external processing
-    UserFile =  open("seesat_hypermail_users.csv", 'w')
-    writer_UserFile = writer(UserFile, dialect='unix')
+    if (userinfo):
+        UserDict = []
+        COSPAR_Dict = []
+        # Set up to write out what we learn about user records for external processing
+        UserFile =  open("seesat_hypermail_users.csv", 'w')
+        writer_UserFile = writer(UserFile, dialect='unix')
 
-    CosparFile = open("seesat_hypermail_cospar.csv", 'w')
-    writer_COSPAR_Dict = writer(CosparFile, dialect='unix')
+        CosparFile = open("seesat_hypermail_cospar.csv", 'w')
+        writer_COSPAR_Dict = writer(CosparFile, dialect='unix')
 
     # Traverse the directory
     FileCount_total = sum([len(fileList) for dirName, subdirList, fileList in os.walk(root_dir)])
@@ -216,34 +221,34 @@ if __name__ == '__main__':
                     IODpeek = IOD_records[0]
                     log.info("Found {:3} {:3} observations in file ({}/{}): {}".format(len(IOD_records), IODpeek.IODType, FileCount_running, FileCount_total, fileName))
                     # Go back into file to get observer information
-                    with open(fileName) as file:
-                        lines = file.readlines()
+                    lines = body.split('\n')
 
-                        # Pop off the list and process the header which applies to all following records
-                        line = lines.pop(0)
-                        first_line = line.strip()
-                        # Parse out the name of the sender
-                        find_via = line.find('via Seesat')
-                        find_parenthases = line.find('(')
-                        find_left_angle_bracket = line.find('<')
-                        if find_via > 0:
-                            sender = line[6:find_via-1]
-                        elif find_parenthases > 0:
-                            sender = line[6:find_parenthases-1]
-                        elif find_left_angle_bracket > 0:
-                            sender = line[6:find_left_angle_bracket-1]
-                        else:
-                            sender = line[6:]
-                        
-                        # Remove leading/trailing whitespace, and quotes
-                        sender = sender.strip()
-                        sender = sender.lstrip('\"')
-                        sender = sender.rstrip('\"')
+                    # Grab the first line from the list and process the header which applies to all following records
+                    line = lines[0]
+                    first_line = line.strip()
+                    # Parse out the name of the sender
+                    find_via = line.find('via Seesat')
+                    find_parenthases = line.find('(')
+                    find_left_angle_bracket = line.find('<')
+                    if find_via > 0:
+                        sender = line[6:find_via-1]
+                    elif find_parenthases > 0:
+                        sender = line[6:find_parenthases-1]
+                    elif find_left_angle_bracket > 0:
+                        sender = line[6:find_left_angle_bracket-1]
+                    else:
+                        sender = line[6:]
+                    
+                    # Remove leading/trailing whitespace, and quotes
+                    sender = sender.strip()
+                    sender = sender.lstrip('\"')
+                    sender = sender.rstrip('\"')
 
-                        # For now, just counting on all the filenames having this
-                        # Alternatively, some of the files have it in the second line
-                        submit_time = get_submit_time_from_filename(fileName)
+                    # For now, just counting on all the filenames having this
+                    # Alternatively, some of the files have it in the second line
+                    submit_time = get_submit_time_from_filename(fileName)
 
+                    if (userinfo):
                         for line in lines:
                             if(find_cospar_mention(line)):
                                 line = line.strip()
@@ -251,9 +256,9 @@ if __name__ == '__main__':
                                     COSPAR_Dict.append(line)
                                     writer_COSPAR_Dict.writerow( [IODpeek.Station, sender, line])
 
-                    if (IODpeek.Station not in UserDict):
-                        UserDict.append(IODpeek.Station)
-                        writer_UserFile.writerow( [sender, first_line, IODpeek.Station, "hypermail"])
+                        if (IODpeek.Station not in UserDict):
+                            UserDict.append(IODpeek.Station)
+                            writer_UserFile.writerow( [sender, first_line, IODpeek.Station, "hypermail"])
         
                     obsid = db.addParsedIOD(IOD_records, sender, submit_time)
 
@@ -274,9 +279,12 @@ if __name__ == '__main__':
             dirCount = ("{} directories".format(DirCount_total))
         else:
             dirCount = "1 directory"
-
-    print("Processed {} observations from {} users in {} files in {}.".format(TotalObsCount, len(UserDict), FileCount_total, dirCount))
-    print('                                          ({}) IOD records ({:4.2f} %)'.format(TotalCount_IOD,100*TotalCount_IOD/TotalObsCount))
-    print('                                          ({}) UK records ({:4.2f} %)'.format(TotalCount_UK,100*TotalCount_UK/TotalObsCount))
-    print('                                          ({}) RDE records ({:4.2f} %)\n'.format(TotalCount_RDE, 100*TotalCount_RDE/TotalObsCount))
-    print("Elapsed time: {:.3f} seconds.".format(time()-app_start_time))
+    print()
+    if (userinfo):
+        print("Processed {} observations from {} users in {} files in {} in {:.3f} seconds.".format(TotalObsCount, len(UserDict), FileCount_total, dirCount, time()-app_start_time))
+    else:
+        print("Processed {} observations in {} files in {} in {:.3f} seconds.".format(TotalObsCount, FileCount_total, dirCount, time()-app_start_time))
+    print('                                          ({:6d}) IOD records ({:4.1f} %)'.format(TotalCount_IOD,100*TotalCount_IOD/TotalObsCount))
+    print('                                          ({:6d}) UK  records ({:4.1f} %)'.format(TotalCount_UK,100*TotalCount_UK/TotalObsCount))
+    print('                                          ({:6d}) RDE records ({:4.1f} %)\n'.format(TotalCount_RDE, 100*TotalCount_RDE/TotalObsCount))
+    print()
