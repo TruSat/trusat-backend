@@ -5,20 +5,26 @@ if sys.version_info[0] != 3 or sys.version_info[1] < 6:
     print("This script requires Python version 3.6")
     sys.exit(1)
 
+import os
 from time import time                               # For performance timing
+
+import logging
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG) 
 
 import configparser                 # config file parsing
 import argparse                     # command line parsing
-
-import database
 
 # The following 5 lines are necessary until our modules are public
 import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
-database_path = os.path.join(parentdir, "trusat-tle")
-sys.path.insert(1,database_path) 
+orbit_path = os.path.join(parentdir, "../trusat-orbit")
+sys.path.insert(1,orbit_path) 
 import tle_util
+
+sys.path.insert(0,parentdir) 
+import database
 
 
 # Main
@@ -160,7 +166,7 @@ def main():
     if (importTLE):
         # Temporary database credentials hack
         try:
-            with open('../login.txt', 'r') as f:
+            with open('../../login.txt', 'r') as f:
                 lines = f.readlines()
                 dbname = lines[0].strip()
                 dbtype = lines[1].strip()
@@ -221,14 +227,14 @@ def main():
                 continue
             _file = os.path.join(dirName,fname)
             log.info("\nReading TLEs from {}".format(_file))
-            TLEs = TLEFile(_file)
+            TLEs = tle_util.TLEFile(_file)
 
             # In theory, we could md5 the file directly *before* reading the TLE, but it really doesn't save much.
             # And we'd still want to check in the class, so we'd be doubling-up the MD5 checks.
-            tle_file_fingerprint_array = db.selectTLEFile(TLEs.file_fingerprint)
+            tle_file_fingerprint_array = db.selectTLEFile(TLEs.tle_file_fingerprint)
 
             if(tle_file_fingerprint_array):     
-                log.warning("Skipping {} TLEs in file: {} - fingerprint {} already in database.".format(len(TLEs.Satellites), fname, TLEs.file_fingerprint))   
+                log.warning("Skipping {} TLEs in file: {} - fingerprint {} already in database.".format(len(TLEs.Satellites), fname, TLEs.tle_file_fingerprint))   
                 continue # Already have the file
             else:
                 print("Processing file {}...".format(fname))
@@ -280,11 +286,11 @@ def main():
 
             # log.info("Imported {} TLE records.".format(len(TLEs.Satellites)))
             # log.info("Fingerprint of {} is {}".format(tle_file,TLEs.tle_file_fingerprint))
-    if (not quiet):
-        print("Imported {} TLEs from {} files in {} directories.".format(TLETotalCount,totalFileCount,totalDirCount))
 
     t2 = time()
-    log.debug(t2-t1)
+    if (not quiet):
+        print("Imported {} TLEs from {} files in {} directories in {:3f} seconds.".format(TLETotalCount,totalFileCount,totalDirCount,t2-t1))
+
 
 if (__name__ == '__main__'):
     main()
