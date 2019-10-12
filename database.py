@@ -411,7 +411,7 @@ class Database:
             analyst_object,
             strict_import,
             tle_fingerprint,
-            file_fingerprint
+            tle_file_fingerprint
             ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'''
         self.addTLEFile_query = '''INSERT INTO TLEFILE (file_fingerprint, source_filename) VALUES (?,?)'''
         self.addTLEProcess_query = '''INSERT INTO TLE_process (
@@ -715,12 +715,12 @@ class Database:
             analyst_object              BOOL,      /* Flag of whether this is an uncorrelated object */
             strict_import               BOOL,      /* Whether this record was imported / created through strict_import checks */
             tle_fingerprint             CHAR(32) NOT NULL, /* MD5 fingerprint of this record */
-            file_fingerprint            CHAR(32),          /* MD5 fingerprint of the file this record was imported from (optional) */
+            tle_file_fingerprint        CHAR(32),          /* MD5 fingerprint of the file this record was imported from (optional) */
             import_timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,   /* Timestamp of record creation */
             KEY `TLE_epoch_idx` (`epoch`) USING BTREE,
             KEY `TLE_sat_name_idx` (`sat_name`(24)) USING BTREE,
-            KEY `TLE_tle_fingerprint_idx` (`tle_fingerprint`(33)) USING BTREE,
-            KEY `TLE_file_fingerprint_idx` (`file_fingerprint`(33)) USING BTREE,
+            UNIQUE KEY `TLE_tle_fingerprint_idx` (`tle_fingerprint`(33)) USING BTREE,
+            KEY `TLE_tle_file_fingerprint_idx` (`tle_file_fingerprint`(33)) USING BTREE,
             KEY `TLE_norad_idx` (`satellite_number`) USING BTREE
         )''' + self.charset_string
         self.c.execute(createquery)
@@ -731,7 +731,7 @@ class Database:
             file_fingerprint        CHAR(32) NOT NULL, /* MD5 finger print of file */
             source_filename         TINYTEXT,          /* Name of source file */
             import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, /* Timestamp of record creation */
-            KEY `TLEFILE_file_fingerprint_33_idx` (`file_fingerprint`(33)) USING BTREE
+            UNIQUE KEY `TLEFILE_file_fingerprint_33_idx` (`file_fingerprint`(33)) USING BTREE
         )''' + self.charset_string
         self.c.execute(createquery)
         self.conn.commit()
@@ -1007,7 +1007,7 @@ class Database:
             entry.strict,
 
             entry.tle_fingerprint,
-            entry._tle_file_fingerprint
+            entry.tle_file_fingerprint
             )
 
         if self._dbtype == "INFILE": # Make CSV files
@@ -1073,7 +1073,7 @@ class Database:
                 TruSatTLE.strict,
 
                 TruSatTLE.tle_fingerprint,
-                TruSatTLE._tle_file_fingerprint
+                TruSatTLE.tle_file_fingerprint
                 )
 
             # Insert the TLE first, so that we can include the resulting tle_id as tle_result_id in the table TLE_process
@@ -1115,13 +1115,13 @@ class Database:
 
         # self._tlefileid, # Use the AUTO_INCREMENT-ed value
         newentryTuple = (
-                entry.file_fingerprint,
+                entry.tle_file_fingerprint,
                 entry._tle_basename
                 )
 
         if self._dbtype == "INFILE": # Make CSV files
             self._writer_TLEFile.writerow(newentryTuple)
-            self._TLEFileDict[entry.file_fingerprint] = entry._tle_basename
+            self._TLEFileDict[entry.tle_file_fingerprint] = entry._tle_basename
         elif self._dbtype == "sqlite":
             try:
                 self.c.execute(self.addTLEFile_query,newentryTuple)
@@ -2157,7 +2157,7 @@ class Database:
             TLE.analyst_object		= row["analyst_object"]
             TLE.strict_import		= row["strict_import"]
             TLE.tle_fingerprint		= row["tle_fingerprint"]
-            TLE._tle_file_fingerprint = row["file_fingerprint"]
+            TLE.tle_file_fingerprint = row["tle_file_fingerprint"]
             TLE.import_timestamp	= row["import_timestamp"]
 
             TLE.derived_values()
@@ -2672,7 +2672,7 @@ class Database:
             'secondary_purpose', 'Secondary purpose does not exist, the variable is also misspelled.',
             'observation_quality', ParsedIOD.station_status_code,
             'time_last_tracked',date_format(ParsedIOD.obs_time, '%M %d, %Y'),
-            'username_last_tracked',ParsedIOD.user_string)
+            'username_last_tracked',ParsedIOD.user_string) 
             FROM ParsedIOD
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number=ucs_SATDB.norad_number
             WHERE valid_position = 1
