@@ -37,7 +37,8 @@ def encode_jwt(addr):
     with open('unsafe_private.pem', 'r') as file:
         private_key = file.read()
     private_rsa_key = load_pem_private_key(bytes(private_key, 'utf-8'), password=None, backend=default_backend())
-    encoded_jwt = encode({'address':addr}, private_rsa_key, algorithm='RS256')
+    exp = datetime.utcnow() + timedelta(604800)
+    encoded_jwt = encode({'address':addr, 'exp':exp}, private_rsa_key, algorithm='RS256')
     return encoded_jwt
 
 def decode_jwt(user_jwt):
@@ -296,21 +297,24 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 user_profile_json["objects_observed"] = objects_observed_json
                 user_profile_json["observation_history"] = observation_history_json
                 user_profile_json["observation_stations"] = []
-            except:
+            except Exception as e:
+                print(e)
                 self.send_500()
                 return
             try:
                 user_jwt = json_body["jwt"]
                 decoded_jwt = decode_jwt(user_jwt)
                 jwt_user_addr = decoded_jwt["address"]
-            except:
+            except Exception as e:
+                print(e)
                 pass
             if jwt_user_addr.lower() == user_addr.lower():
                 try:
                     observation_station_numbers = self.db.selectUserStationNumbers_JSON(user_addr)
                     for station in observation_station_numbers:
                         user_profile_json["observation_stations"].append(station["station_number"])
-                except:
+                except Exception as e:
+                    print(e)
                     self.send_500()
                     return
                 #user_profile_json["public_username"] = False
@@ -476,26 +480,51 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             except:
                 self.send_400()
                 return
+
+            try:
+                email = json_body["email"]
+                results = self.db.selectObserverAddressFromEmail(email)
+                if len(results) == 42:
+                    #with open('unsafe_private.pem', 'r') as file:
+                    #    private_key = file.read()
+                    #private_rsa_key = load_pem_private_key(bytes(private_key, 'utf-8'), password=None, backend=default_backend())
+                    #if results != None:
+                    #    number = str(secrets.randbits(64))
+                    #    jwt_payload = {
+                    #        'email': email,
+                    #        'secret': number,
+                    #        'exp': datetime.utcnow() + timedelta(1800)
+                    #        }
+                    #    encoded_jwt = encode(jwt_payload, private_rsa_key, algorithm='RS256')
+                    #    self.db.updateObserverPassword(encoded_jwt.decode('utf-8'), results.decode('utf-8'))
+                    #    google_email.send_recovery_email(email, 'http://trusat.org/claim/' + encoded_jwt.decode('utf-8'))
+                    self.send_200_JSON({})
+                    return
+            except Exception as e:
+                print(e)
+                pass
+
             try:
                 public_address_count = self.db.getObserverCountByID(public_address=addr)
             except:
                 self.send_500()
                 return
-            random_number = secrets.randbits(16)
+            random_number = str(secrets.randbits(256))
             response_message = '{"nonce":\"%s\"}' % random_number
             if public_address_count[0] == None or public_address_count[0] == 0:
                 # New User
                 try:
                     self.db.addObserver(addr, "NULL", 0, "NULL")
-                    self.db.updateObserverNonce(nonce=random_number, public_address=addr)
+                    self.db.updateObserverNonceBytes(nonce=random_number, public_address=addr)
                 except:
                     self.send_500()
                     return
             elif public_address_count[0] >= 1:
                 # Old User
                 try:
-                    self.db.updateObserverNonce(nonce=random_number, public_address=addr)
-                except:
+                    self.db.updateObserverNonceBytes(nonce=random_number, public_address=addr)
+                except Exception as e:
+                    print(e)
                     self.send_500()
                     return
             response_body = bytes(response_message, 'utf-8')
@@ -509,7 +538,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         elif self.path == "/signup":
             try:
                 addr = json_body["address"]
-                old_nonce = self.db.getObserverNonce(addr)
+                old_nonce = self.db.getObserverNonceBytes(addr)
                 email = json_body["email"]
                 signed_message = json_body["signedMessage"]
                 payload = json_body["secret"]
@@ -534,21 +563,24 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             #            encoded_jwt = encode(jwt_payload, private_rsa_key, algorithm='RS256')
             #            self.db.updateObserverPassword(encoded_jwt.decode('utf-8'), results.decode('utf-8'))
             #            google_email.send_recovery_email(email, 'http://trusat.org/claim/' + encoded_jwt.decode('utf-8'))
-            #    self.send_200_JSON('{}')
+            #    self.send_204()
             #    return
             #except Exception as e:
             #    print(e)
             #    pass
 
 
-            nonce = str(old_nonce[0]).encode('utf-8')
-            self.db.updateObserverNonce(nonce=0, public_address=addr)
+            nonce = old_nonce.encode('utf-8')
+            self.db.updateObserverNonceBytes(nonce=0, public_address=addr)
             message_hash = sha3.keccak_256(nonce).hexdigest()
             message_hash = encode_defunct(hexstr=message_hash)
             try:
                 signed_public_key = Account.recover_message(message_hash, signature=signed_message)
             except:
                 print('message could not be checked')
+            print("PUBLIC KEYS")
+            print(signed_public_key.lower())
+            print(addr.lower())
             if signed_public_key.lower() == addr.lower():
                 email_from_addr = self.db.selectEmailFromObserverAddress(addr)
                 if email_from_addr == None or email_from_addr == '' or email_from_addr == b'NULL':
@@ -556,7 +588,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                         try:
                             self.db.updateObserverEmail(email, addr)
                             google_email.send_email(email, payload)
-                            self.send_200_JSON('{}')
+                            self.send_200_JSON({})
                             
                             #self.send_header('Access-Control-Allow-Origin', '*')
                             #self.end_headers()
@@ -578,7 +610,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         elif self.path == "/login":
             try:
                 addr = json_body["address"]
-                old_nonce = self.db.getObserverNonce(addr)
+                old_nonce = self.db.getObserverNonceBytes(addr)
                 signed_message = json_body["signedMessage"]
             except:
                 self.send_400()
@@ -588,14 +620,17 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 secret = json_body["secret"]
             except:
                 email = None
-            nonce = str(old_nonce[0]).encode('utf-8')
-            self.db.updateObserverNonce(nonce=0, public_address=addr)
+            nonce = old_nonce.encode('utf-8')
+            print(nonce)
+            self.db.updateObserverNonceBytes(nonce=0, public_address=addr)
             message_hash = sha3.keccak_256(nonce).hexdigest()
             message_hash = encode_defunct(hexstr=message_hash)
             try:
                 signed_public_key = Account.recover_message(message_hash, signature=signed_message)
             except:
                 print('message could not be checked')
+            print(signed_public_key.lower())
+            print(addr.lower())
             if signed_public_key.lower() == addr.lower():
                 email_from_addr = self.db.selectEmailFromObserverAddress(addr)
                 if email_from_addr == None or email_from_addr == '' or email_from_addr == b'NULL':
@@ -603,16 +638,13 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                         try:
                             self.db.updateObserverEmail(email, addr)
                             google_email.send_email(email, secret)
-                            self.send_response(204)
+                            self.send_200_JSON({})
                             return
                         except Exception as e:
                             print(e)
                             self.send_500()
                             return
-                with open('unsafe_private.pem', 'r') as file:
-                    private_key = file.read()
-                private_rsa_key = load_pem_private_key(bytes(private_key, 'utf-8'), password=None, backend=default_backend())
-                encoded_jwt = encode({'address':addr.lower()}, private_rsa_key, algorithm='RS256')
+                encoded_jwt = encode_jwt(addr.lower())
                 self.db.updateObserverJWT(encoded_jwt, '', addr)
                 response_message = b'{"jwt":"'
                 response_message += encoded_jwt
@@ -709,7 +741,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             except:
                 self.send_500()
                 return
-            self.send_response(204)
+            self.send_200_JSON({})
 
         elif self.path == "/verifyClaimAccount":
             try:
@@ -740,11 +772,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 response_message += b'"}'
                 response_body = response_message
 
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(response_body)
+                self.send_200_JSON(response_body)
             except Exception as e:
                 print(e)
                 self.send_500()
@@ -762,11 +790,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             except:
                 self.send_500()
                 return
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(b'{}')
+            self.send_200_JSON({})
 
         elif self.path == "/submitObservation":
             try:
@@ -877,7 +901,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             email_history = json.loads(email_history)
             print(email_history)
             print(google_email.get_email_history(email_history['historyId']))
-            self.send_response(204)
+            self.send_200_JSON({})
             self.end_headers()
 
         else:
