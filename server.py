@@ -66,15 +66,26 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
     def send_500(self):
         self.send_response(500)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
         self.db.clean()
 
     def send_400(self):
         self.send_response(400)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
         self.db.clean()
 
     def send_404(self):
         self.send_response(404)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
         self.db.clean()
+
+    def send_204(self, body_data):
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
 
     def send_200_JSON(self, body_data):
         self.send_response(200)
