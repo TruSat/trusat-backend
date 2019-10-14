@@ -233,7 +233,7 @@ class Database:
             self.c_addObserver_query = self.conn.cursor(prepared=True)
             self.c_addObserverEmail_query = self.conn.cursor(prepared=True)
             self.c_selectObserver_query = self.conn.cursor(prepared=True)
-            self.c_updateObserverNonce_query = self.conn.cursor(prepared=True)
+            self.c_updateObserverNonceBytes_query = self.conn.cursor(prepared=True)
             self.c_updateObserverJWT_query = self.conn.cursor(prepared=True)
             self.c_updateObserverUsername_query = self.conn.cursor(prepared=True)
             self.c_updateObserverEmail_query = self.conn.cursor(prepared=True)
@@ -242,7 +242,7 @@ class Database:
             self.c_updateObserverPrivate_query = self.conn.cursor(prepared=True)
             self.c_updateObserverPassword_query = self.conn.cursor(prepared=True)
             self.c_updateObserverAddress_query = self.conn.cursor(prepared=True)
-            self.c_getObserverNonce_query = self.conn.cursor(prepared=True)
+            self.c_getObserverNonceBytes_query = self.conn.cursor(prepared=True)
             self.c_getObserverJWT_query = self.conn.cursor(prepared=True)
             self.c_getObservationCount_query = self.conn.cursor(prepared=True)
             self.c_getCommunityObservationByYear_query = self.conn.cursor(prepared=True)
@@ -259,6 +259,7 @@ class Database:
             self.c_addUCSDB_query = self.conn.cursor(prepared=True)
             self.c_selectObserverID_query = self.conn.cursor(prepared=True)
             self.c_selectObserverAddressFromEmail_query = self.conn.cursor(prepared=True)
+            self.c_selectEmailFromObserverAddress_query = self.conn.cursor(prepared=True)
             self.c_selectObserverAddressFromPassword_query = self.conn.cursor(prepared=True)
             self.selectObserverID_query = '''SELECT max(id) from Observer'''
             try:
@@ -278,7 +279,7 @@ class Database:
         self.addObserver_query = '''INSERT INTO Observer(id, eth_addr, name, reputation, reference) VALUES(?,?,?,?,?)'''
         self.addObserverEmail_query = '''INSERT INTO Observer_email(user_id, email) VALUES(?,?)'''
         self.selectObserver_query = '''SELECT id FROM Observer WHERE verified LIKE ? LIMIT 1'''
-        self.updateObserverNonce_query = '''UPDATE Observer SET nonce=? WHERE eth_addr=?'''
+        self.updateObserverNonceBytes_query = '''UPDATE Observer SET nonce_bytes=? WHERE eth_addr=?'''
         self.updateObserverJWT_query = '''UPDATE Observer SET jwt=?, jwt_secret=? WHERE eth_addr=?'''
         self.updateObserverUsername_query = '''UPDATE Observer SET name=? WHERE eth_addr=?'''
         self.updateObserverEmail_query = '''UPDATE Observer_email INNER JOIN Observer ON Observer_email.user_id=Observer.id SET Observer_email.email=? WHERE Observer.eth_addr=?'''
@@ -286,13 +287,14 @@ class Database:
         self.updateObserverBio_query = '''UPDATE Observer SET bio=? WHERE eth_addr=?'''
         self.updateObserverPassword_query = '''UPDATE Observer SET password=? WHERE eth_addr=?'''
         self.updateObserverAddress_query = '''UPDATE Observer SET eth_addr=? WHERE eth_addr=?'''
-        self.getObserverNonce_query = '''SELECT nonce FROM Observer WHERE eth_addr=?'''
+        self.getObserverNonceBytes_query = '''SELECT nonce_bytes FROM Observer WHERE eth_addr=?'''
         self.getObserverJWT_query = '''SELECT jwt FROM Observer WHERE eth_addr=?'''
         self.getObservationCount_query = '''SELECT object_number, COUNT(object_number) as querycount from ParsedIOD where valid_position>0 GROUP BY object_number order by querycount DESC'''
         self.getCommunityObservationByYear_query = '''SELECT YEAR(obs_time), COUNT(*) as querycount from ParsedIOD where valid_position>0 GROUP BY YEAR(obs_time) order by YEAR(obs_time) ASC'''
         self.getCommunityObservationByMonth_query = '''SELECT MONTH(obs_time), COUNT(*) as querycount from ParsedIOD where valid_position>0 GROUP BY MONTH(obs_time) order by MONTH(obs_time) ASC'''
         self.getObserverCountByID_query = '''SELECT id, COUNT(*) from Observer WHERE eth_addr=?'''
         self.selectObserverAddressFromEmail_query = '''SELECT Observer.eth_addr FROM Observer INNER JOIN Observer_email ON Observer.id=Observer_email.user_id WHERE Observer_email.email=? LIMIT 1'''
+        self.selectEmailFromObserverAddress_query = '''SELECT Observer_email.email FROM Observer_email INNER JOIN Observer ON Observer_email.user_id=Observer.id WHERE Observer.eth_addr=? LIMIT 1'''
         self.selectObserverAddressFromPassword_query = '''SELECT eth_addr FROM Observer WHERE password=? LIMIT 1'''
         self.getRecentObservations_query = '''SELECT * FROM ParsedIOD where valid_position>0 ORDER BY obs_time DESC LIMIT 5'''
         self.selectTLEFile_query = '''SELECT file_fingerprint FROM TLEFILE WHERE file_fingerprint LIKE ? LIMIT 1'''
@@ -1261,19 +1263,20 @@ class Database:
     #######################
     ### Observer-related queries
     #######################
-    def updateObserverNonce(self, nonce, public_address):
+
+    def updateObserverNonceBytes(self, nonce, public_address):
         """ TODO: Kenan to document """
 
         if self._dbtype == "INFILE":
             try:
-                results = (self.updateObserverNonce_query, [nonce, public_address])
+                results = (self.updateObserverNonceBytes_query, [nonce, public_address])
             except KeyError:
                 results = None
         elif self._dbtype == "sqlite":
-            self.c.execute(self.updateObserverNonce_query, [nonce, public_address])
+            self.c.execute(self.updateObserverNonceBytes_query, [nonce, public_address])
             results = self.c.fetchone()
         else:
-            self.c_updateObserverNonce_query.execute(self.updateObserverNonce_query, [nonce, public_address])
+            self.c_updateObserverNonceBytes_query.execute(self.updateObserverNonceBytes_query, [nonce, public_address])
             self.conn.commit()
         return True
 
@@ -1397,6 +1400,18 @@ class Database:
                 return None
         return results
 
+    def selectEmailFromObserverAddress(self, addr):
+        if self._dbtype == "sqlite":
+            self.c.execute(self.selectEmailFromObserverAddress_query, [addr])
+            results = self.c.fetchone()
+        else:
+            self.c_selectEmailFromObserverAddress_query.execute(self.selectEmailFromObserverAddress_query, [addr])
+            try:
+                results = self.c_selectEmailFromObserverAddress_query.fetchone()[0]
+            except:
+                return None
+            return results
+
     def selectObserverAddressFromPassword(self, password):
         if self._dbtype == "sqlite":
             self.c.execute(self.selectObserverAddressFromPassword_query, [password])
@@ -1410,21 +1425,21 @@ class Database:
                 return None
         return results
 
-    def getObserverNonce(self, public_address):
+    def getObserverNonceBytes(self, public_address):
         """ TODO: Kenan to document """
         """ GET OBSERVER NONCE """
         if self._dbtype == "INFILE":
             try:
-                results = (self.getObserverNonce_query, [public_address])
+                results = (self.getObserverNonceBytes_query, [public_address])
             except KeyError:
                 results = None
         elif self._dbtype == "sqlite":
-            self.c.execute(self.getObserverNonce_query, [public_address])
+            self.c.execute(self.getObserverNonceBytes_query, [public_address])
             results = self.c.fetchone()
         else:
-            self.c_getObserverNonce_query.execute(self.getObserverNonce_query, [public_address])
-            results = self.c_getObserverNonce_query.fetchone()
-        return results
+            self.c_getObserverNonceBytes_query.execute(self.getObserverNonceBytes_query, [public_address])
+            results = self.c_getObserverNonceBytes_query.fetchone()
+        return results[0].decode('utf-8').strip('\x00')
 
     def getObserverJWT(self, public_address):
         """ TODO: Kenan to document """
