@@ -947,6 +947,7 @@ class Database:
         else:
             try:
                 self.c_addObserver_query.execute(self.addObserver_query, observerTuple)
+                self.c_addObserverEmail_query.execute(self.addObserverEmail_query, observerEmailTuple)
                 self.conn.commit()
             except Exception as e:
                 log.error("MYSQL ERROR: {}".format(e))
