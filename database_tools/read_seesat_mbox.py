@@ -374,7 +374,7 @@ def main():
                         UserDict.append(IODpeek.Station)
                         writer_UserFile.writerow( [email_address, name, IODpeek.Station, "mbox"])
         
-            db_obs_count = db.addParsedIOD(IOD_records, email_address, submit_time, fast)
+            db_obs_count = db.addParsedIOD(IOD_records, submit_time, fast)
 
             if (db_obs_count):
                 last_msgID = msgID

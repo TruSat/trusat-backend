@@ -260,7 +260,7 @@ if __name__ == '__main__':
                             UserDict.append(IODpeek.Station)
                             writer_UserFile.writerow( [sender, first_line, IODpeek.Station, "hypermail"])
         
-                    obsid = db.addParsedIOD(IOD_records, sender, submit_time)
+                    obsid = db.addParsedIOD(IOD_records, submit_time)
 
                     if (dbtype != "INFILE"):
                         db.commit_IOD_db_writes()
