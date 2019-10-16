@@ -1267,12 +1267,7 @@ class Database:
     def updateObserverNonceBytes(self, nonce, public_address):
         """ TODO: Kenan to document """
 
-        if self._dbtype == "INFILE":
-            try:
-                results = (self.updateObserverNonceBytes_query, [nonce, public_address])
-            except KeyError:
-                results = None
-        elif self._dbtype == "sqlite":
+        if self._dbtype == "sqlite":
             self.c.execute(self.updateObserverNonceBytes_query, [nonce, public_address])
             results = self.c.fetchone()
         else:
@@ -1428,12 +1423,7 @@ class Database:
     def getObserverNonceBytes(self, public_address):
         """ TODO: Kenan to document """
         """ GET OBSERVER NONCE """
-        if self._dbtype == "INFILE":
-            try:
-                results = (self.getObserverNonceBytes_query, [public_address])
-            except KeyError:
-                results = None
-        elif self._dbtype == "sqlite":
+        if self._dbtype == "sqlite":
             self.c.execute(self.getObserverNonceBytes_query, [public_address])
             results = self.c.fetchone()
         else:
