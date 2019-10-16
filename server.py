@@ -33,6 +33,7 @@ import iod
 
 PORT_NUMBER = 8080
 
+#TODO: take object instead of address to encode with a specified time
 def encode_jwt(addr):
     with open('unsafe_private.pem', 'r') as file:
         private_key = file.read()
@@ -42,7 +43,6 @@ def encode_jwt(addr):
     return encoded_jwt
 
 def decode_jwt(user_jwt):
-    print(user_jwt)
     with open('public.pem', 'r') as file:
         public_key = file.read()
     public_rsa_key = load_pem_public_key(bytes(public_key,'utf-8'), backend=default_backend())
@@ -297,7 +297,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             try:
                 user_addr = parameters_map["address"]
             except Exception as e:
-                print("PROFILE EXCEPTION")
                 print(e)
                 self.send_400()
                 return
@@ -552,9 +551,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 signed_public_key = Account.recover_message(message_hash, signature=signed_message)
             except:
                 print('message could not be checked')
-            print("PUBLIC KEYS")
-            print(signed_public_key.lower())
-            print(addr.lower())
             if signed_public_key.lower() == addr.lower():
                 email_from_addr = self.db.selectEmailFromObserverAddress(addr)
                 if email_from_addr == None or email_from_addr == '' or email_from_addr == b'NULL':
@@ -569,7 +565,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                             self.send_500()
                             return
             else:
-                print("public key is incorrect")
                 self.send_400()
                 return
             self.send_500()
@@ -591,7 +586,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             except:
                 email = None
             nonce = old_nonce.encode('utf-8')
-            print(nonce)
             self.db.updateObserverNonceBytes(nonce=0, public_address=addr)
             message_hash = sha3.keccak_256(nonce).hexdigest()
             message_hash = encode_defunct(hexstr=message_hash)
@@ -599,8 +593,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 signed_public_key = Account.recover_message(message_hash, signature=signed_message)
             except:
                 print('message could not be checked')
-            print(signed_public_key.lower())
-            print(addr.lower())
             if signed_public_key.lower() == addr.lower():
                 email_from_addr = self.db.selectEmailFromObserverAddress(addr)
                 if email_from_addr == None or email_from_addr == '' or email_from_addr == b'NULL':
@@ -720,17 +712,12 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             #Lookup number and old address
             try:
                 decoded_jwt = decode_jwt(user_jwt)
-                print("Secret")
                 secret = decoded_jwt["secret"]
-                print("email")
                 to = decoded_jwt["email"]
-                print("post email")
                 old_address = self.db.selectObserverAddressFromPassword(user_jwt).decode('utf-8')
                 #replace address
                 encoded_jwt = encode_jwt(address)
                 self.db.updateObserverAddress(address, old_address)
-                print(old_address)
-                print(address)
                 google_email.send_email(to, message_text)
                 self.db.updateObserverJWT(encoded_jwt, "", json_body["address"])
                 response_message = b'{"jwt":"'
