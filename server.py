@@ -193,7 +193,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             if json_object is not False:
                 self.send_200_JSON_cache(json_object)
             else:
-                self.send_500()
+                self.send_200_JSON_cache({})
                 return
         
         elif path == "/catalog/undisclosed":
@@ -205,7 +205,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             if json_object is not False:
                 self.send_200_JSON_cache(json_object)
             else:
-                self.send_500()
+                self.send_200_JSON_cache({})
                 return
 
         elif path == "/catalog/debris":
@@ -217,7 +217,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             if json_object is not False:
                 self.send_200_JSON_cache(json_object)
             else:
-                self.send_500()
+                self.send_200_JSON_cache({})
                 return
 
         elif path == "/catalog/latest":
@@ -229,7 +229,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             if json_object is not False:
                 self.send_200_JSON_cache(json_object)
             else:
-                self.send_500()
+                self.send_200_JSON_cache({})
                 return
 
         elif path == "/catalog/all":
@@ -241,7 +241,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             if json_object is not False:
                 self.send_200_JSON_cache(json_object)
             else:
-                self.send_500()
+                self.send_200_JSON_cache({})
                 return
 
         elif path == "/tle/trusat_all.txt":
@@ -253,7 +253,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             if two_line_elements is not False:
                 self.send_200_text_cache(two_line_elements)
             else:
-                self.send_500()
+                self.send_200_text_cache('')
                 return
 
         elif path == "/tle/trusat_priorities.txt":
@@ -265,7 +265,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             if two_line_elements is not False:
                 self.send_200_text_cache(two_line_elements)
             else:
-                self.send_500()
+                self.send_200_text_cache('')
                 return
 
         elif path == "/tle/trusat_high_confidence.txt":
@@ -277,7 +277,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             if two_line_elements is not False:
                 self.send_200_text_cache(two_line_elements)
             else:
-                self.send_500()
+                self.send_200_text_cache('')
                 return
 
         elif path == "/astriagraph":
@@ -289,7 +289,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             if tles_json is not False:
                 self.send_200_text_cache(tles_json)
             else:
-                self.send_500()
+                self.send_200_text_cache('')
                 return
 
         elif path == "/profile":
@@ -352,7 +352,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             if json_object:
                 self.send_200_JSON_cache(json_object)
             else:
-                self.send_500()
+                self.send_200_JSON({})
                 return
 
         elif path == '/object/info':
@@ -369,7 +369,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             if json_object:
                 self.send_200_JSON_cache(json_object)
             else:
-                self.send_500()
+                self.send_200_JSON_cache({})
                 return
 
         elif path == '/object/history':
@@ -441,7 +441,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             if two_line_elements:
                 self.send_200_text_cache(two_line_elements)
             else:
-                self.send_500()
+                self.send_200_text_cache("")
                 return
 
         elif path == "/findObject":
