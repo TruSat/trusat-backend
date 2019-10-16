@@ -135,7 +135,7 @@ def generateUsername():
     ]
     regex = re.compile('[^a-zA-Z]') # to remove non-letter characters
     # create list of all keywords from text file
-    f = open('keywords.txt', 'r').read()
+    f = open('./database_tools/keywords.txt', 'r').read()
     _keywords = f.split('\n')
     keywords = []
 
