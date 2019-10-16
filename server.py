@@ -76,6 +76,12 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.db.clean()
 
+    def send_401(self):
+        self.send_response(401)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        self.db.clean()
+
     def send_404(self):
         self.send_response(404)
         self.send_header('Access-Control-Allow-Origin', '*')
@@ -753,20 +759,11 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             except:
                 self.send_400()
                 return
-            #user_addr = db.getObserverFromJWT(user_jwt)
             parsed_iod_array = []
             success = 0
             error_messages = []
             removed_iods = {}
             it = 0
-            #credentials = db.getObserverJWT(user_addr)
-            if user_addr == None:
-                self.send_response(401)
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(b'')
-                return
-            #TODO: FIX THIS, I NEED NEW ADDRESS FLOW NOW!
             try:
                 single = json_body["single"]
             except Exception as e:
