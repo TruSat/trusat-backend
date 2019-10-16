@@ -350,7 +350,6 @@ class Database:
         """
         self.addParsedIOD_query = '''INSERT INTO ParsedIOD (
             submitted,
-            user_string,
             object_number,
             international_designation,
             station_number,
@@ -379,7 +378,7 @@ class Database:
             valid_position,
             message_id,
             obsFingerPrint
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'''
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'''
         # TODO: add mean_motion_radians_per_minute from the TLE class to here
         self.addTLE_query = '''INSERT INTO TLE (
             line0,
@@ -508,7 +507,6 @@ class Database:
         createquery = '''CREATE TABLE IF NOT EXISTS ParsedIOD (
             obs_id                      INT NOT NULL ''' + self.increment + ''',    /* Unique internal ID */
             submitted                   DATETIME,                       /* Datetime when the user submitted the observation (receipt time or time of email) */
-            user_string                 TEXT,                           /* DEPRECATED email address or other identifier of user */
             object_number               MEDIUMINT(5) UNSIGNED,          /* NORAD number */
             international_designation   VARCHAR(14),                    /* International designation */
             station_number              SMALLINT(4) UNSIGNED NOT NULL,  /* Station number that made observation */
@@ -540,7 +538,6 @@ class Database:
             import_timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, /* Timestamp of DB record creation */
             PRIMARY KEY (`obs_id`),
             UNIQUE KEY `ParsedIOD_obsFingerPrint_idx` (`obsFingerPrint`),
-            KEY `ParsedIOD_user_string_40_idx` (`user_string`(40)) USING BTREE,
             KEY `ParsedIOD_object_number_idx` (`object_number`) USING BTREE,
             KEY `ParsedIOD_international_designation_idx` (`international_designation` (14)) USING BTREE,
             KEY `ParsedIOD_station_number_idx` (`station_number`) USING BTREE,
@@ -825,7 +822,7 @@ class Database:
         self.conn.commit()
 
 
-    def addParsedIOD(self, entryList, user_string, submit_time, fast_import = False):
+    def addParsedIOD(self, entryList, submit_time, fast_import = False):
         """ Add an IOD entry to the database         
         Input: IOD-formatted line
         """
@@ -867,7 +864,6 @@ class Database:
             else:
                 newentryTuple = (
                         submit_time,
-                        user_string,
                         entry.ObjectNumber,
                         entry.InternationalDesignation,
                         entry.Station,
@@ -1499,7 +1495,6 @@ class Database:
             OBS.submitted = row["submitted"]
             OBS.TimeStandardCode = row["time_standard_code"]
             OBS.TimeUncertainty = row["time_uncertainty"]
-            OBS.UserString = row["user_string"]
             OBS.ValidPosition = row["valid_position"]
             OBS.VisualMagnitude = row["visual_magnitude"]
             OBS.VisualMagnitude_high = row["visual_magnitude_high"]
@@ -1993,19 +1988,15 @@ class Database:
         return stringArrayToJSONArray(self.c.fetchall())
 
     def selectObjectHistoryByMonth_JSON(self, norad_number, year):
-        """ For a particular object, provide a navigation structure of its full observatio history
+        """ For a particular object, provide a navigation structure of its full observation history
 
-            Inputs: NORAD number of interest, year, month
+            Inputs: NORAD number of interest, year
             Output: JSON object with observation summary
 
             Note (Chris) - not sure this is being used currently
         """
         query_tmp = """SELECT Json_Object(
-            'id', ParsedIOD.obs_id,
             'observation_time', UNIX_TIMESTAMP(ParsedIOD.obs_time),
-            'username', user_string,
-            'user_address', 'FILLER',
-            'user_location', station_number,
             'observation_quality', TLE_process.tle_start_rms,
             'observation_time_difference', TLE_process.time_err,
             'observation_position_error', TLE_process.position_err,
@@ -2662,6 +2653,7 @@ class Database:
             indent=4)
 
 
+    # FIXME: DEPRECATED It doesn't look like this function is used at all in server.py or internally in database.py
     def selectObjectsObserved_JSON(self, fetch_row_count=10, offset_row_count=0):
         """ Return list of (global) observed objects, ordered from most recent
         """
@@ -2671,8 +2663,7 @@ class Database:
             'object_type', ucs_SATDB.purpose_detailed,
             'secondary_purpose', 'Secondary purpose does not exist, the variable is also misspelled.',
             'observation_quality', ParsedIOD.station_status_code,
-            'time_last_tracked',date_format(ParsedIOD.obs_time, '%M %d, %Y'),
-            'username_last_tracked',ParsedIOD.user_string) 
+            'time_last_tracked',date_format(ParsedIOD.obs_time, '%M %d, %Y') )
             FROM ParsedIOD
             LEFT JOIN ucs_SATDB ON ParsedIOD.object_number=ucs_SATDB.norad_number
             WHERE valid_position = 1
@@ -2829,7 +2820,7 @@ class Database:
 
         query = """
             WITH obj_info as (
-              WITH latest_obs_times as (SELECT object_number, max(obs_time) max_obs_time, count(distinct(user_string)) user_count
+              WITH latest_obs_times as (SELECT object_number, max(obs_time) max_obs_time, count(distinct(station_number)) user_count
                             FROM ParsedIOD
                             WHERE ParsedIOD.valid_position = 1
                             and object_number = %(NORAD_NUM)s)
