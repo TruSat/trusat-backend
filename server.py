@@ -853,7 +853,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     it += 1
                     individual_entry = []
                     individual_entry.append(entry)
-                    entry_value = self.db.addParsedIOD(individual_entry, user_addr, submission_time)
+                    entry_value = self.db.addParsedIOD(individual_entry, submission_time)
                     success += entry_value[0]
                     while removed_iods[it] == True:
                         it += 1
