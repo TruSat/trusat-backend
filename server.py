@@ -759,11 +759,11 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             except:
                 self.send_400()
                 return
-            parsed_iod_array = []
-            success = 0
-            error_messages = []
-            removed_iods = {}
-            it = 0
+            # parsed_iod_array = []
+            # success = 0
+            # error_messages = []
+            # removed_iods = {}
+            # it = 0
             try:
                 single = json_body["single"]
             except Exception as e:
@@ -771,74 +771,79 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             parsed_iod = []
             try:
                 multiple = json_body["multiple"]
-                try:
-                    parsed_iod = iod.parse_iod_lines(multiple)
-                    if len(parsed_iod):
-                        for item in multiple.split('\n'):
-                            temp_iod = iod.parse_iod_lines(item)
-                            it += 1
-                            if temp_iod:
-                                removed_iods[it] = False
-                            else:
-                                error_messages.append("Observation on line {} did not match IOD format.".format(it))
-                                removed_iods[it] = True
-                except:
-                    print("Not IOD")
-                if not parsed_iod:
-                    try:
-                        parsed_iod = iod.parse_uk_lines(multiple)
-                        if len(parsed_iod):
-                            for item in multiple.split('\n'):
-                                temp_iod = iod.parse_uk_lines(item)
-                                it += 1
-                                if temp_iod:
-                                    removed_iods[it] = False
-                                else:
-                                    error_messages.append("Observation on line {} did not match UK format.".format(it))
-                                    removed_iods[it] = True
-                    except:
-                        print("Not UK")
-                if not parsed_iod:
-                    try:
-                        parsed_iod = iod.parse_rde_record(multiple)
-                        if len(parsed_iod):
-                            rde_multiple = multiple.split('\n')
-                            for i in range(0, len(parsed_iod)-2):
-                                temp_iod = iod.parse_rde_record("{}\n{}\n{}".format(rde_multiple[i], rde_multiple[i+1], rde_multiple[i+2]))
-                                it += 1
-                                if temp_iod:
-                                    i += 2
-                                    removed_iods[it] = False
-                                    removed_iods[it+1] = False
-                                    removed_iods[it+2] = False
-                                    it += 2
-                                else:
-                                    error_messages.append("Observation on line {} did not match RDE format.".format(it))
-                                    removed_iods[it] = True
-                            #check each line as starting point and roll through parsing
-                            #After all this chaos, go ahead and try to add it to the db
-
-                    except:
-                        print("Not RDE")
-                submission_time = datetime.now()
-                it = 0
-                #one at a time, line up the items in parsed_iod so they can be checked against the original array of observations, otherwise the numbers returned back won't be aligned with the original lines
-                for entry in parsed_iod:
-                    it += 1
-                    individual_entry = []
-                    individual_entry.append(entry)
-                    entry_value = self.db.addParsedIOD(individual_entry, submission_time)
-                    success += entry_value[0]
-                    while removed_iods[it] == True:
-                        it += 1
-                    if entry_value[0] == 0:
-                        error_messages.append("Observation on line {} has already been submitted.".format(it))
+                (success, error_messages) = self.db.addObserverParsedIOD(multiple, user_addr)
             except Exception as e:
-                error_messages.append("Could not determine observation format.")
                 print(e)
-            if success > 0:
-                self.db.commit_IOD_db_writes();
-            success_length = {'success':success, 'error_messages':error_messages}#len(parsed_iod_array)
+                self.send_500()
+                return
+            #     try:
+            #         parsed_iod = iod.parse_iod_lines(multiple)
+            #         if len(parsed_iod):
+            #             for item in multiple.split('\n'):
+            #                 temp_iod = iod.parse_iod_lines(item)
+            #                 it += 1
+            #                 if temp_iod:
+            #                     removed_iods[it] = False
+            #                 else:
+            #                     error_messages.append("Observation on line {} did not match IOD format.".format(it))
+            #                     removed_iods[it] = True
+            #     except:
+            #         print("Not IOD")
+            #     if not parsed_iod:
+            #         try:
+            #             parsed_iod = iod.parse_uk_lines(multiple)
+            #             if len(parsed_iod):
+            #                 for item in multiple.split('\n'):
+            #                     temp_iod = iod.parse_uk_lines(item)
+            #                     it += 1
+            #                     if temp_iod:
+            #                         removed_iods[it] = False
+            #                     else:
+            #                         error_messages.append("Observation on line {} did not match UK format.".format(it))
+            #                         removed_iods[it] = True
+            #         except:
+            #             print("Not UK")
+            #     if not parsed_iod:
+            #         try:
+            #             parsed_iod = iod.parse_rde_record(multiple)
+            #             if len(parsed_iod):
+            #                 rde_multiple = multiple.split('\n')
+            #                 for i in range(0, len(parsed_iod)-2):
+            #                     temp_iod = iod.parse_rde_record("{}\n{}\n{}".format(rde_multiple[i], rde_multiple[i+1], rde_multiple[i+2]))
+            #                     it += 1
+            #                     if temp_iod:
+            #                         i += 2
+            #                         removed_iods[it] = False
+            #                         removed_iods[it+1] = False
+            #                         removed_iods[it+2] = False
+            #                         it += 2
+            #                     else:
+            #                         error_messages.append("Observation on line {} did not match RDE format.".format(it))
+            #                         removed_iods[it] = True
+            #                 #check each line as starting point and roll through parsing
+            #                 #After all this chaos, go ahead and try to add it to the db
+
+            #         except:
+            #             print("Not RDE")
+            #     submission_time = datetime.now()
+            #     it = 0
+            #     #one at a time, line up the items in parsed_iod so they can be checked against the original array of observations, otherwise the numbers returned back won't be aligned with the original lines
+            #     for entry in parsed_iod:
+            #         it += 1
+            #         individual_entry = []
+            #         individual_entry.append(entry)
+            #         entry_value = self.db.addParsedIOD(individual_entry, submission_time)
+            #         success += entry_value[0]
+            #         while removed_iods[it] == True:
+            #             it += 1
+            #         if entry_value[0] == 0:
+            #             error_messages.append("Observation on line {} has already been submitted.".format(it))
+            # except Exception as e:
+            #     error_messages.append("Could not determine observation format.")
+            #     print(e)
+            # if success > 0:
+            #     self.db.commit_IOD_db_writes()
+            success_length = {'success':success, 'error_messages':error_messages}
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
