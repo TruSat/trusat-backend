@@ -37,7 +37,7 @@ def encode_jwt(addr):
     with open('unsafe_private.pem', 'r') as file:
         private_key = file.read()
     private_rsa_key = load_pem_private_key(bytes(private_key, 'utf-8'), password=None, backend=default_backend())
-    exp = datetime.utcnow() + timedelta(604800)
+    exp = datetime.utcnow() + timedelta(days=7)
     encoded_jwt = encode({'address':addr, 'exp':exp}, private_rsa_key, algorithm='RS256')
     return encoded_jwt
 
@@ -744,7 +744,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     jwt_payload = {
                             'email': email,
                             'secret': number,
-                            'exp': datetime.utcnow() + timedelta(1800)
+                            'exp': datetime.utcnow() + timedelta(minutes=30)
                         }
                     encoded_jwt = encode(jwt_payload, private_rsa_key, algorithm='RS256')
                     self.db.updateObserverPassword(encoded_jwt.decode('utf-8'), results.decode('utf-8'))
