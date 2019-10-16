@@ -5,6 +5,8 @@ from hashlib import md5
 from csv import writer
 import pycountry
 import json
+import random
+import re
 
 
 # The following 9 lines are necessary until the trusat-orbit repo is public
@@ -125,6 +127,38 @@ def convert_country_names_single(observation):
     except:
         observation["object_origin"] = ''
     return
+
+def generateUsername():
+    EXCLUDE = [
+        'General', 'Our Dwarves', 'Our Moons', 'Exoplanets',
+        'Stars', 'wiki', 'Crux', 'Greek letters'
+    ]
+    regex = re.compile('[^a-zA-Z]') # to remove non-letter characters
+    # create list of all keywords from text file
+    f = open('keywords.txt', 'r').read()
+    _keywords = f.split('\n')
+    keywords = []
+
+    for k in _keywords:
+        sample = regex.sub('', k)
+        if sample in EXCLUDE or k in EXCLUDE:
+            continue
+        if sample != '':
+            keywords.append(sample)
+
+    # generate unique username
+    total_keywords = len(keywords) - 1
+    _username = []
+    while True:
+        x = random.randint(0,total_keywords)
+        if keywords[x] not in _username:
+            _username.append(keywords[x])
+        if len(_username) == 2:
+            break
+
+    username = ''.join(_username)
+    return username
+
 
 # We haven't defined a Station class anywhere, so might as well do it here.
 class Station:
@@ -918,12 +952,14 @@ class Database:
             reputation,
             first_line):
 
+        username = generateUsername()
+
         self._new_observerid += 1
 
         observerTuple = (
             self._new_observerid, # Use the AUTO_INCREMENT-ed value
             eth_addr,
-            verification,
+            username,
             reputation,
             first_line
             )
