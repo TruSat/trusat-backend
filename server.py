@@ -681,11 +681,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 except Exception as e:
                     print("Username flag could not be found")
                     print(e)
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(response_body)
+            self.send_200_JSON(response_body)
                     
         elif self.path == '/claimAccount':
             try:
@@ -857,7 +853,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 error_messages.append("Could not determine observation format.")
                 print(e)
             if success > 0:
-                db.commit_IOD_db_writes();
+                self.db.commit_IOD_db_writes();
             success_length = {'success':success, 'error_messages':error_messages}#len(parsed_iod_array)
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
