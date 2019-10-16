@@ -2038,6 +2038,7 @@ class Database:
             Note (Chris) - not sure this is being used currently
         """
         query_tmp = """SELECT Json_Object(
+            'id', ParsedIOD.obs_id,
             'observation_time', UNIX_TIMESTAMP(ParsedIOD.obs_time),
             'observation_quality', TLE_process.tle_start_rms,
             'observation_time_difference', TLE_process.time_err,
