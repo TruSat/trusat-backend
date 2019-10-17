@@ -27,16 +27,6 @@ log = logging.getLogger(__name__)
 database.py: Does database interactions for the Open Satellite Catalog
 """
 
-def QueryRowToJSON(var):
-    """ TODO: Kenan to document """
-    try:
-        return json.dumps(
-            json.loads(var[0]),
-            sort_keys=False,
-            indent=4)
-    except:
-        return b'{}'
-
 def QueryRowToJSON_JSON(var):
     """ TODO: Kenan to document """
     try:
@@ -278,11 +268,7 @@ class Database:
             self.c_updateObserverAddress_query = self.conn.cursor(prepared=True)
             self.c_getObserverNonceBytes_query = self.conn.cursor(prepared=True)
             self.c_getObserverJWT_query = self.conn.cursor(prepared=True)
-            self.c_getObservationCount_query = self.conn.cursor(prepared=True)
-            self.c_getCommunityObservationByYear_query = self.conn.cursor(prepared=True)
-            self.c_getCommunityObservationByMonth_query = self.conn.cursor(prepared=True)
             self.c_getObserverCountByID_query = self.conn.cursor(prepared=True)
-            self.c_getRecentObservations_query = self.conn.cursor(prepared=True)
             self.c_selectTLEFile_query = self.conn.cursor(prepared=True)
             self.c_selectTLEFingerprint_query = self.conn.cursor(prepared=True)
             self.c_selectIODFingerprint_query = self.conn.cursor(prepared=True)
@@ -323,14 +309,10 @@ class Database:
         self.updateObserverAddress_query = '''UPDATE Observer SET eth_addr=? WHERE eth_addr=?'''
         self.getObserverNonceBytes_query = '''SELECT nonce_bytes FROM Observer WHERE eth_addr=?'''
         self.getObserverJWT_query = '''SELECT jwt FROM Observer WHERE eth_addr=?'''
-        self.getObservationCount_query = '''SELECT object_number, COUNT(object_number) as querycount from ParsedIOD where valid_position>0 GROUP BY object_number order by querycount DESC'''
-        self.getCommunityObservationByYear_query = '''SELECT YEAR(obs_time), COUNT(*) as querycount from ParsedIOD where valid_position>0 GROUP BY YEAR(obs_time) order by YEAR(obs_time) ASC'''
-        self.getCommunityObservationByMonth_query = '''SELECT MONTH(obs_time), COUNT(*) as querycount from ParsedIOD where valid_position>0 GROUP BY MONTH(obs_time) order by MONTH(obs_time) ASC'''
         self.getObserverCountByID_query = '''SELECT id, COUNT(*) from Observer WHERE eth_addr=?'''
         self.selectObserverAddressFromEmail_query = '''SELECT Observer.eth_addr FROM Observer INNER JOIN Observer_email ON Observer.id=Observer_email.user_id WHERE Observer_email.email=? LIMIT 1'''
         self.selectEmailFromObserverAddress_query = '''SELECT Observer_email.email FROM Observer_email INNER JOIN Observer ON Observer_email.user_id=Observer.id WHERE Observer.eth_addr=? LIMIT 1'''
         self.selectObserverAddressFromPassword_query = '''SELECT eth_addr FROM Observer WHERE password=? LIMIT 1'''
-        self.getRecentObservations_query = '''SELECT * FROM ParsedIOD where valid_position>0 ORDER BY obs_time DESC LIMIT 5'''
         self.selectTLEFile_query = '''SELECT file_fingerprint FROM TLEFILE WHERE file_fingerprint LIKE ? LIMIT 1'''
         self.selectTLEFingerprint_query = '''SELECT tle_fingerprint FROM TLE WHERE tle_fingerprint LIKE ? LIMIT 1'''
         self.selectIODFingerprint_query = '''SELECT obsFingerPrint FROM ParsedIOD WHERE obsFingerPrint LIKE ? LIMIT 1'''
@@ -1685,40 +1667,6 @@ class Database:
         else:
             return False
 
-
-    def getObservationCount(self):
-        """ TODO: Kenan to document """
-        """ GET OBSERVATION COUNT """
-        if self._dbtype == "sqlite":
-            self.c.execute(self.getObservationCount_query, [])
-            results = self.c.fetchone()
-        else:
-            self.c_getObservationCount_query.execute(self.getObservationCount_query, [])
-            results = self.c_getObservationCount_query.fetchone()
-        return results
-
-    def getCommunityObservationByYear(self):
-        """ TODO: Kenan to document """
-        """ GET COMMUNITY OBSERVATION BY YEAR """
-        if self._dbtype == "sqlite":
-            self.c.execute(self.getCommunityObservationByYear_query, [])
-            results = self.c.fetchall()
-        else:
-            self.c_getCommunityObservationByYear_query.execute(self.getCommunityObservationByYear_query, [])
-            results = self.c_getCommunityObservationByYear_query.fetchall()
-        return results
-
-    def getCommunityObservationByMonth(self):
-        """ TODO: Kenan to document """
-        """ GET COMMUNITY OBSERVATION BY YEAR """
-        if self._dbtype == "sqlite":
-            self.c.execute(self.getCommunityObservationByMonth_query, [])
-            results = self.c.fetchall()
-        else:
-            self.c_getCommunityObservationByMonth_query.execute(self.getCommunityObservationByMonth_query, [])
-            results = self.c_getCommunityObservationByMonth_query.fetchall()
-        return results
-
     def getObserverCountByID(self, public_address):
         """ TODO: Kenan to document """
         """ GET OBSERVER COUNT BY ID """
@@ -1728,17 +1676,6 @@ class Database:
         else:
             self.c_getObserverCountByID_query.execute(self.getObserverCountByID_query, [public_address])
             results = self.c_getObserverCountByID_query.fetchone()
-        return results
-
-    def getRecentObservations(self):
-        """ TODO: Kenan to document """
-        """ GET RECENT OBSERVATIONS """
-        if self._dbtype == "sqlite":
-            self.c.execute(self.getRecentObservations_query, [])
-            results = self.c.fetchall()
-        else:
-            self.c_getRecentObservations_query.execute(self.getRecentObservations_query, [])
-            results = self.c_getRecentObservations_query.fetchall()
         return results
 
     def selectIODFingerprint(self, iod_fingerprint):
