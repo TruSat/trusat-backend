@@ -2813,7 +2813,7 @@ class Database:
           "SELECT" + self.selectCatalogJsonObject + """
           FROM catalog
           WHERE datediff(now(),obs_time) >= 30
-          ORDER BY obs_time
+          ORDER BY obs_time DESC
           LIMIT %(OFFSET)s,%(FETCH)s;""")
         queryParams = {
           'OFFSET': offset_row_count,
