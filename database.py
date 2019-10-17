@@ -946,14 +946,11 @@ class Database:
         return (len(self._IODentryList), error_messages)
         # return self.c_addParsedIOD.lastrowid
 
-    def addObserverParsedIOD(self, text_block, user_addr, email=None):
+    def addObserverParsedIOD(self, text_block, email=None):
         success = 0
         error_messages = []
         removed_iods = {}
         it = 0
-        #credentials = db.getObserverJWT(user_addr)
-        if user_addr == None:
-            return false
         parsed_iod = []
         multiple = text_block
         try:
@@ -1002,22 +999,26 @@ class Database:
                             removed_iods[it] = True
                     #check each line as starting point and roll through parsing
                     #After all this chaos, go ahead and try to add it to the db
-
             except:
                 print("Not RDE")
         submission_time = datetime.now()
         it = 0
-        #one at a time, line up the items in parsed_iod so they can be checked against the original array of observations, otherwise the numbers returned back won't be aligned with the original lines
-        for entry in parsed_iod:
-            it += 1
-            individual_entry = []
-            individual_entry.append(entry)
-            entry_value = self.addParsedIOD(individual_entry, user_addr, submission_time)
-            success += entry_value[0]
-            while removed_iods[it] == True:
+        try:
+            #one at a time, line up the items in parsed_iod so they can be checked against the original array of observations, otherwise the numbers returned back won't be aligned with the original lines
+            for entry in parsed_iod:
                 it += 1
-            if entry_value[0] == 0:
-                error_messages.append("Observation on line {} has already been submitted.".format(it))
+                individual_entry = []
+                individual_entry.append(entry)
+                entry_value = self.addParsedIOD(individual_entry, submission_time)
+                print(entry_value[0])
+                success = entry_value[0]
+                while removed_iods[it] == True:
+                    it += 1
+                if entry_value[0] == 0:
+                    error_messages.append("Observation on line {} has already been submitted.".format(it))
+        except Exception as e:
+            error_messages.append("Could not determine observation format.")
+            print(e)
         if success > 0:
             self.commit_IOD_db_writes()
         return (success, error_messages)
