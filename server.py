@@ -457,12 +457,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 print(e)
             try:
                 objects = self.db.selectFindObject(object_name)
-                self.send_response(200)
-                self.send_header('Content-type', 'text/plain')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.send_header('Cache-Control', 'max-age=300')
-                self.end_headers()
-                self.wfile.write(bytes(objects, 'utf-8'))
+                self.send_200_text_cache(objects)
             except Exception as e:
                 self.send_500()
                 print(e)
@@ -561,7 +556,10 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     if email != None or email != 'null' or email != 'NULL' or email != '':
                         try:
                             self.db.updateObserverEmail(email, addr)
-                            google_email.send_email(email, payload)
+                            email_status = google_email.send_email(email, payload)
+                            if email_status == False:
+                                self.send_500()
+                                return
                             self.send_200_JSON({})
                             return
                         except Exception as e:
@@ -603,7 +601,10 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     if email != None:
                         try:
                             self.db.updateObserverEmail(email, addr)
-                            google_email.send_email(email, secret)
+                            email_status = google_email.send_email(email, secret)
+                            if email_status == False:
+                                self.send_500()
+                                return
                             self.send_200_JSON({})
                             return
                         except Exception as e:
@@ -685,7 +686,10 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                         }
                     encoded_jwt = encode(jwt_payload, private_rsa_key, algorithm='RS256')
                     self.db.updateObserverPassword(encoded_jwt.decode('utf-8'), results.decode('utf-8'))
-                    google_email.send_recovery_email(email, 'http://trusat.org/claim/' + encoded_jwt.decode('utf-8'))
+                    email_status = google_email.send_recovery_email(email, 'http://trusat.org/claim/' + encoded_jwt.decode('utf-8'))
+                    if email_status == False:
+                        self.send_500()
+                        return
             except:
                 self.send_500()
                 return
@@ -708,7 +712,10 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 #replace address
                 encoded_jwt = encode_jwt(address)
                 self.db.updateObserverAddress(address, old_address)
-                google_email.send_email(to, message_text)
+                email_status = google_email.send_email(to, message_text)
+                if email_status == False:
+                    self.send_500()
+                    return
                 self.db.updateObserverJWT(encoded_jwt, "", json_body["address"])
                 response_message = b'{"jwt":"'
                 response_message += encoded_jwt
@@ -729,7 +736,10 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_400()
                 return
             try:
-                google_email.send_email(to, message_text)
+                email_status = google_email.send_email(to, message_text)
+                if email_status == False:
+                    self.send_500()
+                    return
             except:
                 self.send_500()
                 return
@@ -743,11 +753,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             except:
                 self.send_400()
                 return
-            # parsed_iod_array = []
-            # success = 0
-            # error_messages = []
-            # removed_iods = {}
-            # it = 0
             try:
                 single = json_body["single"]
             except Exception as e:
