@@ -567,7 +567,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                             if email_status == False:
                                 self.send_500()
                                 return
-                            self.send_200_JSON({})
+                            self.send_200_JSON({'result': True})
                             return
                         except Exception as e:
                             print(e)
@@ -612,7 +612,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                             if email_status == False:
                                 self.send_500()
                                 return
-                            self.send_200_JSON({})
+                            self.send_200_JSON({'result':True})
                             return
                         except Exception as e:
                             print(e)
@@ -700,7 +700,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             except:
                 self.send_500()
                 return
-            self.send_200_JSON({})
+            self.send_200_JSON({'result': True})
 
         elif self.path == "/verifyClaimAccount":
             try:
@@ -750,7 +750,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             except:
                 self.send_500()
                 return
-            self.send_200_JSON({})
+            self.send_200_JSON({'result':True})
 
         elif self.path == "/submitObservation":
             try:
