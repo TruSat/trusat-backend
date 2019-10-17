@@ -81,7 +81,7 @@ def send_email(to, message_text):
 
 
 def create_recovery_message(sender, to, subject, message_text):
-    message_text = 'Please use the following link to verify your ownership of the following email:\n' + to + '\nIf you did not request recovery of your account please contact us at: Support@TruSat.org\n' + message_text + '\nThis link will expire in 30 minutes.'
+    message_text = 'Please use the following link to verify your ownership of the following email ' + to + ':\n\n' + message_text + '\nThis link will expire in 30 minutes.' + '\n\nIf you did not request recovery of your account please contact us at: Support@TruSat.org\n'
     message = MIMEText(message_text)
     message['to'] = to
     message['from'] = sender
