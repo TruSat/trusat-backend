@@ -103,6 +103,13 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             body_bytes = b'[]'
         self.wfile.write(body_bytes)
 
+    def send_200_JSON2(self, body_data):
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        self.wfile.write(body_data)
+
     def send_200_JSON_cache(self, body_data):
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
@@ -722,7 +729,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 response_message += b'"}'
                 response_body = response_message
 
-                self.send_200_JSON(response_body)
+                self.send_200_JSON2(response_body)
             except Exception as e:
                 print(e)
                 self.send_500()
