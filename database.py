@@ -2523,23 +2523,20 @@ class Database:
 
         # Get unique list of observed objects for this user
         # TODO: Seems like there's a way to get a count in the query instead of counting the result in python
-        query_tmp_num_obj_tracked = """SELECT ParsedIOD.object_number
+        query_tmp_num_obj_tracked = """SELECT COUNT(DISTINCT(ParsedIOD.object_number))
             FROM ParsedIOD
             JOIN Station ON ParsedIOD.station_number = Station.station_num
             JOIN Observer ON Observer.id = Station.user
-            WHERE Observer.eth_addr = %(ETH_ADDR)s
-            GROUP BY ParsedIOD.object_number;"""
+            WHERE Observer.eth_addr = %(ETH_ADDR)s;"""
         query_parameters = {'ETH_ADDR': eth_addr}
         self.c.execute(query_tmp_num_obj_tracked, query_parameters)
         try:
-            obj_tracked = self.c.fetchall()
-            num_obj_tracked = len(obj_tracked)
-            station_number = obj_tracked[0][1]
+            obj_tracked = self.c.fetchone()
+            (num_obj_tracked,) = obj_tracked
         except Exception as e:
             print("number of objects fail")
             print(e)
             num_obj_tracked = 0
-            station_number = 'NULL'
 
         # Get count of observations for this user
         query_tmp_obs_count = """SELECT COUNT(ParsedIOD.object_number) as obs_count
@@ -2594,8 +2591,7 @@ class Database:
             'user_first_observation', %(USER_FIRST_OBS)s,
             'average_observation_quality', %(AVG_OBS_QUALITY)s,
             'user_bio', Observer.bio,
-            'user_image', Observer.url_image,
-            'observation_station', %(STATION_NUM)s)
+            'user_image', Observer.url_image)
             FROM Observer
             WHERE Observer.eth_addr = %(ETH_ADDR)s
             LIMIT 1;"""
@@ -2605,7 +2601,6 @@ class Database:
                 'OBS_COUNT': obs_count,
                 'USER_FIRST_OBS': user_first_observation,
                 'AVG_OBS_QUALITY': avg_obs_quality,
-                'STATION_NUM': station_number,
                 'ETH_ADDR': eth_addr}
         self.c.execute(query_tmp, query_parameters)
         return QueryRowToJSON_JSON(self.c.fetchone())
