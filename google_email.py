@@ -147,31 +147,10 @@ def get_email_history(history_id):
             pickle.dump(creds, token)
 
     service = build('gmail', 'v1', credentials=creds)
-    #try:
-    #    history = (service.users().history().list(userId='me', startHistoryId=history_id).execute())
-    #    changes = history['history'] if 'history' in history else []
-    #    try:
-    #        print('')
-    #        print(changes)
-    #        print('')
-    #        change_id = ''
-    #        for i in changes:
-    #            change_id = i['messages'][0]['id'] if 'messages' in i else change_id
-    #        if change_id != '':
-    #            message = service.users().messages().get(userId='me', id=change_id).execute()
-    #        else:
-    #            message = None
-    #    except Exception as e:
-    #        print(e)
-    #        message = None
-    #    return message
-    #except Exception as e:
-    #    print(e)
-    #    return []
     #logging.basicConfig(format=format, level=logging.INFO, datefmt="%H:%M:%S")
     thread_to_use = threading.Thread(target=wait_for_email, args=(history_id,))
     thread_to_use.start()
-    return "ye"
+    return history_id
     #return wait_for_email(history_id)#"waiting for email info"
 
 def wait_for_email(history_id):
