@@ -2388,7 +2388,7 @@ class Database:
         # In the meantime, return TLEs older than 30 days, oldest first
         query_tmp = self.selectLatestTLEPerObject + """
             WHERE DATEDIFF(NOW(),TLE.epoch) > 30
-            ORDER BY TLE.epoch ASC;"""
+            ORDER BY TLE.epoch DESC;"""
         self.c.execute(query_tmp)
         result = ""
         for (line0, line1, line2, _, _) in self.c.fetchall():
@@ -2812,6 +2812,7 @@ class Database:
           self.selectCatalogQueryPrefix +
           "SELECT" + self.selectCatalogJsonObject + """
           FROM catalog
+          WHERE datediff(now(),obs_time) >= 30
           ORDER BY obs_time
           LIMIT %(OFFSET)s,%(FETCH)s;""")
         queryParams = {
