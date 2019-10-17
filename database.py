@@ -28,14 +28,14 @@ database.py: Does database interactions for the Open Satellite Catalog
 """
 
 def QueryRowToJSON_JSON(var):
-    """ TODO: Kenan to document """
+    """ Take the results of an SQL fetchone and returns a dictionary version of the string """
     try:
         return json.loads(var[0])
     except:
         return {}
 
 def stringArrayToJSONArray(string_array):
-    """ TODO: Kenan to document """
+    """ Convert a string array into a string version of a json array. """
     json_array = []
     for item in string_array:
         json_array.append(json.loads(item[0]))
@@ -45,7 +45,7 @@ def stringArrayToJSONArray(string_array):
         indent=4)
 
 def stringArrayToJSONArray_JSON(string_array):
-    """ TODO: Kenan to document """
+    """ Convert a string array into a json array. """
     json_array = []
     for item in string_array:
         json_array.append(json.loads(item[0]))
@@ -64,7 +64,7 @@ def datetime_from_sqldatetime(sql_date_string):
     return datetime.strptime(sql_date_string, date_format)
 
 def convert_country_names(object_observed):
-    """ TODO: Kenan to document """
+    """ Convert country names into two letter abbreviation for a list """
     for observation in object_observed:
         countries_two_letters = ''
         country_count = 0
@@ -92,7 +92,7 @@ def convert_country_names(object_observed):
     return
 
 def convert_country_names_single(observation):
-    """ TODO: Kenan to document """
+    """ Convert country names into two letter abbreviation for a single object """
     countries_two_letters = ''
     country_count = 0
     try:
@@ -928,7 +928,20 @@ class Database:
         return (len(self._IODentryList), error_messages)
         # return self.c_addParsedIOD.lastrowid
 
-    def addObserverParsedIOD(self, text_block, email=None):
+    def addObserverParsedIOD(self, text_block):
+        """ Add observations to database.
+        Take in a text block and parses then submits observations to the database.
+
+        Input:
+            text_block - Block of text that will be checked for observation format then submit
+                those observations to the database.
+        
+        Output:
+            Tuple(
+                success - Integer stating how many successful submissions were added to the database.
+                error_messages - array of strings describing any problematic lines submitted.
+            )
+        """
         success = 0
         error_messages = []
         removed_iods = {}
@@ -1361,7 +1374,14 @@ class Database:
     #######################
 
     def updateObserverNonceBytes(self, nonce, public_address):
-        """ TODO: Kenan to document """
+        """ Update the nonce of a user based on their public address.
+        The nonce is used to check that a user can sign a message with a random number to verify ownership
+        of the specified public address.
+
+        Input:
+            nonce - random number smaller than 255 bytes
+            public_address - address the user is claiming to own
+        """
 
         if self._dbtype == "sqlite":
             self.c.execute(self.updateObserverNonceBytes_query, [nonce, public_address])
@@ -1372,13 +1392,14 @@ class Database:
         return True
 
     def updateObserverJWT(self, jwt, password, public_address):
-        """ TODO: Kenan to document """
-        if self._dbtype == "INFILE":
-            try:
-                results = (self.updateObserverJWT_query, [jwt, password, public_address])
-            except KeyError:
-                results = None
-        elif self._dbtype == "sqlite":
+        """ Update the JWT for a user who owns the provided public address.
+        The JWT provides a method to verify user without a signed message with every interaction.
+
+        Input:
+            jwt - JSON Web Tokens used to verify login
+            public_address - address of the user who is assigned the JWT
+        """
+        if self._dbtype == "sqlite":
             self.c.execute(self.updateObserverJWT_query, [jwt, password, public_address])
             results = self.c.fetchone()
         else:
@@ -1387,13 +1408,8 @@ class Database:
         return True
 
     def updateObserverUsername(self, username, public_address):
-        """ TODO: Kenan to document """
-        if self._dbtype == "INFILE":
-            try:
-                results = (self.updateObserverUsername_query, [username, public_address])
-            except KeyError:
-                results = None
-        elif self._dbtype == "sqlite":
+        """ Update the name of the user who owns the provided public address. """
+        if self._dbtype == "sqlite":
             self.c.execute(self.updateObserverUsername_query, [username, public_address])
             results = self.c.fetchone()
         else:
@@ -1401,13 +1417,8 @@ class Database:
             self.conn.commit()
 
     def updateObserverEmail(self, email, public_address):
-        """ TODO: Kenan to document """
-        if self._dbtype == "INFILE":
-            try:
-                results = (self.updateObserverEmail_query, [email, public_address])
-            except KeyError:
-                results = None
-        elif self._dbtype == "sqlite":
+        """ Update the email of the user who owns the provided public address. """
+        if self._dbtype == "sqlite":
             self.c.execute(self.updateObserverEmail_query, [email, public_address])
             results = self.c.fetchone()
         else:
@@ -1416,13 +1427,8 @@ class Database:
         return True
 
     def updateObserverBio(self, bio, public_address):
-        """ TODO: Kenan to document """
-        if self._dbtype == "INFILE":
-            try:
-                results = (self.updateObserverBio_query, [bio, public_address])
-            except KeyError:
-                results = None
-        elif self._dbtype == "sqlite":
+        """ Update the bio of the user who owns the provided public address. """
+        if self._dbtype == "sqlite":
             self.c.execute(self.updateObserverBio_query, [bio, public_address])
             results = self.c.fetchone()
         else:
@@ -1431,13 +1437,8 @@ class Database:
         return True
 
     def updateObserverLocation(self, location, public_address):
-        """ TODO: Kenan to document """
-        if self._dbtype == "INFILE":
-            try:
-                results = (self.updateObserverLocation_query, [location, public_address])
-            except KeyError:
-                results = None
-        elif self._dbtype == "sqlite":
+        """ Update the location of the user who owns the provided public address. """
+        if self._dbtype == "sqlite":
             self.c.execute(self.updateObserverLocation_query, [location, public_address])
             results = self.c.fetchone()
         else:
@@ -1446,6 +1447,10 @@ class Database:
         return True
 
     def updateObserverPassword(self, password, public_address):
+        """ Update the password of the user who owns the provided public address.
+        The password is used to verify the owner of an email address by being a secret only
+        known to the user, server, and email associated with the server.
+        """
         if self._dbtype == "sqlite:":
             self.c.execute(self.updateObserverPassword_query, [password, public_address])
             results = self.c.fetchone()
@@ -1455,6 +1460,10 @@ class Database:
         return True
 
     def updateObserverAddress(self, new_address, public_address):
+        """ Update the public address of the user who owns the provided public address.
+        This is account recovery for an ethereum address where the user can no longer access
+        their private key.
+        """
         if self._dbtype == "sqlite":
             self.c.execute(self.updateObserverAddress_query, [new_address, public_address])
             results = self.c.fetchone()
@@ -1480,6 +1489,7 @@ class Database:
         return results
 
     def selectObserverAddressFromEmail(self, email):
+        """ Select the public address for a user with the provided email. """
         if self._dbtype == "sqlite":
             self.c.execute(self.selectObserverAddressFromEmail_query, [email])
             results = self.c.fetchone()
@@ -1492,6 +1502,7 @@ class Database:
         return results
 
     def selectEmailFromObserverAddress(self, addr):
+        """ Select the email for a user with the provided public address. """
         if self._dbtype == "sqlite":
             self.c.execute(self.selectEmailFromObserverAddress_query, [addr])
             results = self.c.fetchone()
@@ -1504,6 +1515,7 @@ class Database:
             return results
 
     def selectObserverAddressFromPassword(self, password):
+        """ Select the address for a user with the provided password sent to their email. """
         if self._dbtype == "sqlite":
             self.c.execute(self.selectObserverAddressFromPassword_query, [password])
             results = self.c.fetchone()
@@ -1517,7 +1529,7 @@ class Database:
         return results
 
     def getObserverNonceBytes(self, public_address):
-        """ TODO: Kenan to document """
+        """ Select observer nonce for a user with the provided public address. """
         """ GET OBSERVER NONCE """
         if self._dbtype == "sqlite":
             self.c.execute(self.getObserverNonceBytes_query, [public_address])
@@ -1528,14 +1540,8 @@ class Database:
         return results[0].decode('utf-8').strip('\x00')
 
     def getObserverJWT(self, public_address):
-        """ TODO: Kenan to document """
-        """ GET OBSERVER NONCE """
-        if self._dbtype == "INFILE":
-            try:
-                results = (self.getObserverJWT_query, [public_address])
-            except KeyError:
-                results = None
-        elif self._dbtype == "sqlite":
+        """ Select observer JWT for a user with the provided public address. """
+        if self._dbtype == "sqlite":
             self.c.execute(self.getObserverJWT_query, [public_address])
             results = self.c.fetchone()
         else:
@@ -1545,7 +1551,7 @@ class Database:
         return results
 
     def getObserverFromJWT(self, jwt):
-        """ TODO: Kenan to document """
+        """ Select public address for a user with the provided JWT. """
         query_tmp = '''SELECT eth_addr FROM Observer WHERE jwt="%(JWT)s"'''
         self.c.execute(query_tmp, {'JWT': jwt})
         try:
@@ -1668,7 +1674,7 @@ class Database:
             return False
 
     def getObserverCountByID(self, public_address):
-        """ TODO: Kenan to document """
+        """ Get number of users with public address to determine if ethereum address has been used. """
         """ GET OBSERVER COUNT BY ID """
         if self._dbtype == "sqlite":
             self.c.execute(self.getObserverCountByID_query, [public_address])
