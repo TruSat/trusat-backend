@@ -18,7 +18,7 @@ def create_message(sender, to, subject, message_text):
     message_text = 'Save this email: TruSat account recovery info for ' + to + '\n\n' + \
       'To log into TruSat, you\'ll need your password AND this secret code:\n\n' + message_text + \
       '\n\nThis email is the only time we can send you this code. TruSat cannot restore your account or reset your password for you. Please save this email forever and make a note of the password you used.\n\n' + \
-      'Why do we do it this way? Read more\n\n' + \
+      'Why do we do it this way? Read more (trusat.org/faq)\n\n' + \
       'Questions? Please email: Support@TruSat.org\n\n' + \
       'Login here: trusat.org/login'
     message = MIMEText(message_text)
