@@ -316,7 +316,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_500()
                 return
             try:
-                user_jwt = json_body["jwt"]
+                user_jwt = parameters["jwt"]
                 decoded_jwt = decode_jwt(user_jwt)
                 jwt_user_addr = decoded_jwt["address"]
             except Exception as e:
@@ -331,8 +331,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     print(e)
                     self.send_500()
                     return
-                #user_profile_json["public_username"] = False
-                #user_profile_json["public_location"] = False
 
             for k,v in user_profile_json.items():
                 if v == None or v =='NULL':
@@ -665,20 +663,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 except Exception as e:
                     print("Location not being updated")
                     print(e)
-                try:
-                    public_location = json_body["public_location"]
-                    if public_location != "null" and public_location != None:
-                        self.db.updateObserverPublicLocation(public_location, public_address)
-                except Exception as e:
-                    print("Location flag could not be found")
-                    print(e)
-                try:
-                    public_username = json_body["public_username"]
-                    if public_username != "null":
-                        self.db.updateObserverPublicUsername(public_username, public_username)
-                except Exception as e:
-                    print("Username flag could not be found")
-                    print(e)
             self.send_200_JSON(response_body)
                     
         elif self.path == '/claimAccount':
@@ -781,73 +765,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 print(e)
                 self.send_500()
                 return
-            #     try:
-            #         parsed_iod = iod.parse_iod_lines(multiple)
-            #         if len(parsed_iod):
-            #             for item in multiple.split('\n'):
-            #                 temp_iod = iod.parse_iod_lines(item)
-            #                 it += 1
-            #                 if temp_iod:
-            #                     removed_iods[it] = False
-            #                 else:
-            #                     error_messages.append("Observation on line {} did not match IOD format.".format(it))
-            #                     removed_iods[it] = True
-            #     except:
-            #         print("Not IOD")
-            #     if not parsed_iod:
-            #         try:
-            #             parsed_iod = iod.parse_uk_lines(multiple)
-            #             if len(parsed_iod):
-            #                 for item in multiple.split('\n'):
-            #                     temp_iod = iod.parse_uk_lines(item)
-            #                     it += 1
-            #                     if temp_iod:
-            #                         removed_iods[it] = False
-            #                     else:
-            #                         error_messages.append("Observation on line {} did not match UK format.".format(it))
-            #                         removed_iods[it] = True
-            #         except:
-            #             print("Not UK")
-            #     if not parsed_iod:
-            #         try:
-            #             parsed_iod = iod.parse_rde_record(multiple)
-            #             if len(parsed_iod):
-            #                 rde_multiple = multiple.split('\n')
-            #                 for i in range(0, len(parsed_iod)-2):
-            #                     temp_iod = iod.parse_rde_record("{}\n{}\n{}".format(rde_multiple[i], rde_multiple[i+1], rde_multiple[i+2]))
-            #                     it += 1
-            #                     if temp_iod:
-            #                         i += 2
-            #                         removed_iods[it] = False
-            #                         removed_iods[it+1] = False
-            #                         removed_iods[it+2] = False
-            #                         it += 2
-            #                     else:
-            #                         error_messages.append("Observation on line {} did not match RDE format.".format(it))
-            #                         removed_iods[it] = True
-            #                 #check each line as starting point and roll through parsing
-            #                 #After all this chaos, go ahead and try to add it to the db
-
-            #         except:
-            #             print("Not RDE")
-            #     submission_time = datetime.now()
-            #     it = 0
-            #     #one at a time, line up the items in parsed_iod so they can be checked against the original array of observations, otherwise the numbers returned back won't be aligned with the original lines
-            #     for entry in parsed_iod:
-            #         it += 1
-            #         individual_entry = []
-            #         individual_entry.append(entry)
-            #         entry_value = self.db.addParsedIOD(individual_entry, submission_time)
-            #         success += entry_value[0]
-            #         while removed_iods[it] == True:
-            #             it += 1
-            #         if entry_value[0] == 0:
-            #             error_messages.append("Observation on line {} has already been submitted.".format(it))
-            # except Exception as e:
-            #     error_messages.append("Could not determine observation format.")
-            #     print(e)
-            # if success > 0:
-            #     self.db.commit_IOD_db_writes()
             success_length = {'success':success, 'error_messages':error_messages}
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
