@@ -509,7 +509,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
             try:
                 public_address_count = self.db.getObserverCountByID(public_address=addr)
-            except:
+            except Exception as e:
+                print(e)
                 self.send_500()
                 return
             random_number = str(secrets.randbits(256))
@@ -519,7 +520,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 try:
                     self.db.addObserver(addr, "NULL", 0, "NULL")
                     self.db.updateObserverNonceBytes(nonce=random_number, public_address=addr)
-                except:
+                except Exception as e:
+                    print(e)
                     self.send_500()
                     return
             elif public_address_count[0] >= 1:
@@ -771,7 +773,12 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             parsed_iod = []
             try:
                 multiple = json_body["multiple"]
-                (success, error_messages) = self.db.addObserverParsedIOD(multiple, user_addr)
+                results = self.db.addObserverParsedIOD(multiple)
+                if results is not False:
+                    (success, error_messages) = results
+                else:
+                    self.send_500()
+                    return
             except Exception as e:
                 print(e)
                 self.send_500()
