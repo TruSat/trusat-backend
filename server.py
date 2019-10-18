@@ -16,6 +16,7 @@ from cryptography.hazmat.primitives.serialization import load_pem_private_key, l
 from base64 import urlsafe_b64decode
 from coinaddr import validate
 import os
+import re
 
 import database
 import google_email
@@ -217,7 +218,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             if json_object is not False:
                 self.send_200_JSON_cache(json_object)
             else:
-                self.send_200_JSON_cache({})
+                self.send_200_JSON_cache(json.dumps({}))
                 return
         
         elif path == "/catalog/undisclosed":
@@ -230,7 +231,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             if json_object is not False:
                 self.send_200_JSON_cache(json_object)
             else:
-                self.send_200_JSON_cache({})
+                self.send_200_JSON_cache(json.dumps({}))
                 return
 
         elif path == "/catalog/debris":
@@ -243,7 +244,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             if json_object is not False:
                 self.send_200_JSON_cache(json_object)
             else:
-                self.send_200_JSON_cache({})
+                self.send_200_JSON_cache(json.dumps({}))
                 return
 
         elif path == "/catalog/latest":
@@ -256,7 +257,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             if json_object is not False:
                 self.send_200_JSON_cache(json_object)
             else:
-                self.send_200_JSON_cache({})
+                self.send_200_JSON_cache(json.dumps({}))
                 return
 
         elif path == "/catalog/all":
@@ -269,7 +270,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             if json_object is not False:
                 self.send_200_JSON_cache(json_object)
             else:
-                self.send_200_JSON_cache({})
+                self.send_200_JSON_cache(json.dumps({}))
                 return
 
         elif path == "/tle/trusat_all.txt":
@@ -389,7 +390,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             if json_object:
                 self.send_200_JSON_cache(json_object)
             else:
-                self.send_200_JSON({})
+                self.send_200_JSON(json.dumps({}))
                 return
 
         elif path == '/object/info':
@@ -411,7 +412,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             if json_object:
                 self.send_200_JSON_cache(json_object)
             else:
-                self.send_200_JSON_cache({})
+                self.send_200_JSON_cache(json.dumps({}))
                 return
 
         elif path == '/object/history':
@@ -553,7 +554,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 email = json_body["email"]
                 results = self.db.selectObserverAddressFromEmail(email)
                 if len(results) == 42:
-                    self.send_200_JSON({})
+                    self.send_200_JSON(json.dumps({}))
                     return
             except Exception as e:
                 print(e)
@@ -624,7 +625,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                             if email_status == False:
                                 self.send_500()
                                 return
-                            self.send_200_JSON({'result': True})
+                            self.send_200_JSON(json.dumps({'result': True}))
                             return
                         except Exception as e:
                             print(e)
@@ -678,7 +679,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                             if email_status == False:
                                 self.send_500()
                                 return
-                            self.send_200_JSON({'result':True})
+                            self.send_200_JSON(json.dumps({'result':True}))
                             return
                         except Exception as e:
                             print(e)
@@ -776,7 +777,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 print(e)
                 self.send_500()
                 return
-            self.send_200_JSON({'result': True})
+            self.send_200_JSON(json.dumps({'result': True}))
 
         elif self.path == "/verifyClaimAccount":
             try:
@@ -835,7 +836,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 print(e)
                 self.send_500()
                 return
-            self.send_200_JSON({'result':True})
+            self.send_200_JSON(json.dumps({'result':True}))
 
         elif self.path == "/submitObservation":
             try:
@@ -871,7 +872,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
-            self.wfile.write(bytes(json.dumps(success_length),'utf-8'))
+            self.wfile.write(bytes(json.dumps(success_length)))
 
         elif self.path == "/seesat":
             email_information = json_body["message"]["data"]
@@ -879,7 +880,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             email_history = json.loads(email_history)
             print(email_history)
             print(google_email.get_email_history(email_history['historyId']))
-            self.send_200_JSON({})
+            self.send_200_JSON(json.dumps({}))
             self.end_headers()
 
         else:
