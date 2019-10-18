@@ -14,6 +14,7 @@ import sha3
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import load_pem_private_key, load_pem_public_key
 from base64 import urlsafe_b64decode
+from coinaddr import validate
 import os
 
 import database
@@ -39,6 +40,25 @@ def decode_jwt(user_jwt):
     public_rsa_key = load_pem_public_key(bytes(public_key,'utf-8'), backend=default_backend())
     decoded_jwt = decode(user_jwt, public_rsa_key, algorithms='RS256')
     return decoded_jwt
+
+def isValidNoradNumber(value):
+    try:
+        int_value = int(value)
+    except Exception as e:
+        print(e)
+        return False
+    if int_value < 100000 and int_value > 0:
+        return True
+    else:
+        return False
+
+def isValidEthereumAddress(addr):
+    check_address = validate('eth', bytes(addr, 'utf-8'))
+    return check_address.valid
+
+def isValidEmailAddress(email):
+    regex = '^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$'
+    return re.search(regex,email)
 
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
@@ -312,6 +332,9 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 print(e)
                 self.send_400()
                 return
+            if isValidEthereumAddress(user_addr) is False:
+                self.send_400()
+                return
             try:
                 user_profile_json = self.db.selectProfileInfo_JSON(user_addr)
                 objects_observed_json = self.db.selectUserObjectsObserved_JSON(user_addr)
@@ -354,6 +377,9 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 print(e)
                 self.send_400()
                 return
+            if isValidNoradNumber(norad_number) is False:
+                self.send_400()
+                return
             try:
                 json_object = self.db.selectObjectInfluence_JSON(norad_number)
             except Exception as e:
@@ -371,6 +397,9 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 norad_number = parameters_map['norad_number']
             except Exception as e:
                 print(e)
+                self.send_400()
+                return
+            if isValidNoradNumber(norad_number) is False:
                 self.send_400()
                 return
             try:
@@ -391,6 +420,11 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 year = parameters_map["year"]
             except Exception as e:
                 print(e)
+                self.send_400()
+                return
+            if (isValidNoradNumber(norad_number) is False or
+                year < 1957 or
+                year > datetime.now().year):
                 self.send_400()
                 return
             try:
@@ -433,6 +467,10 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 print(e)
                 self.send_400()
                 return
+            if (isValidNoradNumber(norad_number) is False or
+                isValidEthereumAddress is False):
+                self.send_400()
+                return
             try:
                 response_body = self.db.selectObjectUserSightings_JSON(norad_number, public_address)
                 response_body = json.dumps(response_body)
@@ -447,6 +485,9 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 norad_number = parameters_map["norad_number"]
             except Exception as e:
                 print(e)
+                self.send_400()
+                return
+            if isValidNoradNumber(norad_number) is False:
                 self.send_400()
                 return
             try:
@@ -605,6 +646,9 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 print(e)
                 self.send_400()
                 return
+            if isValidEthereumAddress(addr) is False:
+                self.send_400()
+                return
             nonce = old_nonce.encode('utf-8')
             self.db.updateObserverNonceBytes(nonce=0, public_address=addr)
             message_hash = sha3.keccak_256(nonce).hexdigest()
@@ -620,6 +664,9 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 print(e)
                 email = None
+            if isValidEmailAddress(email) is False:
+                self.send_400()
+                return
             if signed_public_key.lower() == addr.lower():
                 email_from_addr = self.db.selectEmailFromObserverAddress(addr)
                 if email_from_addr == None or email_from_addr == '' or email_from_addr == b'NULL':
@@ -661,6 +708,9 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 print(e)
                 self.send_400()
                 return
+            if isValidEthereumAddress(public_address) is False:
+                self.send_400()
+                return
             if self.db.getObserverJWT(public_address)[0].decode("utf-8") == user_jwt:
                 try:  
                     username = json_body["username"]
@@ -671,7 +721,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     print(e)
                 try:
                     email = json_body["email"]
-                    if email != "null" and email != None:
+                    if isValidNoradNumber(norad_number):
                         self.db.updateObserverEmail(email, public_address)
                 except Exception as e:
                     print("Email not being updated")
@@ -697,6 +747,9 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 email = json_body['email']
             except Exception as e:
                 print(e)
+                self.send_400()
+                return
+            if isValidEmailAddress(email) is False:
                 self.send_400()
                 return
             try:
@@ -733,6 +786,9 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 print(e)
                 self.send_400()
                 return
+            if isValidEthereumAddress(address) is False:
+                self.send_400()
+                return
             #Lookup number and old address
             try:
                 decoded_jwt = decode_jwt(user_jwt)
@@ -766,6 +822,9 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 print(e)
                 self.send_400()
                 return
+            if isValidEmailAddress(to) is False:
+                self.send_400()
+                return
             try:
                 email_status = google_email.send_email(to, message_text)
                 if email_status == False:
@@ -784,6 +843,9 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 user_addr = decoded_jwt["address"]
             except Exception as e:
                 print(e)
+                self.send_400()
+                return
+            if isValidEthereumAddress(user_addr) is False:
                 self.send_400()
                 return
             try:
