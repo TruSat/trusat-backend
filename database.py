@@ -2049,6 +2049,57 @@ class Database:
         self.c.execute(query_tmp, query_parameters)
         return stringArrayToJSONArray(self.c.fetchall())
 
+
+    def selectUserObservationStats(self, user_id):
+        """ Selects the complete user observation history with all information necessary
+        to review/revise user rank / weight """
+        query_tmp = """
+          WITH user AS (
+            SELECT id
+            FROM Observer
+          )
+          , user_stations AS (
+            SELECT U.id user_id, S.station_num
+            FROM user U
+            LEFT JOIN Station S on (U.id = S.user)
+          )
+          , user_observations AS (
+            SELECT 
+             US.user_id user_id, 
+             P.obs_id obs_id, 
+			 P.submitted submitted,
+			 P.obs_time obs_time,
+			 P.object_number object_number,
+			 P.station_number station_number,
+			 P.time_uncertainty time_uncertainty,
+             TP.process_id as process_id,
+             TP.tle_source_id as tle_source_id,
+             TP.tle_result_id as tle_result_id,
+             TP.aspect as aspect,
+             TP.cross_track_err as cross_track_err,
+             TP.time_err as time_err,
+             TP.position_err as position_err,
+             TP.obs_weight as obs_weight,
+             TP.tle_start_rms as tle_start_rms,
+             TP.tle_result_rms as tle_result_rms,
+             (TP.tle_result_rms - TP.position_err) as rms_diff
+            FROM user_stations US
+            LEFT JOIN ParsedIOD P on (US.station_num = P.station_number)
+            JOIN TLE_process TP on (TP.obs_id = P.obs_id)
+            ORDER BY P.obs_time DESC
+          )		           
+			SELECT *  
+			FROM user_observations Obs
+			WHERE user_id = %(USER_ID)s
+            ORDER BY user_id, obs_time ASC;"""
+        query_parameters = {'USER_ID': user_id}
+        self.c.execute(query_tmp, query_parameters)
+        try:
+            return self.c.fetchall()
+        except:
+            return None
+
+
     def selectObjectHistoryByMonth_JSON(self, norad_number, year):
         """ For a particular object, provide a navigation structure of its full observation history
 
