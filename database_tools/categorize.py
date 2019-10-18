@@ -183,6 +183,9 @@ def main():
             cursor.executemany(add_entry_query, entry_list)
             entry_list = []
             i = 0
+    # Commit the remaining batch < 1000
+    if (len(entry_list) > 0):
+        cursor.executemany(add_entry_query, entry_list)
     cnx.commit()
     print('done')
 
