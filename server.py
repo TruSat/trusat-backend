@@ -444,6 +444,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 return
             try:
                 response_body = self.db.selectObjectUserSightings_JSON(norad_number, public_address)
+                response_body = json.dumps(response_body)
                 self.send_200_JSON_cache(response_body)
             except Exception as e:
                 print(e)
