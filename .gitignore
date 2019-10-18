@@ -105,11 +105,16 @@ venv.bak/
 
 #credentials
 token.pickle
+history_token.pickle
 privkey.pem
 fullchain.pem
 Astrana.db
 login.txt*
 credentials.json
+private.pem
+public.pem
+unsafe_private.pem
+pubkey.pem
 
 # Gitignore settings inherited from databsae repo: INFILE and other input/output datafiles
 *.csv
