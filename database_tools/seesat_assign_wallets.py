@@ -13,6 +13,9 @@ from eth_account import Account
 import logging
 log = logging.getLogger(__name__)
 
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+sys.path.insert(1,os.path.dirname(currentdir)) 
 import database
 
 if __name__ == '__main__':
@@ -104,20 +107,18 @@ if __name__ == '__main__':
         for arg in vars(args):
             log.debug("%s : %s",arg, getattr(args, arg))
 
-    if (dbtype == "sqlserver"):
-        if dbusername == None:
-            try: 
-                dbusername = input("Username: ") 
-            except Exception as error: 
-                log.warning('ERROR: password must be specified {}'.format(error))
-        if dbpassword == None:
-            try: 
-                dbpassword = getpass() 
-            except Exception as error: 
-                log.warning('ERROR: password must be specified {}'.format(error))
+    try:
+        with open('../../login.txt-remote', 'r') as f:
+            lines = f.readlines()
+            dbname = lines[0].strip()
+            dbtype = lines[1].strip()
+            dbhostname = lines[2].strip()
+            dbusername = lines[3].strip()
+            dbpassword = lines[4].strip()
+        db = database.Database(dbname,dbtype,dbhostname,dbusername,dbpassword)
+    except: 
+        log.error("DB Login credentials not available.")
 
-    # Set up database connection or files
-    db = database.Database(dbname,dbtype,dbhostname,dbusername,dbpassword)
 
     # Initialize variables we want fresh for the processing loop
 
@@ -127,12 +128,16 @@ if __name__ == '__main__':
     # log.debug("Creating account {} for Sender (ID) {} ({})".format(acct.address,sender,sender_id))
 
     query_tmp = "select id from Observer where eth_addr is NULL" 
+    query_tmp = "select id from Observer" 
     db.c.execute(query_tmp)
     for [id] in db.c.fetchall():
         acct = Account.create('password123')
-        print("ID: {}  eth_addr: {} ".format(id,acct.address))
+        username = database.generateUsername()
+        print("ID: {}  eth_addr: {}  username: {}".format(id,acct.address,username))
 
-        query_tmp2 = "update Observer set eth_addr='{}' where id={}".format(acct.address,id)
+        # query_tmp2 = "update Observer set eth_addr='{}' where id={}".format(acct.address,id)
+
+        query_tmp2 = "update Observer set name='{}' where id={}".format(username,id)
         db.c.execute(query_tmp2)
 
 
