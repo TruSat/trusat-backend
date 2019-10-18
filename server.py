@@ -418,13 +418,14 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             try:
                 norad_number = parameters_map['norad_number']
                 year = parameters_map["year"]
+                int_year = int(year)
             except Exception as e:
                 print(e)
                 self.send_400()
                 return
             if (isValidNoradNumber(norad_number) is False or
-                int(year) < 1957 or
-                int(year) > datetime.now().year):
+                int_year < 1957 or
+                int_year > datetime.now().year):
                 self.send_400()
                 return
             try:
