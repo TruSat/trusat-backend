@@ -30,11 +30,10 @@ dbusername or print("No database user specified")
 TABLE_create_query = """CREATE TABLE IF NOT EXISTS `categories` (
      `obj_no` MEDIUMINT(5) UNSIGNED NOT NULL,
      `name` varchar(32) NOT NULL,
+     `sub_category` varchar(120) NOT NULL,
      `description` varchar(120) NOT NULL,
-     KEY `categories_obj_no_idx` (`obj_no`) USING BTREE,
-
-     )
-    ENGINE=Aria)"""
+     KEY `categories_obj_no_idx` (`obj_no`) USING BTREE
+     ) ENGINE=Aria"""
 
 # --- VARIABLES ---
 
@@ -51,7 +50,7 @@ def create_database(cursor):
         print(f'Failed creating database: {err}')
         os._exit(1)
 
-def process_file(url, name, description):
+def process_file(url, name, sub_cat, description):
     global buffer, tot_proc
     # load txt file
     _file = urllib.request.urlopen(url)
@@ -65,7 +64,7 @@ def process_file(url, name, description):
             entry = line.split(' ')
             obj_id = entry[1]
             # populate data in memory first and batch process after
-            data = (obj_id, name[:-4], description.strip())
+            data = (obj_id, name[:-4], sub_cat.strip(), description.strip())
             buffer.append(data)
             i = 0
     tot_proc += 1
@@ -129,8 +128,9 @@ def main():
                 name = _tmp_link['href']
                 if name[-4:] == '.txt':
                     # start processing file in new thread
+                    sub_cat = _tmp_link.get_text()
                     _url = URL + name
-                    Thread(target=process_file, args=(_url, name, main_cat)).start()
+                    Thread(target=process_file, args=(_url, name, sub_cat, main_cat)).start()
                     tot_files += 1
 
     # scrape supplemental page
@@ -150,7 +150,7 @@ def main():
         if name[-4:] == '.txt':
             # start processing file in new thread
             _url = URL_SUP + name
-            Thread(target=process_file, args=(_url, name, main_cat)).start()
+            Thread(target=process_file, args=(_url, name, sub_cat, main_cat)).start()
             tot_files += 1
 
     # wait for all threads to finish while displaying progress
@@ -168,8 +168,8 @@ def main():
 
     # save to DB
     add_entry = """INSERT INTO categories 
-                (obj_no, name, description) 
-                VALUES (%s, %s, %s)"""
+                (obj_no, name, sub_category, description) 
+                VALUES (%s, %s, %s, %s)"""
     for _x in buffer:
         cursor.execute(add_entry, _x)
 
