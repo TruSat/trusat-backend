@@ -198,7 +198,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         if path == "/catalog/priorities":
             try:
                 json_object = self.db.selectCatalog_Priorities_JSON()
-            except:
+            except Exception as e:
+                print(e)
                 self.send_500()
                 return
             if json_object is not False:
@@ -210,7 +211,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         elif path == "/catalog/undisclosed":
             try:
                 json_object = self.db.selectCatalog_Undisclosed_JSON()
-            except:
+            except Exception as e:
+                print(e)
                 self.send_500()
                 return
             if json_object is not False:
@@ -222,7 +224,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         elif path == "/catalog/debris":
             try:
                 json_object = self.db.selectCatalog_Debris_JSON()
-            except:
+            except Exception as e:
+                print(e)
                 self.send_500()
                 return
             if json_object is not False:
@@ -234,7 +237,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         elif path == "/catalog/latest":
             try:
                 json_object = self.db.selectCatalog_Latest_JSON()
-            except:
+            except Exception as e:
+                print(e)
                 self.send_500()
                 return
             if json_object is not False:
@@ -246,7 +250,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         elif path == "/catalog/all":
             try:
                 json_object = self.db.selectCatalog_All_JSON()
-            except:
+            except Exception as e:
+                print(e)
                 self.send_500()
                 return
             if json_object is not False:
@@ -258,7 +263,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         elif path == "/tle/trusat_all.txt":
             try:
                 two_line_elements = self.db.selectTLE_all()
-            except:
+            except Exception as e:
+                print(e)
                 self.send_500()
                 return
             if two_line_elements is not False:
@@ -270,7 +276,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         elif path == "/tle/trusat_priorities.txt":
             try:
                 two_line_elements = self.db.selectTLE_priorities()
-            except:
+            except Exception as e:
+                print(e)
                 self.send_500()
                 return
             if two_line_elements is not False:
@@ -282,7 +289,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         elif path == "/tle/trusat_high_confidence.txt":
             try:
                 two_line_elements = self.db.selectTLE_high_confidence()
-            except:
+            except Exception as e:
+                print(e)
                 self.send_500()
                 return
             if two_line_elements is not False:
@@ -294,7 +302,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         elif path == "/astriagraph":
             try:
                 tles_json = self.db.selectTLE_Astriagraph()
-            except:
+            except Exception as e:
+                print(e)
                 self.send_500()
                 return
             if tles_json is not False:
@@ -349,12 +358,14 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         elif path == '/object/influence':
             try:
                 norad_number = parameters_map['norad_number']
-            except:
+            except Exception as e:
+                print(e)
                 self.send_400()
                 return
             try:
                 json_object = self.db.selectObjectInfluence_JSON(norad_number)
-            except:
+            except Exception as e:
+                print(e)
                 self.send_500()
                 return
             if json_object:
@@ -366,12 +377,14 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         elif path == '/object/info':
             try:
                 norad_number = parameters_map['norad_number']
-            except:
+            except Exception as e:
+                print(e)
                 self.send_400()
                 return
             try:
                 json_object = self.db.selectObjectInfo_JSON(norad_number)
-            except:
+            except Exception as e:
+                print(e)
                 self.send_500()
                 return
             if json_object:
@@ -412,7 +425,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     year_response[month_string].append(items)
                 response_body = json.dumps(year_response)
                 self.send_200_JSON_cache(response_body)
-            except:
+            except Exception as e:
+                print(e)
                 self.send_500()
                 return
 
@@ -438,12 +452,14 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         elif path == "/tle/object":
             try:
                 norad_number = parameters_map["norad_number"]
-            except:
+            except Exception as e:
+                print(e)
                 self.send_400()
                 return
             try:
                 two_line_elements = self.db.selectTLE_single(norad_number)
-            except:
+            except Exception as e:
+                print(e)
                 self.send_500()
                 return
             if two_line_elements:
@@ -455,7 +471,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         elif path == "/findObject":
             try:
                 object_name = parameters_map["objectName"]
-            except:
+            except Exception as e:
+                print(e)
                 self.send_400()
                 return
             try:
@@ -483,7 +500,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             content_length = int(self.headers['Content-Length'])
             body = self.rfile.read(content_length)
             json_body = json.loads(body)
-        except:
+        except Exception as e:
+            print(e)
             self.send_400()
             return
 
@@ -491,7 +509,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         if self.path == "/getNonce":
             try:
                 addr = json_body["address"]
-            except:
+            except Exception as e:
+                print(e)
                 self.send_400()
                 return
 
@@ -545,7 +564,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 email = json_body["email"]
                 signed_message = json_body["signedMessage"]
                 payload = json_body["secret"]
-            except:
+            except Exception as e:
+                print(e)
                 self.send_400()
                 return
 
@@ -555,7 +575,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             message_hash = encode_defunct(hexstr=message_hash)
             try:
                 signed_public_key = Account.recover_message(message_hash, signature=signed_message)
-            except:
+            except Exception as e:
+                print(e)
                 print('message could not be checked')
             if signed_public_key.lower() == addr.lower():
                 email_from_addr = self.db.selectEmailFromObserverAddress(addr)
@@ -586,7 +607,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 addr = json_body["address"]
                 old_nonce = self.db.getObserverNonceBytes(addr)
                 signed_message = json_body["signedMessage"]
-            except:
+            except Exception as e:
+                print(e)
                 self.send_400()
                 return
             try:
@@ -600,7 +622,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             message_hash = encode_defunct(hexstr=message_hash)
             try:
                 signed_public_key = Account.recover_message(message_hash, signature=signed_message)
-            except:
+            except Exception as e:
+                print(e)
                 print('message could not be checked')
             if signed_public_key.lower() == addr.lower():
                 email_from_addr = self.db.selectEmailFromObserverAddress(addr)
@@ -639,7 +662,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 user_jwt = json_body["jwt"]
                 decoded_jwt = decode_jwt(user_jwt)
                 public_address = decoded_jwt["address"]
-            except:
+            except Exception as e:
+                print(e)
                 self.send_400()
                 return
             if self.db.getObserverJWT(public_address)[0].decode("utf-8") == user_jwt:
@@ -676,7 +700,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         elif self.path == '/claimAccount':
             try:
                 email = json_body['email']
-            except:
+            except Exception as e:
+                print(e)
                 self.send_400()
                 return
             try:
@@ -697,7 +722,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     if email_status == False:
                         self.send_500()
                         return
-            except:
+            except Exception as e:
+                print(e)
                 self.send_500()
                 return
             self.send_200_JSON({'result': True})
@@ -707,7 +733,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 message_text = json_body["secret"]
                 address = json_body["address"]
                 user_jwt = json_body["jwt"]
-            except:
+            except Exception as e:
+                print(e)
                 self.send_400()
                 return
             #Lookup number and old address
@@ -739,7 +766,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             try:
                 to = json_body['to']
                 message_text = json_body['payload']
-            except:
+            except Exception as e:
+                print(e)
                 self.send_400()
                 return
             try:
@@ -747,7 +775,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 if email_status == False:
                     self.send_500()
                     return
-            except:
+            except Exception as e:
+                print(e)
                 self.send_500()
                 return
             self.send_200_JSON({'result':True})
@@ -757,7 +786,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 user_jwt = json_body["jwt"]
                 decoded_jwt = decode_jwt(user_jwt)
                 user_addr = decoded_jwt["address"]
-            except:
+            except Exception as e:
+                print(e)
                 self.send_400()
                 return
             try:
