@@ -153,7 +153,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         try:
             path = self.path.split('?')[0]
-            parameters = self.path.split('?')[1]
         except Exception as e:
             print(e)
             path = self.path
@@ -334,7 +333,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_500()
                 return
             try:
-                user_jwt = parameters["jwt"]
+                user_jwt = parameters_map["jwt"]
                 decoded_jwt = decode_jwt(user_jwt)
                 jwt_user_addr = decoded_jwt["address"]
             except Exception as e:
@@ -614,11 +613,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 print(e)
                 self.send_400()
                 return
-            try:
-                email = json_body["email"]
-                secret = json_body["secret"]
-            except:
-                email = None
             nonce = old_nonce.encode('utf-8')
             self.db.updateObserverNonceBytes(nonce=0, public_address=addr)
             message_hash = sha3.keccak_256(nonce).hexdigest()
@@ -628,6 +622,12 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 print(e)
                 print('message could not be checked')
+            try:
+                email = json_body["email"]
+                secret = json_body["secret"]
+            except Exception as e:
+                print(e)
+                email = None
             if signed_public_key.lower() == addr.lower():
                 email_from_addr = self.db.selectEmailFromObserverAddress(addr)
                 if email_from_addr == None or email_from_addr == '' or email_from_addr == b'NULL':
