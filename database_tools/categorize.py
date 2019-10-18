@@ -8,14 +8,13 @@ from bs4 import BeautifulSoup
 from bs4 import element
 from threading import Thread
 
-f = open('login.txt', 'r')
-lines = f.readlines()
-dbname = lines[0].strip()
-dbtype = lines[1].strip()
-dbhostname = lines[2].strip()
-dbusername = lines[3].strip()
-dbpassword = lines[4].strip()
-f.close()
+with open('../../login.txt', 'r') as f:
+    lines = f.readlines()
+    dbname = lines[0].strip()
+    dbtype = lines[1].strip()
+    dbhostname = lines[2].strip()
+    dbusername = lines[3].strip()
+    dbpassword = lines[4].strip()
 
 # --- CONSTANTS ---
 
@@ -28,12 +27,14 @@ dbname or print("No database name specified")
 dbhostname or print("No database host specified")
 dbusername or print("No database user specified")
 
-TABLE = (
-    "CREATE TABLE IF NOT EXISTS `categorized` ("
-    " `obj_no` varchar(9) NOT NULL,"
-    " `name` varchar(32) NOT NULL,"
-    " `description` varchar(120) NOT NULL)"
-    " ENGINE=InnoDB")
+TABLE_create_query = """CREATE TABLE IF NOT EXISTS `categories` (
+     `obj_no` MEDIUMINT(5) UNSIGNED NOT NULL,
+     `name` varchar(32) NOT NULL,
+     `description` varchar(120) NOT NULL,
+     KEY `categories_obj_no_idx` (`obj_no`) USING BTREE,
+
+     )
+    ENGINE=Aria)"""
 
 # --- VARIABLES ---
 
@@ -55,6 +56,7 @@ def process_file(url, name, description):
     # load txt file
     _file = urllib.request.urlopen(url)
     i = 0
+    # TODO: Update this to use TLE class
     for _line in _file.readlines():
         # read every 3rd line
         i += 1
@@ -71,8 +73,7 @@ def process_file(url, name, description):
 
 # --- INIT ---
 
-if __name__ == '__main__':
-
+def main():
     # connect to server
     try:
         cnx = mysql.connector.connect(
@@ -96,7 +97,7 @@ if __name__ == '__main__':
     try:
         cursor.execute(f'USE {dbname}')
     except mysql.connector.Error as err:
-        print(f'Database {dbname} does not exists.')
+        print(f'Database {dbname} does not exist.')
         if err.errno == errorcode.ER_BAD_DB_ERROR:
             create_database(cursor)
             print(f'Database {dbname} created successfully.')
@@ -104,7 +105,7 @@ if __name__ == '__main__':
         else:
             print(err)
             os._exit(1)
-    cursor.execute(TABLE)
+    cursor.execute(TABLE_create_query)
 
     # scrape main page
     URL = 'https://celestrak.com/NORAD/elements/'
@@ -162,13 +163,13 @@ if __name__ == '__main__':
             'entries in total.\nSaving to database...', end='')
     
     # clear current records
-    clear_table = ("TRUNCATE TABLE categorized")
+    clear_table = ("TRUNCATE TABLE categories")
     cursor.execute(clear_table)
 
     # save to DB
-    add_entry = ("INSERT INTO categorized "
-                "(obj_no, name, description) "
-                "VALUES (%s, %s, %s)")
+    add_entry = """INSERT INTO categories 
+                (obj_no, name, description) 
+                VALUES (%s, %s, %s)"""
     for _x in buffer:
         cursor.execute(add_entry, _x)
 
@@ -178,3 +179,6 @@ if __name__ == '__main__':
     cursor.close()
     cnx.close()
     print('All satellites successfully saved to database!')
+
+if __name__ == '__main__':
+    main()
