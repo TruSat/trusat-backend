@@ -9,6 +9,7 @@ skyfield
 spacetrack
 cryptography
 python-dateutil
+coinaddr
 
 # Drop-in replacement for configparser which also reads config files
 ConfigArgParse
