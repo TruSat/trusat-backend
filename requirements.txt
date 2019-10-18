@@ -10,6 +10,7 @@ spacetrack
 cryptography
 python-dateutil
 coinaddr
+bs4
 
 # Drop-in replacement for configparser which also reads config files
 ConfigArgParse
