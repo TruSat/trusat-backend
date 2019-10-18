@@ -169,12 +169,20 @@ def main():
     cursor.execute(clear_table)
 
     # save to DB
-    add_entry = """INSERT INTO categories 
+    add_entry_query = """INSERT INTO categories 
                 (obj_no, name, sub_category, description) 
                 VALUES (%s, %s, %s, %s)"""
-    for _x in buffer:
-        cursor.execute(add_entry, _x)
 
+    i = 0
+    entry_list = []
+    for _x in buffer:
+        if (i<1000):
+            entry_list.append(_x)
+            i+=1
+        else:
+            cursor.executemany(add_entry_query, entry_list)
+            entry_list = []
+            i = 0
     cnx.commit()
     print('done')
 
