@@ -133,25 +133,27 @@ def main():
                     Thread(target=process_file, args=(_url, name, sub_cat, main_cat)).start()
                     tot_files += 1
 
-    # scrape supplemental page
-    URL_SUP = 'https://celestrak.com/NORAD/elements/supplemental/'
-    page = requests.get(URL_SUP)
-    soup = BeautifulSoup(page.content, 'html.parser')
-    table = soup.find('table', class_='center outline')
+    # Skip the supplemental for now
+    if (False):
+        # scrape supplemental page
+        URL_SUP = 'https://celestrak.com/NORAD/elements/supplemental/'
+        page = requests.get(URL_SUP)
+        soup = BeautifulSoup(page.content, 'html.parser')
+        table = soup.find('table', class_='center outline')
 
-    # get main category
-    header = table.find('tr', class_='header')
-    main_cat = header.next.next.next
-    # find all links within main category
-    links = header.find_next_siblings()
-    for link in links:
-        _tmp_link = link.next.next.next
-        name = _tmp_link['href']
-        if name[-4:] == '.txt':
-            # start processing file in new thread
-            _url = URL_SUP + name
-            Thread(target=process_file, args=(_url, name, sub_cat, main_cat)).start()
-            tot_files += 1
+        # get main category
+        header = table.find('tr', class_='header')
+        main_cat = header.next.next.next
+        # find all links within main category
+        links = header.find_next_siblings()
+        for link in links:
+            _tmp_link = link.next.next.next
+            name = _tmp_link['href']
+            if name[-4:] == '.txt':
+                # start processing file in new thread
+                _url = URL_SUP + name
+                Thread(target=process_file, args=(_url, name, sub_cat, main_cat)).start()
+                tot_files += 1
 
     # wait for all threads to finish while displaying progress
     while True:
