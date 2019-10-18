@@ -423,8 +423,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_400()
                 return
             if (isValidNoradNumber(norad_number) is False or
-                year < 1957 or
-                year > datetime.now().year):
+                int(year) < 1957 or
+                int(year) > datetime.now().year):
                 self.send_400()
                 return
             try:
