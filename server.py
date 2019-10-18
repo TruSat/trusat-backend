@@ -354,6 +354,9 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 print(e)
                 pass
+            if isValidEthereumAddress(jwt_user_addr) is False:
+                self.send_400()
+                return
             if jwt_user_addr.lower() == user_addr.lower():
                 try:
                     observation_station_numbers = self.db.selectUserStationNumbers_JSON(user_addr)
@@ -549,9 +552,14 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 print(e)
                 self.send_400()
                 return
-
+            if isValidEthereumAddress(addr) is False:
+                self.send_400()
+                return
             try:
                 email = json_body["email"]
+                if isValidEmailAddress is False:
+                    self.send_400()
+                    return
                 results = self.db.selectObserverAddressFromEmail(email)
                 if len(results) == 42:
                     self.send_200_JSON(json.dumps({}))
@@ -585,18 +593,15 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     print(e)
                     self.send_500()
                     return
-            response_body = bytes(response_message, 'utf-8')
-
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(response_body)
+            self.send_200_JSON(response_message)
 
         elif self.path == "/signup":
             try:
                 # TODO: put timeout on email sending and verify payload isn't malicious
                 addr = json_body["address"]
+                if isValidEthereumAddress(addr) is False:
+                    self.send_400()
+                    return
                 old_nonce = self.db.getObserverNonceBytes(addr)
                 email = json_body["email"]
                 signed_message = json_body["signedMessage"]
@@ -606,8 +611,12 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_400()
                 return
 
+            if isValidEmailAddress(email) is False:
+                self.send_400()
+                return
+
             nonce = old_nonce.encode('utf-8')
-            self.db.updateObserverNonceBytes(nonce=0, public_address=addr)
+            self.db.updateObserverNonceBytes(nonce='NULL', public_address=addr)
             message_hash = sha3.keccak_256(nonce).hexdigest()
             message_hash = encode_defunct(hexstr=message_hash)
             try:
@@ -652,7 +661,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_400()
                 return
             nonce = old_nonce.encode('utf-8')
-            self.db.updateObserverNonceBytes(nonce=0, public_address=addr)
+            self.db.updateObserverNonceBytes(nonce='NULL', public_address=addr)
             message_hash = sha3.keccak_256(nonce).hexdigest()
             message_hash = encode_defunct(hexstr=message_hash)
             try:
@@ -666,7 +675,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 print(e)
                 email = None
-            if isValidEmailAddress(email) is False:
+            if email is not None and isValidEmailAddress(email) is False:
                 self.send_400()
                 return
             if signed_public_key.lower() == addr.lower():
@@ -690,16 +699,11 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 response_message = b'{"jwt":"'
                 response_message += encoded_jwt
                 response_message += b'"}'
-                response_body = response_message
+                self.send_200_JSON2(response_message)
             else:
-                print("public key is incorrect")
+                print("Login Failed")
                 self.send_400()
                 return
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(response_body)
 
         elif self.path == "/editProfile":
             try:
@@ -797,6 +801,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 secret = decoded_jwt["secret"]
                 to = decoded_jwt["email"]
                 old_address = self.db.selectObserverAddressFromPassword(user_jwt).decode('utf-8')
+                
                 #replace address
                 encoded_jwt = encode_jwt(address)
                 self.db.updateObserverAddress(address, old_address)
@@ -811,32 +816,11 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 response_body = response_message
 
                 self.send_200_JSON2(response_body)
+                self.db.updateObserverPassword('NULL', results.decode('utf-8'))
             except Exception as e:
                 print(e)
                 self.send_500()
                 return
-
-        elif self.path == '/emailSecret':
-            try:
-                to = json_body['to']
-                message_text = json_body['payload']
-            except Exception as e:
-                print(e)
-                self.send_400()
-                return
-            if isValidEmailAddress(to) is False:
-                self.send_400()
-                return
-            try:
-                email_status = google_email.send_email(to, message_text)
-                if email_status == False:
-                    self.send_500()
-                    return
-            except Exception as e:
-                print(e)
-                self.send_500()
-                return
-            self.send_200_JSON(json.dumps({'result':True}))
 
         elif self.path == "/submitObservation":
             try:
@@ -868,11 +852,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_500()
                 return
             success_length = {'success':success, 'error_messages':error_messages}
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(bytes(json.dumps(success_length)))
+            self.send_200_JSON(json.dumps(success_length))
 
         elif self.path == "/seesat":
             email_information = json_body["message"]["data"]
