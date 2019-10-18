@@ -31,6 +31,8 @@ import iod
 
 PORT_NUMBER = 8080
 
+# TODO: Enforce all external variables obey strict definitions
+
 #TODO: take object instead of address to encode with a specified time
 def encode_jwt(addr):
     with open('unsafe_private.pem', 'r') as file:
@@ -559,6 +561,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
         elif self.path == "/signup":
             try:
+                # TODO: put timeout on email sending and verify payload isn't malicious
                 addr = json_body["address"]
                 old_nonce = self.db.getObserverNonceBytes(addr)
                 email = json_body["email"]
@@ -718,6 +721,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                         }
                     encoded_jwt = encode(jwt_payload, private_rsa_key, algorithm='RS256')
                     self.db.updateObserverPassword(encoded_jwt.decode('utf-8'), results.decode('utf-8'))
+                    # TODO: Check that the password has expired before sending another email
                     email_status = google_email.send_recovery_email(email, 'http://trusat.org/claim/' + encoded_jwt.decode('utf-8'))
                     if email_status == False:
                         self.send_500()
