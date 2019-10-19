@@ -716,9 +716,9 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                             return
                 encoded_jwt = encode_jwt(addr.lower())
                 self.db.updateObserverJWT(encoded_jwt, '', addr)
-                response_message = b'{"jwt":"'
+                response_message = b'{"jwt": "'
                 response_message += encoded_jwt
-                response_message += b'"}'
+                response_message += b'"} '
                 self.send_200_JSON2(response_message)
             else:
                 print("Login Failed")
@@ -779,7 +779,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 email = json_body['email']
             except Exception as e:
                 print(e)
-                self.send_400()
+                self.send_200_JSON(json.dumps({'result': False}))
                 return
             if isValidEmailAddress(email) is False:
                 self.send_400()
@@ -789,32 +789,41 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     private_key = file.read()
                 private_rsa_key = load_pem_private_key(bytes(private_key, 'utf-8'), password=None, backend=default_backend())
                 results = self.db.selectObserverAddressFromEmail(email)
-                old_password = self.db.selectObserverPasswordFromAddress(results)
-                if decode_jwt(old_password):
-                    self.send_400()
-                    return
-                if results != None:
-                    number = str(secrets.randbits(64))
-                    jwt_payload = {
-                            'email': email,
-                            'secret': number,
-                            'exp': datetime.utcnow() + timedelta(minutes=30)
-                        }
-                    encoded_jwt = encode(jwt_payload, private_rsa_key, algorithm='RS256')
-                    self.db.updateObserverPassword(encoded_jwt.decode('utf-8'), results.decode('utf-8'))
-                    # TODO: Check that the password has expired before sending another email
-                    email_status = google_email.send_recovery_email(email, 'http://trusat.org/claim/' + encoded_jwt.decode('utf-8'))
-                    if email_status == False:
-                        self.send_500()
-                        return
+                if results is not None:
+                    results = results.decode('utf-8')
                 else:
                     self.send_200_JSON(json.dumps({'result': False}))
+                    return
+                old_password = self.db.selectObserverPasswordFromAddress(results)
+                if old_password is not None:
+                    old_password = old_password.decode('utf-8')
+                    try:
+                        if decode_jwt(old_password):
+                            self.send_200_JSON(json.dumps({'result': True}))
+                            return
+                    except:
+                        print('User already claimed account.')
+
+                number = str(secrets.randbits(64))
+                jwt_payload = {
+                        'email': email,
+                        'secret': number,
+                        'exp': datetime.utcnow() + timedelta(minutes=30)
+                    }
+                encoded_jwt = encode(jwt_payload, private_rsa_key, algorithm='RS256')
+                self.db.updateObserverPassword(encoded_jwt.decode('utf-8'), results)
+                email_status = google_email.send_recovery_email(email, 'http://trusat.org/claim/' + encoded_jwt.decode('utf-8'))
+                if email_status == False:
+                    self.send_500()
+                    return
+                else:
+                    self.send_200_JSON(json.dumps({'result': True}))
                     return
             except Exception as e:
                 print(e)
                 self.send_500()
                 return
-            self.send_200_JSON(json.dumps({'result': True}))
+            self.send_200_JSON(json.dumps({'result': False}))
 
         elif self.path == "/verifyClaimAccount":
             try:
@@ -835,6 +844,9 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 secret = decoded_jwt["secret"]
                 to = decoded_jwt["email"]
                 old_address = self.db.selectObserverAddressFromPassword(user_jwt).decode('utf-8')
+                if old_address is None:
+                    self.send_400()
+                    return
                 
                 #replace address
                 encoded_jwt = encode_jwt(address)
@@ -844,13 +856,11 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     self.send_500()
                     return
                 self.db.updateObserverJWT(encoded_jwt, "", address)
-                response_message = b'{"jwt":"'
-                response_message += encoded_jwt
-                response_message += b'"}'
-                response_body = response_message
+                jwt_string = encoded_jwt.decode('utf-8')
+                response_body = json.dumps({'jwt': jwt_string})
 
-                self.send_200_JSON2(response_body)
-                self.db.updateObserverPassword('NULL', results.decode('utf-8'))
+                self.send_200_JSON(response_body)
+                self.db.updateObserverPassword('NULL', address)
             except Exception as e:
                 print(e)
                 self.send_500()
