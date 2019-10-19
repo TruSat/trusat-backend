@@ -100,7 +100,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.db.clean()
 
-    def send_204(self, body_data):
+    def send_204(self):
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
