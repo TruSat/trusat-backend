@@ -820,7 +820,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 if email_status == False:
                     self.send_500()
                     return
-                self.db.updateObserverJWT(encoded_jwt, "", json_body["address"])
+                self.db.updateObserverJWT(encoded_jwt, "", address)
                 response_message = b'{"jwt":"'
                 response_message += encoded_jwt
                 response_message += b'"}'
