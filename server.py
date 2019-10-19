@@ -680,8 +680,9 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 print(e)
                 email = None
+                secret = None
             if (email is not None and isValidEmailAddress(email) is False or
-                isValidSecret(secret) is False):
+                secret is not None and isValidSecret(secret) is False):
                 self.send_400()
                 return
             if signed_public_key.lower() == addr.lower():
