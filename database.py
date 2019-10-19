@@ -341,16 +341,26 @@ class Database:
                               FROM latest_obs_ids L
                               LEFT JOIN Station S on (S.station_num = L.obs_station_number)
                               group by object_number)
+                ,obj_with_categories as (
+							    SELECT LU.*, U.comments obj_comments, U.purpose obj_purpose, U.purpose_detailed obj_purpose_detailed, 
+								U.country_owner obj_country_owner, SatCat.name obj_name, SatCat.launch_date obj_launch_date, SatCat.orbit_status_code,
+								C.obj_no, C.sub_category, C.description as CT_description, C.obj_categories 
+							  FROM latest_obs_with_users LU
+                              LEFT JOIN ucs_SATDB U ON (LU.object_number = U.norad_number)
+                              LEFT JOIN celestrak_SATCAT SatCat ON (LU.object_number = SatCat.sat_cat_id)
+                              LEFT JOIN (
+                              		SELECT obj_no, sub_category, description, GROUP_CONCAT(sub_category SEPARATOR ', ') as obj_categories
+                              		FROM categories
+                              		GROUP BY obj_no
+                              	) AS C ON LU.object_number = C.obj_no 
+                              )						
               SELECT
                 IODs.*,
                 Obs.eth_addr obs_eth_addr, Obs.name obs_user_name,
-                    U.comments obj_comments, U.purpose obj_purpose, U.purpose_detailed obj_purpose_detailed, U.country_owner obj_country_owner,
-                    SatCat.name obj_name, SatCat.launch_date obj_launch_date, SatCat.orbit_status_code
-              FROM latest_obs_with_users as IODs
+                CONCAT_WS(' — ',CT_description, obj_categories, obj_purpose_detailed, obj_comments) as obj_merged_description
+                                  FROM obj_with_categories as IODs
               LEFT JOIN Observer Obs on (IODs.obs_user = Obs.id)
-              LEFT JOIN ucs_SATDB U ON (IODs.object_number = U.norad_number)
-              LEFT JOIN celestrak_SATCAT SatCat ON (IODs.object_number = SatCat.sat_cat_id)
-            )
+			  )
         """
         self.selectCatalogJsonObject = """
           Json_Object(
@@ -360,6 +370,7 @@ class Database:
               'object_type', obj_purpose,
               'object_primary_purpose', obj_purpose_detailed,
               'object_secondary_purpose', obj_comments,
+              'object_merged_description', obj_merged_description,
               'object_observation_quality', %(QUALITY)s,
               'object_launch_date', obj_launch_date,
               'time_last_tracked', date_format(obs_time, '%M %d, %Y'),
@@ -2953,6 +2964,7 @@ class Database:
               LEFT JOIN Observer Obs on (IODs.obs_user = Obs.id)
               LEFT JOIN ucs_SATDB U ON (IODs.object_number = U.norad_number)
               LEFT JOIN celestrak_SATCAT SatCat ON (IODs.object_number = SatCat.sat_cat_id)
+
             )
             select Json_Object(
               'object_name', obj_name,
