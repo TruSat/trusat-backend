@@ -205,6 +205,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 path == "/submitObservation":
             self.send_response(200)
             self.send_header('Accept', 'POST')
+            self.send_header('Access-Control-Allow-Headers', '*')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
         else:
@@ -614,7 +615,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
         elif self.path == "/signup":
             try:
-                # TODO: put timeout on email sending and verify payload isn't malicious
                 addr = json_body["address"]
                 if isValidEthereumAddress(addr) is False:
                     self.send_400()
@@ -789,6 +789,10 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     private_key = file.read()
                 private_rsa_key = load_pem_private_key(bytes(private_key, 'utf-8'), password=None, backend=default_backend())
                 results = self.db.selectObserverAddressFromEmail(email)
+                old_password = self.db.selectObserverPasswordFromAddress(results)
+                if decode_jwt(old_password):
+                    self.send_400()
+                    return
                 if results != None:
                     number = str(secrets.randbits(64))
                     jwt_payload = {

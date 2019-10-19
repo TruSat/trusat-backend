@@ -280,6 +280,7 @@ class Database:
             self.c_selectObserverID_query = self.conn.cursor(prepared=True)
             self.c_selectObserverAddressFromEmail_query = self.conn.cursor(prepared=True)
             self.c_selectEmailFromObserverAddress_query = self.conn.cursor(prepared=True)
+            self.c_selectObserverPasswordFromAddress_query = self.conn.cursor(prepared=True)
             self.c_selectObserverAddressFromPassword_query = self.conn.cursor(prepared=True)
             self.selectObserverID_query = '''SELECT max(id) from Observer'''
             try:
@@ -312,6 +313,7 @@ class Database:
         self.getObserverCountByID_query = '''SELECT id, COUNT(*) from Observer WHERE eth_addr=?'''
         self.selectObserverAddressFromEmail_query = '''SELECT Observer.eth_addr FROM Observer INNER JOIN Observer_email ON Observer.id=Observer_email.user_id WHERE Observer_email.email=? LIMIT 1'''
         self.selectEmailFromObserverAddress_query = '''SELECT Observer_email.email FROM Observer_email INNER JOIN Observer ON Observer_email.user_id=Observer.id WHERE Observer.eth_addr=? LIMIT 1'''
+        self.selectObserverPasswordFromAddress_query = '''SELECT password FROM Observer WHERE eth_addr=? LIMIT 1'''
         self.selectObserverAddressFromPassword_query = '''SELECT eth_addr FROM Observer WHERE password=? LIMIT 1'''
         self.selectTLEFile_query = '''SELECT file_fingerprint FROM TLEFILE WHERE file_fingerprint LIKE ? LIMIT 1'''
         self.selectTLEFingerprint_query = '''SELECT tle_fingerprint FROM TLE WHERE tle_fingerprint LIKE ? LIMIT 1'''
@@ -1524,6 +1526,20 @@ class Database:
             except:
                 return None
             return results
+
+    def selectObserverPasswordFromAddress(self, address):
+        """ Select the password for a user with the provided address sent to their email. """
+        if self._dbtype == "sqlite":
+            self.c.execute(self.selectObserverPasswordFromAddress_query, [address])
+            results = self.c.fetchone()
+        else:
+            self.c_selectObserverPasswordFromAddress_query.execute(self.selectObserverPasswordFromAddress_query, [address])
+            try:
+                results = self.c_selectObserverPasswordFromAddress_query.fetchone()[0]
+            except Exception as e:
+                print(e)
+                return None
+        return results
 
     def selectObserverAddressFromPassword(self, password):
         """ Select the address for a user with the provided password sent to their email. """
