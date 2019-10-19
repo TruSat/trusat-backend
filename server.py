@@ -58,12 +58,16 @@ def isValidEthereumAddress(addr):
     return check_address.valid
 
 def isValidEmailAddress(email):
-    regex = '^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$'
+    regex = r'^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$'
     return re.search(regex, email)
 
 def isValidSecret(secret):
-    regex = '^([0-9]{1,10})([\/])([0-9, a-f]{32})([\/])([0-9,a-f]{160})$'
+    regex = r'^([0-9]{1,10})([\/])([0-9, a-f]{32})([\/])([0-9,a-f]{160})$'
     return re.search(regex, secret)
+
+def isValidUserSetting(setting):
+    regex = r'^([0-9,a-z,A-Z,\',!,\s,\\,!,@,#,$,%,^,&,*,(,),[,\],{,},+,\-,=,_,|,;,\,,.,/,?]{1,255})$'
+    return re.search(regex, setting)
 
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
@@ -727,28 +731,34 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             if self.db.getObserverJWT(public_address)[0].decode("utf-8") == user_jwt:
                 try:  
                     username = json_body["username"]
-                    if username != "null" and username != None:
+                    if (username != "null" and
+                        username != None and
+                        isValidUserSetting(username)):
                         self.db.updateObserverUsername(username, public_address)
                 except Exception as e:
                     print("Username not being updated")
                     print(e)
                 try:
                     email = json_body["email"]
-                    if isValidNoradNumber(norad_number):
+                    if isValidEmailAddress(email):
                         self.db.updateObserverEmail(email, public_address)
                 except Exception as e:
                     print("Email not being updated")
                     print(e)
                 try:
                     bio = json_body["bio"]
-                    if bio != "null" and bio != None:
+                    if (bio != "null" and
+                        bio != None and
+                        isValidUserSetting(bio)):
                         self.db.updateObserverBio(bio, public_address)
                 except Exception as e:
                     print("Bio not being updated")
                     print(e)
                 try:
                     location = json_body["location"]
-                    if location != "null" and location != None:
+                    if (location != "null" and
+                        location != None and
+                        isValidUserSetting(location)):
                         self.db.updateObserverLocation(location, public_address)
                 except Exception as e:
                     print("Location not being updated")
