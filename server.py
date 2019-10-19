@@ -24,8 +24,6 @@ import google_email
 
 PORT_NUMBER = 8080
 
-# TODO: Enforce all external variables obey strict definitions
-
 #TODO: take object instead of address to encode with a specified time
 def encode_jwt(addr):
     with open('unsafe_private.pem', 'r') as file:
@@ -197,6 +195,17 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_header('Accept', 'GET')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.send_header('Access-Control-Allow-Headers', 'Cache-Control')
+            self.end_headers()
+        elif path == "/getNonce" or \
+                path == "/signup" or \
+                path == "/login" or \
+                path == "/editProfile" or \
+                path == "/claimAccount" or \
+                path == "/verifyClaimAccount" or \
+                path == "/submitObservation":
+            self.send_response(200)
+            self.send_header('Accept', 'GET')
+            self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
         else:
             self.send_404()
