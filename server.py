@@ -777,6 +777,9 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     if email_status == False:
                         self.send_500()
                         return
+                else:
+                    self.send_200_JSON(json.dumps({'result': False}))
+                    return
             except Exception as e:
                 print(e)
                 self.send_500()
@@ -860,8 +863,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             email_history = json.loads(email_history)
             print(email_history)
             print(google_email.get_email_history(email_history['historyId']))
-            self.send_200_JSON(json.dumps({}))
-            self.end_headers()
+            self.send_204()
 
         else:
             self.send_response(404)
