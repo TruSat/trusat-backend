@@ -59,7 +59,11 @@ def isValidEthereumAddress(addr):
 
 def isValidEmailAddress(email):
     regex = '^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$'
-    return re.search(regex,email)
+    return re.search(regex, email)
+
+def isValidSecret(secret):
+    regex = '^([0-9]{1,10})([\/])([0-9, a-f]{32})([\/])([0-9,a-f]{160})$'
+    return re.search(regex, secret)
 
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
@@ -611,7 +615,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_400()
                 return
 
-            if isValidEmailAddress(email) is False:
+            if (isValidEmailAddress(email) is False or
+                isValidSecret(payload) is False):
                 self.send_400()
                 return
 
@@ -675,7 +680,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 print(e)
                 email = None
-            if email is not None and isValidEmailAddress(email) is False:
+            if (email is not None and isValidEmailAddress(email) is False or
+                isValidSecret(secret) is False):
                 self.send_400()
                 return
             if signed_public_key.lower() == addr.lower():
@@ -795,7 +801,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 print(e)
                 self.send_400()
                 return
-            if isValidEthereumAddress(address) is False:
+            if (isValidEthereumAddress(address) is False or
+                isValidSecret(message_text) is False):
                 self.send_400()
                 return
             #Lookup number and old address
