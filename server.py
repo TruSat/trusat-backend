@@ -204,7 +204,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 path == "/verifyClaimAccount" or \
                 path == "/submitObservation":
             self.send_response(200)
-            self.send_header('Accept', 'GET')
+            self.send_header('Accept', 'POST')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
         else:
