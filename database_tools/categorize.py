@@ -33,7 +33,7 @@ TABLE_create_query = """CREATE TABLE IF NOT EXISTS `categories` (
      `sub_category` varchar(120) NOT NULL,
      `description` varchar(120) NOT NULL,
      KEY `categories_obj_no_idx` (`obj_no`) USING BTREE
-     ) ENGINE=Aria"""
+     ) CHARSET=utf8 ENGINE=Aria"""
 
 # --- VARIABLES ---
 
