@@ -362,8 +362,14 @@ def main():
             
             try:
                 date_parsed = datetime.strptime(date,"%Y-%m-%d %H:%M:%S%z")
-            except:
-                date_parsed = datetime.strptime(date,"%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                try:
+                    date_parsed = datetime.strptime(date,"%Y-%m-%d %H:%M:%S")
+                except ValueError:
+                    # FIXME: For some reason on Ubuntu, parsedate_to_datetime started returning ":" in the middle of the tz string
+                    # ValueError: time data '2019-10-12 10:21:35+00:00' does not match format '%Y-%m-%d %H:%M:%S%z'
+                    date = re.sub('([+-])(\d\d):(\d\d)',r'\1\2\3',date)
+                    date_parsed = datetime.strptime(date,"%Y-%m-%d %H:%M:%S%z")
 
             if date_parsed.utcoffset():
                 date_parsed = date_parsed - date_parsed.utcoffset()
