@@ -106,9 +106,8 @@ def main():
                              nargs="?")
 
     # Command to upload McCants files from DIR
-    # python ./tle_util.py --import --dbtype sqlserver --user chris.lewicki --tlepath /Users/chris/Dropbox/code/MVP/tle/mccants_archive/elsets2019/new -V
-    ## With defaults provided from login.txt:
-    # python ./tle_util.py --import --tlepath /Users/chris/Dropbox/code/MVP/tle/mccants_archive/elsets2019/new -V
+    # with defaults provided from login.txt:
+    # python db_import_tles.py --import --tlepath mccants_archive/elsets2019/new -V
 
     # Process commandline options and parse configuration
     cfg = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
