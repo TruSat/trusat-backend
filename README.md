@@ -72,6 +72,11 @@ From the same directory that you did the export, import the data into your local
 ## Installing and running the API server
 
 !TODO: there are too many steps here. What's best practice for automating this setup stuff? How does AWS do it and can we copy that process for local development environments to ensure consistency?
+ - Checkout the appropriate branch of ['trusat-backend'](https://github.com/consensys-space/trusat-backend).
+ - Generate RSA Keys using `bash RSAKeyGen.sh` and follow the instructions provided.
+ - Generate TLS Certificates.
+ - Generate Google API Key and store in credentials.json.
+ - Initialize Google API Keys by running `python APIKeyInit.py` and following the provided instructions. IMPORTANT: This will require a browser on hand
 
 ### Install python
 
@@ -96,8 +101,7 @@ This is recommended for python if you do or will ever use python for any other p
 
 ### Configure CSpace dependencies
 
- - checkout the appropriate branch of [`trusat-tle`](https://github.com/consensys-space/trusat-tle) to path `../trusat-tle` (i.e. its parent directory should match this repo's parent directory). Install any dependencies defined within that repo.
- - checkout the appropriate branch of [`trusat-iod`](https://github.com/consensys-space/trusat-iod) to path `../trusat-iod` (i.e. its parent directory should match this repo's parent directory). Install any dependencies defined within that repo.
+ - checkout the appropriate branch of [`trusat-orbit`](https://github.com/consensys-space/trusat-orbit) to path `../trusat-orbit` (i.e. its parent directory should match this repo's parent directory). Install any dependencies defined within that repo.
 
 ### Run the code
 
