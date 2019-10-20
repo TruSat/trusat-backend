@@ -1,4 +1,26 @@
 #!/usr/bin/env python
+"""
+read_seesat_mbox.py
+
+Parse MBOX-formatted files for IOD/RDE/UK-formatted satellite position observations.
+
+Reference URL: for SeeSat-L archives:  http://mailman.satobs.org/mailman/private/seesat-l/
+    Note that while the website says "Gzip'd Text" - the server decodes them, but still keeps the .gz filename
+    For reasons of convenient mirroring with wget, leaving that 'wrong' extension in place.
+
+For older hypermail formatted archives (SeeSat-L pre-2014), see read_seesat_hypermail.py
+
+Usage Examples:
+===============
+    Incremental import example:
+    Reprocessing MBOX archive for LOAD INFILE (CSV) import:
+    python3 read_seesat_mbox.py -V --dbtype INFILE -f seesat-gzip-emails/MEMBER_ARCHIVE_ALL.txt.gz
+
+    python3 read_seesat_mbox.py -V --fast -f seesat-gzip-emails/2019-08August.txt.gz --dbtype sqlserver --database DBNAME --user USER 
+
+    With defaults from login.txt, resuming from the last-processed msgID
+    python3 read_seesat_mbox.py --dbtype sqlserver -V --fast -f seesat-gzip-emails/2019-08August.txt.gz --message CAL65Gdet3=x2jHQSyXOGPN+EQ4LYAoa9zjYReJ+8g8kR7Mj-Ng@mail.gmail.com
+"""
 
 import os
 import re
@@ -131,12 +153,7 @@ def getbodyfromemail(msg):
         return body.decode("UTF-8")
 
 def main():
-    """ Tool to extract user and IOD data from SeeSat mailman archives. 
-    
-    http://mailman.satobs.org/mailman/private/seesat-l/
-    Note that while the website says "Gzip'd Text" - the server decodes them, but still keeps the .gz filename
-    For reasons of convenient mirroring with wget, leaving that wrong extension in place.
-    """
+    """ Tool to extract user and IOD data from SeeSat-L mailman archives. """
     # Read commandline options
     conf_parser = argparse.ArgumentParser(description='Utility to initalize IOD database from email file archive')
     conf_parser.add_argument("-i", "--init", help="Initialize database datables (IF NOT EXIST)",
@@ -207,15 +224,6 @@ def main():
                             default=0, 
                             type=int, 
                             nargs="?")
-
-    # Incremental import example
-    # http://mailman.satobs.org/mailman/private/seesat-l/
-    # Reprocessing entire MBOX archive for LOAD INFILE import:
-    # python3 ./read_seesat_mbox.py -V --dbtype INFILE -f /Users/chris/Dropbox/code/MVP/seesat-gzip-emails/MEMBER_ARCHIVE_ALL.txt.gz
-
-    # python3 ./read_seesat_mbox.py -V --fast -f /Users/chris/Dropbox/code/MVP/seesat-gzip-emails/2019-08August.txt.gz --dbtype sqlserver --database opensatcat_dev --user chris.lewicki 
-    ## With defaults from login.txt
-    # python3 ./read_seesat_mbox.py --dbtype sqlserver -V --fast -f /Users/chris/Dropbox/code/MVP/seesat-gzip-emails/2019-08August.txt.gz --message CAL65Gdet3=x2jHQSyXOGPN+EQ4LYAoa9zjYReJ+8g8kR7Mj-Ng@mail.gmail.com
 
     args = conf_parser.parse_args()
     # Process commandline options and parse configuration
