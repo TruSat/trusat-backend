@@ -628,36 +628,45 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_400()
                 return
 
-            if (isValidEmailAddress(email) is False or
-                isValidSecret(payload) is False):
-                self.send_400()
-                return
+            try:
+                if (isValidEmailAddress(email) is False or
+                    isValidSecret(payload) is False):
+                    self.send_400()
+                    return
 
-            nonce = old_nonce.encode('utf-8')
-            self.db.updateObserverNonceBytes(nonce='NULL', public_address=addr)
-            message_hash = sha3.keccak_256(nonce).hexdigest()
-            message_hash = encode_defunct(hexstr=message_hash)
+                nonce = old_nonce.encode('utf-8')
+                self.db.updateObserverNonceBytes(nonce='NULL', public_address=addr)
+                message_hash = sha3.keccak_256(nonce).hexdigest()
+                message_hash = encode_defunct(hexstr=message_hash)
+            except Exception as e:
+                print(e)
+                self.send_500()
+                return
             try:
                 signed_public_key = Account.recover_message(message_hash, signature=signed_message)
             except Exception as e:
                 print(e)
                 print('message could not be checked')
-            if signed_public_key.lower() == addr.lower():
-                email_from_addr = self.db.selectEmailFromObserverAddress(addr)
-                if email_from_addr == None or email_from_addr == '' or email_from_addr == b'NULL':
-                    if email != None or email != 'null' or email != 'NULL' or email != '':
-                        try:
-                            self.db.updateObserverEmail(email, addr)
-                            email_status = google_email.send_email(email, payload)
-                            if email_status == False:
+            try:
+                if signed_public_key.lower() == addr.lower():
+                    email_from_addr = self.db.selectEmailFromObserverAddress(addr)
+                    if email_from_addr == None or email_from_addr == '' or email_from_addr == b'NULL':
+                        if email != None or email != 'null' or email != 'NULL' or email != '':
+                            try:
+                                self.db.updateObserverEmail(email, addr)
+                                email_status = google_email.send_email(email, payload)
+                                if email_status == False:
+                                    print("Email failed to send.")
+                                    self.send_500()
+                                    return
+                                self.send_200_JSON(json.dumps({'result': True}))
+                                return
+                            except Exception as e:
+                                print(e)
                                 self.send_500()
                                 return
-                            self.send_200_JSON(json.dumps({'result': True}))
-                            return
-                        except Exception as e:
-                            print(e)
-                            self.send_500()
-                            return
+            except Exception as e:
+                print(e)
             else:
                 self.send_400()
                 return
