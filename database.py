@@ -3159,7 +3159,7 @@ class Database:
             WITH latest_tle_id AS (
                 SELECT tle_id from TLE_process TP
                 JOIN TLE T ON (TP.tle_result_id = T.tle_id)
-                WHERE TP.object_number = 39462
+                WHERE TP.object_number = %(NORAD_NUM)s
                 ORDER by T.epoch DESC LIMIT 2)
             , latest_obs_ids AS (
                 SELECT TP2.obs_id tp_obs_id FROM TLE_process TP2, latest_tle_id
