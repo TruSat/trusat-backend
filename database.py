@@ -1893,6 +1893,7 @@ class Database:
             list of one-element (int) tuples
                 The NORAD numbers of all objects for which we are aware of IODs newer than their TLE.
         """
+
         query = """
             WITH most_recent_iods AS (SELECT max(obs_time) AS iod_time, object_number FROM ParsedIOD
                                       WHERE valid_position = 1			                  
@@ -1903,12 +1904,12 @@ class Database:
               FROM most_recent_iods
               INNER JOIN most_recent_tles
                 ON (most_recent_iods.object_number = most_recent_tles.satellite_number)
-              WHERE iod_time > tle_time
+              WHERE iod_time > (tle_time + INTERVAL 1 SECOND)
               AND object_number < 70000 /* Skip analyst objects for now */
               ORDER BY object_number;"""
 
         self.c.execute(query)
-        return self.c.fetchall()
+        return QueryTupleListToList(self.c.fetchall())
 
     def findIODsNewerThanPenultimateTLE(self, noradNumber):
         """ For a particular object, find all the IODs newer than the penultimate (second most recent) TLE.
@@ -1947,7 +1948,7 @@ class Database:
                     LIMIT 1);"""
 
         self.c.execute(query, {'noradNumber': noradNumber})
-        return self.c.fetchall()
+        return QueryTupleListToList(self.c.fetchall())
 
 
     def findDateNewestTTLE(self, noradNumber):
@@ -1979,6 +1980,39 @@ class Database:
         if (row[0] is not None):
             TTLEepoch = row[0]["epoch"]
             return TTLEepoch
+        else:
+            return False
+
+
+    # FIXME: This can be templated off findDateNewestTTLE
+    def findDateNewestTLE(self, noradNumber):
+        """ For a particular object, return datetime of the most recent TTLE.
+            Such dates are required when resuming the bulk TLE processing from a manual start.
+
+            If no TLEs exist, we return FALSE.
+
+            Parameters
+            ----------
+            noradNumber : int
+                The NORAD number of the object we are interested in. Only observations of this object are considered.
+
+            Returns
+            -------
+            python datetime
+                The datetime of the resulting TTLE
+        """
+        query = """           
+            SELECT epoch 
+            FROM TLE            
+            WHERE satellite_number = %(noradNumber)s
+            ORDER BY epoch DESC
+            LIMIT 1;"""
+
+        self.cdict.execute(query, {'noradNumber': noradNumber})
+        row = [self.cdict.fetchone()] 
+        if (row[0] is not None):
+            TLEepoch = row[0]["epoch"]
+            return TLEepoch
         else:
             return False
 
@@ -2315,23 +2349,19 @@ class Database:
 
 
     # FIXME: Make this function prefer TruSatellite TLEs
-    def selectTLEEpochBeforeDate(self, query_epoch_datetime, satellite_number,classification=False):
+    def selectTLEEpochBeforeDate(self, query_epoch_datetime, satellite_number):
         """ Query to return the first TLE with epoch *prior* to specified date for a specific satellite number
 
         Returns TruSatellite() object
         """
-        if not classification:
-            classification="U"
 
         query_tmp = """SELECT * FROM TLE
             WHERE epoch <= %(EPOCH_DATETIME)s
             AND satellite_number=%(SATELLITE_NUMBER)s
-            AND classification=%(CLASSIFICATION)s
             ORDER BY epoch DESC
             LIMIT 1"""
         query_parameters = {'EPOCH_DATETIME': query_epoch_datetime,
-            'SATELLITE_NUMBER': satellite_number,
-            'CLASSIFICATION' : classification}
+            'SATELLITE_NUMBER': satellite_number}
         self.cdict.execute(query_tmp, query_parameters)
         row = [self.cdict.fetchone()]   # Put single result into an array
         return self.cdictQueryToTruSatelliteObj(row)[0]  # Unpack the array to the object, for just one result
@@ -2352,6 +2382,20 @@ class Database:
             LIMIT 1"""
         query_parameters = {'EPOCH_DATETIME': query_epoch_datetime,
             'SATELLITE_NUMBER': satellite_number}
+        self.cdict.execute(query_tmp, query_parameters)
+        row = [self.cdict.fetchone()]    # Put single result into an array
+        return self.cdictQueryToTruSatelliteObj(row)[0]  # Unpack the array to the object, for just one result
+
+
+    def selectTLEid(self, tle_id):
+        """ Query to return the specific tle_id requested
+
+        Returns TruSatellite() object
+        """
+        query_tmp = """SELECT * FROM TLE
+            WHERE tle_id=%(TLE_ID)s
+            LIMIT 1"""
+        query_parameters = {'TLE_ID': tle_id}
         self.cdict.execute(query_tmp, query_parameters)
         row = [self.cdict.fetchone()]    # Put single result into an array
         return self.cdictQueryToTruSatelliteObj(row)[0]  # Unpack the array to the object, for just one result
@@ -3086,7 +3130,20 @@ class Database:
         # Need to remove observation_quality when John is done with front-end implementation 
 
         # TODO: inadvertantly limits to single station?
-        query_tmp = """SELECT Json_Object(
+        query_tmp = """
+        WITH P_influence AS (
+            WITH latest_tle_id AS ( 
+                SELECT tle_id from TLE_process TP
+                JOIN TLE T ON (TP.tle_result_id = T.tle_id)
+                WHERE TP.object_number = 39462
+                ORDER by T.epoch DESC LIMIT 2)
+            , latest_obs_ids AS (
+                SELECT TP2.obs_id tp_obs_id FROM TLE_process TP2, latest_tle_id
+                WHERE TP2.tle_result_id = latest_tle_id.tle_id)
+            SELECT P1.* FROM ParsedIOD P1, latest_obs_ids
+            WHERE P1.obs_id = latest_obs_ids.tp_obs_id
+        )
+        SELECT Json_Object(
             'observation_time', date_format(obs_time, '%M %d, %Y'),
             'object_origin', celestrak_SATCAT.source,
             'user_location', Obs.location,
@@ -3097,8 +3154,8 @@ class Database:
             'observation_cross_track_error', TLE_process.cross_track_err,
             'observation_weight', TLE_process.obs_weight,
             'user_address', Obs.eth_addr)
-            FROM ParsedIOD
-            LEFT JOIN celestrak_SATCAT ON ParsedIOD.object_number = celestrak_SATCAT.sat_cat_id
+            FROM P_influence P
+            LEFT JOIN celestrak_SATCAT ON P.object_number = celestrak_SATCAT.sat_cat_id
             JOIN (SELECT
                     Station.station_num as station_num,
                     Station.user as station_user,
@@ -3108,10 +3165,9 @@ class Database:
                     Observer.location as location
                     FROM Station,Observer
                     WHERE Station.user = Observer.id)
-                    Obs ON ParsedIOD.station_number = Obs.station_num
+                    Obs ON P.station_number = Obs.station_num
             LEFT JOIN TLE_process ON Obs.obs_id = TLE_process.obs_id
-            WHERE ParsedIOD.object_number = %(NORAD_NUM)s
-            ORDER BY obs_time DESC
+            ORDER BY P.obs_time DESC
             LIMIT %(OFFSET)s,%(FETCH)s;"""
         query_parameters = {
             'NORAD_NUM': norad_num,
