@@ -2443,7 +2443,8 @@ class Database:
         self.c.execute(query_tmp)
         result = ""
         for (line0, line1, line2, _, _) in self.c.fetchall():
-            result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
+            if line0 is not None and line1 is not None and line2 is not None:
+                result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
         return result
 
     # https://consensys-cpl.atlassian.net/browse/MVP-285
@@ -2457,7 +2458,8 @@ class Database:
         self.c.execute(query_tmp)
         result = ""
         for (line0, line1, line2, _, _) in self.c.fetchall():
-            result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
+            if line0 is not None and line1 is not None and line2 is not None:
+                result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
         return result
 
 
@@ -2474,7 +2476,8 @@ class Database:
         self.c.execute(query_tmp)
         result = ""
         for (line0, line1, line2, _, _) in self.c.fetchall():
-            result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
+            if line0 is not None and line1 is not None and line2 is not None:
+                result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
         return result
 
     # https://consensys-cpl.atlassian.net/browse/MVP-287
@@ -2489,7 +2492,8 @@ class Database:
         self.c.execute(query_tmp)
         result = ""
         for (line0, line1, line2, _, _) in self.c.fetchall():
-            result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
+            if line0 is not None and line1 is not None and line2 is not None:
+                result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
         return result
 
     # https://consensys-cpl.atlassian.net/browse/MVP-385
