@@ -747,13 +747,13 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 except Exception as e:
                     print("Username not being updated")
                     print(e)
-                try:
-                    email = json_body["email"]
-                    if isValidEmailAddress(email):
-                        self.db.updateObserverEmail(email, public_address)
-                except Exception as e:
-                    print("Email not being updated")
-                    print(e)
+                #try:
+                #    email = json_body["email"]
+                #    if isValidEmailAddress(email):
+                #        self.db.updateObserverEmail(email, public_address)
+                #except Exception as e:
+                #    print("Email not being updated")
+                #    print(e)
                 try:
                     bio = json_body["bio"]
                     if (bio != "null" and
