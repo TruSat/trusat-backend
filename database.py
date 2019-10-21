@@ -3196,7 +3196,7 @@ class Database:
                     FROM Station,Observer
                     WHERE Station.user = Observer.id)
                     Obs ON P.station_number = Obs.station_num
-            LEFT JOIN TLE_process ON Obs.obs_id = TLE_process.obs_id
+            LEFT JOIN TLE_process ON P.obs_id = TLE_process.obs_id
             ORDER BY P.obs_time DESC
             LIMIT %(OFFSET)s,%(FETCH)s;"""
         query_parameters = {
