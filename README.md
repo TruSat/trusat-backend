@@ -75,14 +75,14 @@ From the same directory that you did the export, import the data into your local
  - Checkout the appropriate branch of ['trusat-backend'](https://github.com/consensys-space/trusat-backend).
  - Generate RSA Keys using `bash RSAKeyGen.sh` and follow the instructions provided.
  - Generate TLS Certificates.
- - Generate Google API Key and store in credentials.json.
- - Initialize Google API Keys by running `python APIKeyInit.py` and following the provided instructions. IMPORTANT: This will require a browser on hand
+ - Generate Google API Key and store in `credentials.json`.
+ - Initialize Google API Keys by running `google_email.init_email_sending()` with credentials. IMPORTANT: This will require a browser on hand
 
 ### Install python
 
 Ensure you are using python3 using `python --version`
 
-If your python3 executable is something other than `python` (e.g. mine is called `python3.7`), you might have to run ``python3.7 --version`. The commands below assume that your executable is caleld `python3.7`.
+If your python3 executable is something other than `python` (e.g. mine is called `python3.7`), you might have to run ``python3.7 --version`. The commands below assume that your executable is caleld `python3.7`. Python 3.7 is required to run backend with `ThreadingHTTPServer`.
 
 ### Install pip
 
