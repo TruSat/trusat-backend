@@ -2436,6 +2436,7 @@ class Database:
         """
 
         query_tmp = self.selectLatestTLEPerObject + """
+  		    AND DATEDIFF(NOW(),TLE.epoch) <= 365
             ORDER BY TLE.satellite_number;"""
         self.c.execute(query_tmp)
         result = ""
@@ -2452,6 +2453,7 @@ class Database:
         # In the meantime, return TLEs older than 30 days, oldest first
         query_tmp = self.selectLatestTLEPerObject + """
             WHERE DATEDIFF(NOW(),TLE.epoch) > 30
+  		    AND DATEDIFF(NOW(),TLE.epoch) <= 365
             ORDER BY TLE.epoch DESC;"""
         self.c.execute(query_tmp)
         result = ""
