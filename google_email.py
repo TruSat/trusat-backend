@@ -120,10 +120,10 @@ def init_history_watch():
 def create_message(sender, to, subject, message_text):
     message_text = 'Save this email: TruSat account recovery info for ' + to + '\n\n' + \
       'To log into TruSat, you\'ll need your password AND this secret code:\n\n' + message_text + \
-      '\n\nThis email is the only time we can send you this code. TruSat cannot restore your account or reset your password for you. Please save this email forever and make a note of the password you used.\n\n' + \
+      '\n\nThis email is the only time we can send you this code. TruSat cannot reset your password for you. Please save this email forever and make a note of the password you used.\n\n' + \
+      'Login here: trusat.org/login\n\n' + \
       'Why do we do it this way? Read more (trusat.org/faq)\n\n' + \
-      'Questions? Please email: Help@Beta.TruSat.org\n\n' + \
-      'Login here: trusat.org/login'
+      'Questions? Please email: Help@Beta.TruSat.org'
     message = MIMEText(message_text)
     message['to'] = to
     message['from'] = sender
@@ -185,8 +185,8 @@ def send_email(to, message_text):
 
 def create_recovery_message(sender, to, subject, message_text):
     message_text = 'Please use the following link to verify your ownership of the following email ' + \
-        to + ':\n\n' + message_text + '\nThis link will expire in 30 minutes.' + \
-        '\n\nIf you did not request recovery of your account please contact us at: Help@Beta.TruSat.org\n'
+        to + '\n\n' + message_text + '\nThis link will expire in 30 minutes.' + \
+        '\n\nIf you did not request recovery of your account please contact us at:\nHelp@Beta.TruSat.org\n'
     message = MIMEText(message_text)
     message['to'] = to
     message['from'] = sender
