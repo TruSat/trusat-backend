@@ -236,7 +236,7 @@ def get_email_history(history_id):
     return history_id
 
 def wait_for_email(history_id):
-    sleep(300)
+    sleep(600)
 
     SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 
@@ -284,15 +284,6 @@ def wait_for_email(history_id):
                         for label in message['labelIds']:
                             if label == 'Label_4696745878389955477':
                                 messages.append(message['snippet'])
-                                for j in message["payload"]["headers"]:
-                                    if j["name"] == "From":
-                                        email_from_unparsed = j["value"]
-                                        email_from = email_from_unparsed.split("\u003c")[1].split("\u003e")[0]
-                                    elif j["name"] == "To":
-                                        email_to_unparsed = j["value"]
-                                        email_to = email_to_unparsed.split("\u003c")[1].split("\u003e")[0]
-                                    elif j["name"] == "Date":
-                                        email_timestamp = j["value"]
                                 for j in message["payload"]["parts"]:
                                     if j["mimeType"] == "text/plain":
                                         email_body_base64 = j["body"]["data"]
@@ -303,7 +294,17 @@ def wait_for_email(history_id):
                                         print(success)
                                         print("ERRORS")
                                         print(errors)
-                    except:
+                                for j in message["payload"]["headers"]:
+                                    if j["name"] == "From":
+                                        email_from_unparsed = j["value"]
+                                        email_from = email_from_unparsed.split("\u003c")[1].split("\u003e")[0]
+                                    elif j["name"] == "To":
+                                        email_to_unparsed = j["value"]
+                                        email_to = email_to_unparsed.split("\u003c")[1].split("\u003e")[0]
+                                    elif j["name"] == "Date":
+                                        email_timestamp = j["value"]
+                    except Exception as e:
+                        print(e)
                         pass
 
             else:
