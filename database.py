@@ -2741,7 +2741,7 @@ class Database:
             'object_origin', ucs_SATDB.country_owner,
             'object_type', ucs_SATDB.purpose,
             'object_primary_purpose', ucs_SATDB.purpose_detailed,
-            'object_secondary_purpose', '',
+            'object_secondary_purpose', ucs_SATDB.comments,
             'observation_quality', station_status.short_description,
             'object_name',celestrak_SATCAT.name,
             'object_norad_number', Obs.object_number,
