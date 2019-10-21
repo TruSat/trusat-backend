@@ -2872,6 +2872,7 @@ class Database:
           "SELECT" + self.selectCatalogJsonObject + """
           FROM catalog
           WHERE datediff(now(),obs_time) >= 30
+		  AND datediff(now(),obs_time) <= 365
           ORDER BY obs_time DESC
           LIMIT %(OFFSET)s,%(FETCH)s;""")
         queryParams = {
