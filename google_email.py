@@ -14,12 +14,115 @@ import logging
 import database
 
 
+def init_email_sending():
+    SCOPES = ['https://www.googleapis.com/auth/gmail.send']
+
+    creds = None
+
+    try:
+        if os.path.exists('token.pickle'):
+            with open('token.pickle', 'rb') as token:
+                creds = pickle.load(token)
+
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+                creds = flow.run_console()
+            with open('token.pickle', 'wb') as token:
+                pickle.dump(creds, token)
+
+        service = build('gmail', 'v1', credentials=creds)
+        return True
+    except Exception as e:
+        print(e)
+        return False
+
+
+
+
+def stop_history_watch():
+    SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+
+    creds = None
+    try:
+        if os.path.exists('history_token.pickle'):
+            with open('history_token.pickle', 'rb') as token:
+                creds = pickle.load(token)
+
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+                creds = flow.run_console()
+            with open('history_token.pickle', 'wb') as token:
+                pickle.dump(creds, token)
+
+        service = build('gmail', 'v1', credentials=creds)
+
+        results = service.users().stop(userId='me').execute()
+        print(results)
+        return True
+    except Exception as e:
+        print(e)
+        return False
+
+
+
+
+def init_history_watch():
+    SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+
+    creds = None
+    try:
+        if os.path.exists('history_token.pickle'):
+            with open('history_token.pickle', 'rb') as token:
+                creds = pickle.load(token)
+
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+                creds = flow.run_console()
+            with open('history_token.pickle', 'wb') as token:
+                pickle.dump(creds, token)
+
+        request = {
+                'labelIds': ['Label_4696745878389955477'],
+                'topicName': 'projects/trusat-256517/topics/TruSat'
+            }
+        service = build('gmail', 'v1', credentials=creds)
+
+
+        results = service.users().labels().list(userId='me').execute()
+        labels = results.get('labels', [])
+
+        if not labels:
+            print('No labels found.')
+        else:
+            print('Labels:')
+            for label in labels:
+                print(label['name'])
+                print(label['id'])
+
+
+        results = service.users().watch(userId='me', body=request).execute()
+        print(results)
+        return True
+    except Exception as e:
+        print(e)
+        return False
+
+
 def create_message(sender, to, subject, message_text):
     message_text = 'Save this email: TruSat account recovery info for ' + to + '\n\n' + \
       'To log into TruSat, you\'ll need your password AND this secret code:\n\n' + message_text + \
       '\n\nThis email is the only time we can send you this code. TruSat cannot restore your account or reset your password for you. Please save this email forever and make a note of the password you used.\n\n' + \
       'Why do we do it this way? Read more (trusat.org/faq)\n\n' + \
-      'Questions? Please email: Support@TruSat.org\n\n' + \
+      'Questions? Please email: Help@Beta.TruSat.org\n\n' + \
       'Login here: trusat.org/login'
     message = MIMEText(message_text)
     message['to'] = to
@@ -83,7 +186,7 @@ def send_email(to, message_text):
 def create_recovery_message(sender, to, subject, message_text):
     message_text = 'Please use the following link to verify your ownership of the following email ' + \
         to + ':\n\n' + message_text + '\nThis link will expire in 30 minutes.' + \
-        '\n\nIf you did not request recovery of your account please contact us at: Support@TruSat.org\n'
+        '\n\nIf you did not request recovery of your account please contact us at: Help@Beta.TruSat.org\n'
     message = MIMEText(message_text)
     message['to'] = to
     message['from'] = sender
@@ -128,10 +231,14 @@ def send_recovery_email(to, message_text):
 
 
 def get_email_history(history_id):
-    SCOPES = [#'https://www.googleapis.com/auth/gmail.send',
-            'https://www.googleapis.com/auth/gmail.readonly']#,
-            #'https://www.googleapis.com/auth/gmail.metadata',
-            #'https://mail.google.com']
+    thread_to_use = threading.Thread(target=wait_for_email, args=(history_id,))
+    thread_to_use.start()
+    return history_id
+
+def wait_for_email(history_id):
+    sleep(300)
+
+    SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 
     creds = None
 
@@ -149,15 +256,6 @@ def get_email_history(history_id):
             pickle.dump(creds, token)
 
     service = build('gmail', 'v1', credentials=creds)
-    #logging.basicConfig(format=format, level=logging.INFO, datefmt="%H:%M:%S")
-    thread_to_use = threading.Thread(target=wait_for_email, args=(history_id,))
-    thread_to_use.start()
-    return history_id
-    #return wait_for_email(history_id)#"waiting for email info"
-
-def wait_for_email(history_id):
-    sleep(300)
-
 
     f = open('login.txt', 'r')
     lines = f.readlines()
@@ -168,30 +266,7 @@ def wait_for_email(history_id):
     password = lines[4].strip()
     f.close()
     db = database.Database(db_name, db_type, endpoint, username, password)
-    db.clean()
 
-
-    SCOPES = [#'https://www.googleapis.com/auth/gmail.send',
-            'https://www.googleapis.com/auth/gmail.readonly']#,
-            #'https://www.googleapis.com/auth/gmail.metadata',
-            #'https://mail.google.com']
-
-    creds = None
-
-    if os.path.exists('history_token.pickle'):
-        with open('history_token.pickle', 'rb') as token:
-            creds = pickle.load(token)
-
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-            creds = flow.run_console()
-        with open('history_token.pickle', 'wb') as token:
-            pickle.dump(creds, token)
-
-    service = build('gmail', 'v1', credentials=creds)
     try:
         history = (service.users().history().list(userId='me', startHistoryId=history_id).execute())
         changes = history['history'] if 'history' in history else []
@@ -206,25 +281,28 @@ def wait_for_email(history_id):
                 for i in change_id:
                     try:
                         message = service.users().messages().get(userId='me', id=i).execute()
-                        messages.append(message['snippet'])
-                        for j in message["payload"]["headers"]:
-                            if j["name"] == "From":
-                                email_from_unparsed = j["value"]
-                                email_from = email_from_unparsed.split("\u003c")[1].split("\u003e")[0]
-                                print("EMAIL FROM")
-                                print(email_from)
-                            elif j["name"] == "Date":
-                                email_timestamp = j["value"]
-                                print("TIMESTAMP")
-                                print(email_timestamp)
-                        for j in message["payload"]["parts"]:
-                            if j["mimeType"] == "text/plain":
-                                email_body_base64 = j["body"]["data"]
-                                email_body = base64.urlsafe_b64decode(email_body_base64).decode('utf-8')
-                                print("EMAIL BODY")
-                                body = email_body.split('\n')
-                                print(body)
-                                print(email_body)
+                        for label in message['labelIds']:
+                            if label == 'Label_4696745878389955477':
+                                messages.append(message['snippet'])
+                                for j in message["payload"]["headers"]:
+                                    if j["name"] == "From":
+                                        email_from_unparsed = j["value"]
+                                        email_from = email_from_unparsed.split("\u003c")[1].split("\u003e")[0]
+                                    elif j["name"] == "To":
+                                        email_to_unparsed = j["value"]
+                                        email_to = email_to_unparsed.split("\u003c")[1].split("\u003e")[0]
+                                    elif j["name"] == "Date":
+                                        email_timestamp = j["value"]
+                                for j in message["payload"]["parts"]:
+                                    if j["mimeType"] == "text/plain":
+                                        email_body_base64 = j["body"]["data"]
+                                        email_body = base64.urlsafe_b64decode(email_body_base64).decode('utf-8')
+                                        body = email_body.replace('\r\n', '\n')
+                                        (success, errors) = db.addObserverParsedIOD(body)
+                                        print("SUCCESS")
+                                        print(success)
+                                        print("ERRORS")
+                                        print(errors)
                     except:
                         pass
 
@@ -233,8 +311,9 @@ def wait_for_email(history_id):
         except Exception as e:
             print(e)
             messages = None
-        print(messages)
+        db.clean()
         return messages
     except Exception as e:
         print(e)
+        db.clean()
         return []
