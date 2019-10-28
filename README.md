@@ -75,6 +75,9 @@ From the same directory that you did the export, import the data into your local
  - Checkout the appropriate branch of ['trusat-backend'](https://github.com/consensys-space/trusat-backend).
  - Generate RSA Keys using `bash RSAKeyGen.sh` and follow the instructions provided.
  - Generate TLS Certificates.
+ - Generate Gunmail api key
+ - Set Gunmail Environmental Variables `GUNMAIL_API_KEY` and `GUNMAIL_EMAIL_ADDRESS`
+	- OR -
  - Generate Google API Key and store in `credentials.json`.
  - Initialize Google API Keys by running `google_email.init_email_sending()` with credentials. IMPORTANT: This will require a browser on hand
 
