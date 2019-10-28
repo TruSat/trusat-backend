@@ -72,6 +72,9 @@ def isValidUserSetting(setting):
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
     def __init__(self, request, client_address, server):
+        # TODO: Find which timeout is correct
+        self.timeout = 10
+        print(request)
         # Read database config from login.txt
         f = open('login.txt', 'r')
         lines = f.readlines()
@@ -979,6 +982,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         self.db.clean()
 
 httpd = ThreadingHTTPServer(('', PORT_NUMBER), SimpleHTTPRequestHandler)
+httpd.timeout = 10
 
 if os.getenv('TRUSAT_DISABLE_HTTPS', False):
   print('HTTPS disabled!')
