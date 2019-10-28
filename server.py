@@ -17,11 +17,13 @@ from base64 import urlsafe_b64decode
 from coinaddr import validate
 import os
 import re
+import requests
 
 import database
 import google_email
 
-
+MAILGUN_API_KEY = os.getenv('MAILGUN_API_KEY', False)
+MAILGUN_EMAIL_ADDRESS = os.getenv('MAILGUN_EMAIL_ADDRESS', False)
 PORT_NUMBER = 8080
 
 #TODO: take object instead of address to encode with a specified time
@@ -650,11 +652,31 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                         if email != None or email != 'null' or email != 'NULL' or email != '':
                             try:
                                 self.db.updateObserverEmail(email, addr)
-                                email_status = google_email.send_email(email, payload)
-                                if email_status == False:
+                                message_text = 'Save this email: TruSat account recovery info for ' + email + '\n\n' + \
+                                        'To log into TruSat, you\'ll need your password AND this secret code:\n\n' + payload + \
+                                        '\n\nThis email is the only time we can send you this code. TruSat cannot reset your password for you. Please save this email forever and make a note of the password you used.\n\n' + \
+                                        'Login here: trusat.org/login\n\n' + \
+                                        'Why do we do it this way? Read more (trusat.org/faq)\n\n' + \
+                                        'Questions? Please email: Help@Beta.TruSat.org'
+                                data = {"from": "TruSat Help <" + MAILGUN_EMAIL_ADDRESS + ">",
+                                        "to": [email],
+                                        "subject": "DEVVY TEST TruSat - Save this email: Recovery Info",
+                                        "text": message_text}
+                                response = requests.post(
+                                        "https://api.mailgun.net/v3/beta.trusat.org/messages",
+                                        auth=("api", MAILGUN_API_KEY),
+                                        data=data
+                                    )
+                                if response.status_code != 200:
+                                    print(response)
                                     print("Email failed to send.")
                                     self.send_500()
                                     return
+                                #email_status = google_email.send_email(email, payload)
+                                #if email_status == False:
+                                #    print("Email failed to send.")
+                                #    self.send_500()
+                                #    return
                                 self.send_200_JSON(json.dumps({'result': True}))
                                 return
                             except Exception as e:
@@ -817,10 +839,27 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     }
                 encoded_jwt = encode(jwt_payload, private_rsa_key, algorithm='RS256')
                 self.db.updateObserverPassword(encoded_jwt.decode('utf-8'), results)
-                email_status = google_email.send_recovery_email(email, 'http://trusat.org/claim/' + encoded_jwt.decode('utf-8'))
-                if email_status == False:
+                message_text = 'Please use the following link to verify your ownership of the following email ' + \
+                        email + '\n\nhttps://trusat.org/claim/' + encoded_jwt.decode('utf-8') + '\nThis link will expire in 24 hours.' + \
+                        '\n\nIf you did not request recovery of your account please contact us at:\nHelp@Beta.TruSat.org\n'
+                data = {"from": "TruSat Help <" + MAILGUN_EMAIL_ADDRESS + ">",
+                        "to": [email],
+                        "subject": "DEVVY TEST TruSat - Recover Account",
+                        "text": message_text}
+                response = requests.post(
+                        "https://api.mailgun.net/v3/beta.trusat.org/messages",
+                        auth=("api", MAILGUN_API_KEY),
+                        data=data
+                        )
+                if response.status_code != 200:
+                    print(response)
+                    print("Email failed to send.")
                     self.send_500()
                     return
+                #email_status = google_email.send_recovery_email(email, 'http://trusat.org/claim/' + encoded_jwt.decode('utf-8'))
+                #if email_status == False:
+                #    self.send_500()
+                #    return
                 else:
                     self.send_200_JSON(json.dumps({'result': True}))
                     return
@@ -856,10 +895,30 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 #replace address
                 encoded_jwt = encode_jwt(address)
                 self.db.updateObserverAddress(address, old_address)
-                email_status = google_email.send_email(to, message_text)
-                if email_status == False:
+                message_text = 'Save this email: TruSat account recovery info for ' + to + '\n\n' + \
+                    'To log into TruSat, you\'ll need your password AND this secret code:\n\n' + message_text + \
+                    '\n\nThis email is the only time we can send you this code. TruSat cannot reset your password for you. Please save this email forever and make a note of the password you used.\n\n' + \
+                    'Login here: trusat.org/login\n\n' + \
+                    'Why do we do it this way? Read more (trusat.org/faq)\n\n' + \
+                    'Questions? Please email: Help@Beta.TruSat.org'
+                data = {"from": "TruSat Help <" + MAILGUN_EMAIL_ADDRESS + ">",
+                    "to": [to],
+                    "subject": "DEVVY TEST TruSat - Save this email: Recovery Info",
+                    "text": message_text}
+                response = requests.post(
+                    "https://api.mailgun.net/v3/beta.trusat.org/messages",
+                    auth=("api", MAILGUN_API_KEY),
+                    data=data
+                    )
+                if response.status_code != 200:
+                    print(response)
+                    print("Email failed to send.")
                     self.send_500()
                     return
+                #email_status = google_email.send_email(to, message_text)
+                #if email_status == False:
+                #    self.send_500()
+                #    return
                 self.db.updateObserverJWT(encoded_jwt, "", address)
                 jwt_string = encoded_jwt.decode('utf-8')
                 response_body = json.dumps({'jwt': jwt_string})
