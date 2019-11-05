@@ -644,6 +644,7 @@ class Database:
         """
         createquery = """CREATE TABLE IF NOT EXISTS Station (
             station_num INT UNSIGNED NOT NULL,  /* 4 Digit COSPAR number of observation station */
+            user INT,                           /* Associated User table ID */
             initial TINYTEXT,                   /* Observer initials */
             latitude FLOAT,                     /* WGS84 Latitude (degrees) */
             longitude FLOAT,                    /* WGS84 Longitude (degrees) */
@@ -654,10 +655,11 @@ class Database:
             preferred_format TINYTEXT,          /* TruSat team notes on observer preferred reporting format IOD/RDE/UK */
             source_url TINYTEXT,                /* URL where confirming data can be found */
             notes TINYTEXT,                     /* TruSat team processing notes */
-            user INT,                           /* Associated User table ID */
+            opt_out TINYINT(1) DEFAULT NULL,    /* Flag to prevent processing of data from disinterested stations */
             KEY Station_station_num_idx (station_num) USING BTREE,
             KEY Station_user_idx (user) USING BTREE,
-            KEY Station_user_station_idx (user, station_num)
+            KEY Station_user_station_idx (user, station_num),
+            KEY Station_opt_out_idx (opt_out) USING BTREE
             )""" + self.charset_string
         self.c.execute(createquery)
 
@@ -1927,6 +1929,35 @@ class Database:
         self.c.execute(query)
         return QueryTupleListToList(self.c.fetchall())
 
+
+    def findObjectsWithIODsSubmittedAfterTLE(self):
+        """ Find the objects that have IODs that have one or more IODs newer than their most recent TLE.
+            Such objects are candidates for an incremental update of their TLE.
+
+            Returns
+            -------
+            list of one-element (int) tuples
+                The NORAD numbers of all objects for which we are aware of IODs newer than their TLE.
+        """
+
+        query = """
+            WITH most_recent_iods AS (SELECT max(submitted) AS iod_time, object_number FROM ParsedIOD
+                                      WHERE valid_position = 1
+                                      GROUP BY object_number),
+                most_recent_tles AS (SELECT satellite_number, max(epoch) AS tle_time FROM TLE
+                                      GROUP BY satellite_number)
+              SELECT object_number
+              FROM most_recent_iods
+              INNER JOIN most_recent_tles
+                ON (most_recent_iods.object_number = most_recent_tles.satellite_number)
+              WHERE iod_time > (tle_time + INTERVAL 1 SECOND)
+              AND object_number < 70000 /* Skip analyst objects for now */
+              ORDER BY object_number;"""
+
+        self.c.execute(query)
+        return QueryTupleListToList(self.c.fetchall())
+
+
     def findIODsNewerThanPenultimateTLE(self, noradNumber):
         """ For a particular object, find all the IODs newer than the penultimate (second most recent) TLE.
             Such IODs are required input when making an an incremental to the object's TLE.
@@ -1960,6 +1991,46 @@ class Database:
             WHERE object_number = %(noradNumber)s
             AND valid_position = 1
             AND obs_time > (SELECT * FROM most_recent_two_tles
+                    ORDER BY epoch
+                    LIMIT 1);"""
+
+        self.c.execute(query, {'noradNumber': noradNumber})
+        return QueryTupleListToList(self.c.fetchall())
+
+
+    def findIODsSubmittedAfterPenultimateTLE(self, noradNumber):
+        """ For a particular object, find all the IODs newer than the penultimate (second most recent) TLE.
+            Such IODs are required input when making an an incremental to the object's TLE.
+
+            If only one TLE exists, we find all IODs newer than that TLE.
+
+            If no TLEs exist, we return zero rows.
+
+            If no IODs newer than the selected TLE exist, we return zero rows.
+
+            Use the result of `findIODsWithoutTLEs` to differentiate between these last two cases.
+
+            Parameters
+            ----------
+            noradNumber : int
+                The NORAD number of the object we are interested in. Only observations of this object are considered.
+
+            Returns
+            -------
+            list of one-element (int) tuples
+                The NORAD numbers of all objects for which we are aware of one or more IODs but zero TLEs.
+        """
+        query = """
+            WITH most_recent_two_tles AS (
+              SELECT epoch FROM TLE
+              WHERE satellite_number = %(noradNumber)s
+              ORDER BY epoch desc
+              LIMIT 2)
+            SELECT obs_id
+            FROM ParsedIOD
+            WHERE object_number = %(noradNumber)s
+            AND valid_position = 1
+            AND submitted > (SELECT * FROM most_recent_two_tles
                     ORDER BY epoch
                     LIMIT 1);"""
 
