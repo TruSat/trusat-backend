@@ -3211,25 +3211,32 @@ class Database:
     def selectFindObject(self, partial_string):
         """ Facilitate a search of objects contained in the database, by NORAD number or name.
         Provide a partial result of matches to allow the user to choose their specific object of interest.
+        Partial-match assumes match stats at left-portion of name
         """
-        query_parameters = {'PARTIAL': partial_string}
-        if (type(partial_string) == int):
+        try:
+            partial_string = int(partial_string)
+            query_parameters = {'PARTIAL': partial_string}
             query_tmp = """SELECT DISTINCT Json_Object(
                 'norad_number', norad_num,
+                'international_designator', intl_desg,
                 'name', name)
                 FROM celestrak_SATCAT
-                WHERE norad_num LIKE %(PARTIAL)s%
-                ORDER by norad_num ASC;
+                WHERE norad_num LIKE '%(PARTIAL)s%'
+                ORDER by norad_num ASC
+                LIMIT 100;
                 """
-        else:
+        except ValueError:
+            query_parameters = {'PARTIAL': partial_string + "%"}    # Append trailing wildcard to string
             query_tmp = """SELECT DISTINCT Json_Object(
                 'norad_number', norad_num,
+                'international_designator', intl_desg,
                 'name', name)
                 FROM celestrak_SATCAT
-                WHERE name LIKE %(PARTIAL)s%
-                ORDER by name ASC;
+                WHERE name LIKE %(PARTIAL)s
+                OR intl_desg LIKE %(PARTIAL)s
+                ORDER by name ASC
+                LIMIT 100;
                 """
-        print(query_tmp)
         self.c.execute(query_tmp, query_parameters)
         try:
             return stringArrayToJSONArray(self.c.fetchall())
