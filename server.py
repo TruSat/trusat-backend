@@ -525,6 +525,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_200_text_cache("")
                 return
 
+        # FIXME: This should be changed to partial_string to match the intent of the search function selectFindObject() in database.py
         elif path == "/findObject":
             try:
                 object_name = parameters_map["objectName"]
