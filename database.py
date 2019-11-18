@@ -56,7 +56,7 @@ def QueryTupleListToList(var):
     list = []
     for i in var:
         list.append(i[0])
-    return list    
+    return list
 
 def datetime_from_sqldatetime(sql_date_string):
     """ The 4 digit sub-seconds are not the standard 3 or 6, which creates problems with datetime.fromisoformat """
@@ -344,9 +344,9 @@ class Database:
                               LEFT JOIN Station S on (S.station_num = L.obs_station_number)
                               group by object_number)
                 ,obj_with_categories as (
-							    SELECT LU.*, U.comments obj_comments, U.purpose obj_purpose, U.purpose_detailed obj_purpose_detailed, 
+							    SELECT LU.*, U.comments obj_comments, U.purpose obj_purpose, U.purpose_detailed obj_purpose_detailed,
 								U.country_owner obj_country_owner, SatCat.name obj_name, SatCat.launch_date obj_launch_date, SatCat.orbit_status_code,
-								C.obj_no, C.sub_category, C.description as CT_description, C.obj_categories 
+								C.obj_no, C.sub_category, C.description as CT_description, C.obj_categories
 							  FROM latest_obs_with_users LU
                               LEFT JOIN ucs_SATDB U ON (LU.object_number = U.norad_number)
                               LEFT JOIN celestrak_SATCAT SatCat ON (LU.object_number = SatCat.sat_cat_id)
@@ -354,8 +354,8 @@ class Database:
                               		SELECT obj_no, sub_category, description, GROUP_CONCAT(sub_category SEPARATOR ', ') as obj_categories
                               		FROM categories
                               		GROUP BY obj_no
-                              	) AS C ON LU.object_number = C.obj_no 
-                              )						
+                              	) AS C ON LU.object_number = C.obj_no
+                              )
               SELECT
                 IODs.*,
                 Obs.eth_addr obs_eth_addr, Obs.name obs_user_name,
@@ -555,7 +555,7 @@ class Database:
             elevation                   DOUBLE,         /* elevation of observation (radians) - derived from ra/dec by iod.py if not provided */
             positional_uncertainty      DOUBLE,         /* Position uncertainy of observation (radians) */
             optical_behavior_code       CHAR(1),        /* Packed code of optical behavior */
-            visual_magnitude            FLOAT,         
+            visual_magnitude            FLOAT,
             visual_magnitude_high       FLOAT,
             visual_magnitude_low        FLOAT,
             magnitude_uncertainty       FLOAT,
@@ -639,7 +639,7 @@ class Database:
         self.c.execute(createquery)
 
 
-        """ Station Table. These records are a mix of observer identity and station identity. 
+        """ Station Table. These records are a mix of observer identity and station identity.
         TODO: Will need to provide better separation between Observers / Stations in future releases.
         """
         createquery = """CREATE TABLE IF NOT EXISTS Station (
@@ -721,7 +721,7 @@ class Database:
             classification              CHAR(1),    /* Classification Code - TruSat generated TLEs use T */
             designation                 CHAR(24),   /* International Designator */
             epoch                       DATETIME(6) NOT NULL,  /* FIXME: Python Datetime of TLE epoch. Rename to epoch_datetime for clarity */
-            mean_motion_derivative      DOUBLE, 
+            mean_motion_derivative      DOUBLE,
             mean_motion_sec_derivative  DOUBLE,
             bstar                       DOUBLE,
             ephemeris_type              TINYINT,
@@ -733,7 +733,7 @@ class Database:
             eccentricity                DOUBLE NOT NULL, /* Orbit eccentricity */
             arg_perigee_degrees         DOUBLE, /* Argument of perigee (degrees) */
             arg_perigee_radians         DOUBLE, /* Argument of perigee (radians) */
-            mean_anomaly_degrees        DOUBLE, 
+            mean_anomaly_degrees        DOUBLE,
             mean_anomaly_radians        DOUBLE,
             mean_motion_orbits_per_day  DOUBLE,
             mean_motion_radians_per_second DOUBLE, /* FIXME - need to at mean_motion_radians_per_minute for SGP4 convenience */
@@ -854,7 +854,7 @@ class Database:
 
 
     def addParsedIOD(self, entryList, submit_time, fast_import = False):
-        """ Add an IOD entry to the database         
+        """ Add an IOD entry to the database
         Input: IOD-formatted line
         """
         iteration = 0
@@ -948,7 +948,7 @@ class Database:
         Input:
             text_block - Block of text that will be checked for observation format then submit
                 those observations to the database.
-        
+
         Output:
             Tuple(
                 success - Integer stating how many successful submissions were added to the database.
@@ -1742,8 +1742,8 @@ class Database:
             this query returns the IDs of ALL observations within that time window.
 
             If more than one qualifying time window is found, the window with the chronologically earliest start is used.
-            
-            If more than one qualifying window with the chronologically earliest start is found, the longest such window is used. 
+
+            If more than one qualifying window with the chronologically earliest start is found, the longest such window is used.
 
             Parameters
             ----------
@@ -1773,8 +1773,8 @@ class Database:
 
         # FIXME: Shouldn't be necessary, but we may have some incoming date-parsing problems skewing the results by milliseconds
         plus1sec = timedelta(seconds=1)
-        startDate += plus1sec 
-        
+        startDate += plus1sec
+
         query = """
             WITH TIME_WINDOW AS (
                 WITH OBS_USER AS (
@@ -1795,7 +1795,7 @@ class Database:
                                                                    sec_to_time(%(minSecondsBetweenObservations)s))
                                                    and     addtime(LAST_OBS_USER.obs_time,
                                                                    sec_to_time(%(maxMinutesBetweenObservations)s * 60)))
-                  >= %(minOtherObservers)s	
+                  >= %(minOtherObservers)s
                 and (
                   SELECT count(OTHER_OBS.obs_time)
                   from OBS_USER as OTHER_OBS
@@ -1808,7 +1808,7 @@ class Database:
                   >= %(minOtherObservations)s
                 order by LAST_OBS_USER.obs_time
                 LIMIT 1)
-            SELECT obs_id from ParsedIOD 
+            SELECT obs_id from ParsedIOD
             WHERE object_number = %(noradNumber)s
             AND valid_position = 1
             AND obs_time between (SELECT result_window_start from TIME_WINDOW) and (select result_window_end from TIME_WINDOW);"""
@@ -1830,7 +1830,7 @@ class Database:
     def findIODsNotUsedInTTLEs(self):
         """ Find IODs that have not yet been used to construct any TruSat TLEs (TTLEs), and index them by their object number
             for easy processing.
-        
+
             IODs are considered to have been used to construct a TruSat TLE even if their allocated weight was zero, so this
             search is really finding IODs that have not yet undergone any TTLE processing.
 
@@ -1841,7 +1841,7 @@ class Database:
             dict with an integer key and a non-empty list of integers as a value.
                 Key: NORAD number of the object
                 Value: the list of obs_ids for this object that have not yet been used for any TTLE processing.
-                
+
         """
         query = """
             select object_number, obs_id from ParsedIOD P
@@ -1861,14 +1861,14 @@ class Database:
                 retVal[key].append(value)
             else:
                 retVal[key] = [value]
-        
+
         return retVal
 
 
     def findObjectsWithIODsNotUsedInTTLEs(self):
         query = """
             SELECT DISTINCT object_number from ParsedIOD
-            WHERE valid_position=1 
+            WHERE valid_position=1
             AND object_number in (SELECT DISTINCT satellite_number from TLE) /* We have a TLE */
             AND obs_id NOT IN (SELECT DISTINCT obs_id FROM TLE_process)      /* It has not been processed */
             ORDER BY object_number ASC;"""
@@ -1912,7 +1912,7 @@ class Database:
 
         query = """
             WITH most_recent_iods AS (SELECT max(obs_time) AS iod_time, object_number FROM ParsedIOD
-                                      WHERE valid_position = 1			                  
+                                      WHERE valid_position = 1
                                       GROUP BY object_number),
                 most_recent_tles AS (SELECT satellite_number, max(epoch) AS tle_time FROM TLE
                                       GROUP BY satellite_number)
@@ -1949,14 +1949,14 @@ class Database:
             list of one-element (int) tuples
                 The NORAD numbers of all objects for which we are aware of one or more IODs but zero TLEs.
         """
-        query = """           
+        query = """
             WITH most_recent_two_tles AS (
               SELECT epoch FROM TLE
               WHERE satellite_number = %(noradNumber)s
               ORDER BY epoch desc
               LIMIT 2)
-            SELECT obs_id 
-            FROM ParsedIOD            
+            SELECT obs_id
+            FROM ParsedIOD
             WHERE object_number = %(noradNumber)s
             AND valid_position = 1
             AND obs_time > (SELECT * FROM most_recent_two_tles
@@ -1983,16 +1983,16 @@ class Database:
             python datetime
                 The datetime of the resulting TTLE
         """
-        query = """           
-            SELECT epoch 
-            FROM TLE            
+        query = """
+            SELECT epoch
+            FROM TLE
             WHERE satellite_number = %(noradNumber)s
             AND classification = 'T'
             ORDER BY epoch DESC
             LIMIT 1;"""
 
         self.cdict.execute(query, {'noradNumber': noradNumber})
-        row = [self.cdict.fetchone()] 
+        row = [self.cdict.fetchone()]
         if (row[0] is not None):
             TTLEepoch = row[0]["epoch"]
             return TTLEepoch
@@ -2017,15 +2017,15 @@ class Database:
             python datetime
                 The datetime of the resulting TTLE
         """
-        query = """           
-            SELECT epoch 
-            FROM TLE            
+        query = """
+            SELECT epoch
+            FROM TLE
             WHERE satellite_number = %(noradNumber)s
             ORDER BY epoch DESC
             LIMIT 1;"""
 
         self.cdict.execute(query, {'noradNumber': noradNumber})
-        row = [self.cdict.fetchone()] 
+        row = [self.cdict.fetchone()]
         if (row[0] is not None):
             TLEepoch = row[0]["epoch"]
             return TLEepoch
@@ -2037,7 +2037,7 @@ class Database:
         """ For testing.  For a particular object, find the (submitted) date of the first observation, and the first TLE after it.
         Using submitted time instead of obs_time as the TLEs get created in the order the observations are submitted/received.
 
-        Return TLE as TruSatellite() object.  
+        Return TLE as TruSatellite() object.
         We can assume the first range starts at zero time, and use the epoch of the TLE as the end of the next range.
         """
 
@@ -2063,13 +2063,13 @@ class Database:
         self.cdict.execute(query_tmp, query_parameters)
         row = [self.cdict.fetchone()]    # Put single result into an array
         return self.cdictQueryToTruSatelliteObj(row)[0]  # Unpack the array to the object, for just one result
-        
+
 
     def findNextUnprocessedTLE(self,noradNumber,epoch):
         """ For testing.  For a particular object, the next TLE by epoch time.
         Consult TLE process where there might be multiple TLEs for a given epoch.
 
-        Return TLE as TruSatellite() object."""  
+        Return TLE as TruSatellite() object."""
         query_tmp = """SELECT * FROM TLE
             WHERE satellite_number=%(SATELLITE_NUMBER)s
             AND epoch > %(EPOCH)s
@@ -2125,9 +2125,9 @@ class Database:
             LEFT JOIN Station S on (U.id = S.user)
           )
           , user_observations AS (
-            SELECT 
-             US.user_id user_id, 
-             P.obs_id obs_id, 
+            SELECT
+             US.user_id user_id,
+             P.obs_id obs_id,
 			 P.submitted submitted,
 			 P.obs_time obs_time,
 			 P.object_number object_number,
@@ -2148,8 +2148,8 @@ class Database:
             LEFT JOIN ParsedIOD P on (US.station_num = P.station_number)
             JOIN TLE_process TP on (TP.obs_id = P.obs_id)
             ORDER BY P.obs_time DESC
-          )		           
-			SELECT *  
+          )
+			SELECT *
 			FROM user_observations Obs
 			WHERE user_id = %(USER_ID)s
             ORDER BY user_id, obs_time ASC;"""
@@ -2244,7 +2244,7 @@ class Database:
             return None
 
     def commit_IOD_db_writes(self):
-        """ Commit pending INSERTS to database.  Requested by external function after batch processes, 
+        """ Commit pending INSERTS to database.  Requested by external function after batch processes,
         ideally after 1000 record updates or so."""
         if (self._dbtype == "sqlserver"):
             while(len(self._IODentryList) > 0):
@@ -2641,8 +2641,8 @@ class Database:
 
         query_tmp_first_obs = """SELECT date_format(ParsedIOD.obs_time, '%M %d, %Y')
             FROM ParsedIOD
-            JOIN Station ON ParsedIOD.station_number = Station.station_num 
-            JOIN Observer ON Observer.id = Station.user 
+            JOIN Station ON ParsedIOD.station_number = Station.station_num
+            JOIN Observer ON Observer.id = Station.user
             WHERE Observer.eth_addr = %(ETH_ADDR)s
             ORDER BY obs_time ASC LIMIT 1;"""
         query_parameters = {'ETH_ADDR': eth_addr}
@@ -2694,11 +2694,11 @@ class Database:
     # Supports user profile https://consensys-cpl.atlassian.net/browse/MVP-311
     # Notes about endpoint https://consensys-cpl.atlassian.net/browse/MVP-328
     def selectUserObservationHistory_JSON(self, eth_addr, fetch_row_count=100, offset_row_count=0):
-        """ Return the observation history for a particular ETH addresses, starting with most 
+        """ Return the observation history for a particular ETH addresses, starting with most
         recent observations.
         """
         # TODO (work in progress): Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
-        # Need to remove observation_quality when John is done with front-end implementation 
+        # Need to remove observation_quality when John is done with front-end implementation
 
         query = """
           WITH user AS (
@@ -2751,7 +2751,7 @@ class Database:
             Some of the info returned (notably observation_quality) refers to the observation made by the selected user.
 
             Some of the info returned (notably username_last_tracked, time_last_tracked, address_last_tracked) refers
-            to the most recent observation of the same object by any user. 
+            to the most recent observation of the same object by any user.
         """
         query = """
           -- Our user's ID
@@ -2766,7 +2766,7 @@ class Database:
             FROM user U
             LEFT JOIN Station S on (U.id = S.user)
           )
-          -- The objects our user has viewed, and the times they last viewed them 
+          -- The objects our user has viewed, and the times they last viewed them
           , user_objects AS (
             SELECT US.user_id, US.station_num, US.user_name, P.object_number, max(P.obs_time) as user_obs_time
             FROM user_stations US
@@ -2776,7 +2776,7 @@ class Database:
             order by user_obs_time DESC
             LIMIT %(OFFSET)s,%(FETCH)s
           )
-          -- The objects our user has viewed, and the times they last viewed them 
+          -- The objects our user has viewed, and the times they last viewed them
           , user_objects_with_station_status_code AS (
             SELECT obj.*, P.station_status_code
             FROM user_objects obj
@@ -2910,7 +2910,7 @@ class Database:
     # /catalog/undisclosed
     # https://consensys-cpl.atlassian.net/browse/MVP-324
     def selectCatalog_Undisclosed_JSON(self, fetch_row_count=100, offset_row_count=0):
-        """ Create list of Classified objects. 
+        """ Create list of Classified objects.
             Returns all (or fetch_row_count) objects that have 'NEA' (no elements available) status in Celestrak.
             Ordered by the time they were last tracked (most recent first)."""
         # !TODO: return only objects for which we also know a (TruSat?) TLE, once we have a critical mass of such objects
@@ -2935,7 +2935,7 @@ class Database:
     # /catalog/debris
     # https://consensys-cpl.atlassian.net/browse/MVP-325
     def selectCatalog_Debris_JSON(self, fetch_row_count=100, offset_row_count=0):
-        """ Create list of Debris objects. 
+        """ Create list of Debris objects.
             Returns all (or fetch_row_count) objects that have 'DEB' in their object name.
             Ordered by the time they were last tracked (most recent first).
             This heuristic may be too simple and we may miss some debris."""
@@ -2987,7 +2987,7 @@ class Database:
     # /catalog/all
     # https://consensys-cpl.atlassian.net/browse/MVP-327
     def selectCatalog_All_JSON(self, fetch_row_count=100, offset_row_count=0):
-        """ Return a full list of all observed objects in the DB. 
+        """ Return a full list of all observed objects in the DB.
             Returns all (or fetch_row_count) objects that have been observed.
             Ordered by the time they were last tracked (most recent first).
             Should contain only one entry per unique object.
@@ -3015,7 +3015,7 @@ class Database:
     # /object/info/
     # https://consensys-cpl.atlassian.net/browse/MVP-379
     def selectObjectInfo_JSON(self, norad_num):
-        """ Provide on Object containing valid-URLs for external sources of additional information 
+        """ Provide on Object containing valid-URLs for external sources of additional information
         for a given NORAD number.  Currently only returns a single option (Heavens Above), and it is a
         TODO to add other options.
         """
@@ -3084,7 +3084,7 @@ class Database:
     # /objectUserSightings
     # https://consensys-cpl.atlassian.net/browse/MVP-381
     def selectObjectUserSightings_JSON(self, norad_num, eth_addr, fetch_row_count=100, offset_row_count=0):
-        """ For a given object and user ETH address, return a detailed list of their observation 
+        """ For a given object and user ETH address, return a detailed list of their observation
         history for that object, with most recent observations first.
         """
         # TODO (work in progress): Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
@@ -3151,12 +3151,12 @@ class Database:
         In the roadmap, this should probably narrow to only the selected (most recent?) TLE
         """
         # TODO (work in progress): Replace fake data with real data https://consensys-cpl.atlassian.net/browse/MVP-388
-        # Need to remove observation_quality when John is done with front-end implementation 
+        # Need to remove observation_quality when John is done with front-end implementation
 
         # TODO: inadvertantly limits to single station?
         query_tmp = """
         WITH P_influence AS (
-            WITH latest_tle_id AS ( 
+            WITH latest_tle_id AS (
                 SELECT tle_id from TLE_process TP
                 JOIN TLE T ON (TP.tle_result_id = T.tle_id)
                 WHERE TP.object_number = 39462
