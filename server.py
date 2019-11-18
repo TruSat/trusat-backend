@@ -238,7 +238,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             else:
                 self.send_200_JSON_cache(json.dumps({}))
                 return
-        
+
         elif path == "/catalog/undisclosed":
             try:
                 json_object = self.db.selectCatalog_Undisclosed_JSON()
@@ -743,7 +743,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_400()
                 return
             if self.db.getObserverJWT(public_address)[0].decode("utf-8") == user_jwt:
-                try:  
+                try:
                     username = json_body["username"]
                     if (username != "null" and
                         username != None and
@@ -778,7 +778,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     print("Location not being updated")
                     print(e)
             self.send_200_JSON(response_body)
-                    
+
         elif self.path == '/claimAccount':
             try:
                 email = json_body['email']
@@ -852,7 +852,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 if old_address is None:
                     self.send_400()
                     return
-                
+
                 #replace address
                 encoded_jwt = encode_jwt(address)
                 self.db.updateObserverAddress(address, old_address)
