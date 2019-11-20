@@ -546,8 +546,8 @@ class Database:
             obs_time                    DATETIME(6),    /* Exact time of observation */
             time_uncertainty            FLOAT,          /* Observation uncertainty (seconds) */
             time_standard_code          TINYINT,        /* Coded time standard */
-            angle_format_code           CHAR(1),        /* Packed code of angle format */
-            epoch_code                  CHAR(1),        /* Packed code of angle EPOCH format */
+            angle_format_code           TINYINT(4),     /* Packed code of angle format */
+            epoch_code                  TINYINT(4),     /* Packed code of angle EPOCH format */
             epoch                       SMALLINT,       /* Decoded EPOCH year */
             ra                          DOUBLE,         /* right ascension (radians) - derived from az/el by iod.py if not provided */
             declination                 DOUBLE,         /* declination of observation (radians) - 'dec' appears to be namespace collision. derived from az/el by iod.py if not provided */
