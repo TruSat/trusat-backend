@@ -400,9 +400,10 @@ def main():
         print("Processed {} observations from {} users in {} messages in {:.3f} seconds.".format(TotalObsCount, len(UserDict), MessageCount_running, time()-app_start_time))
     else:
         print("Processed {} observations in {} messages in {:.3f} seconds.".format(TotalObsCount, MessageCount_running, time()-app_start_time))
-    print('                                          ({:6d}) IOD records ({:4.1f} %)'.format(TotalCount_IOD,100*TotalCount_IOD/TotalObsCount))
-    print('                                          ({:6d}) UK  records ({:4.1f} %)'.format(TotalCount_UK,100*TotalCount_UK/TotalObsCount))
-    print('                                          ({:6d}) RDE records ({:4.1f} %)\n'.format(TotalCount_RDE, 100*TotalCount_RDE/TotalObsCount))
+    if (TotalObsCount > 0):
+        print('                                          ({:6d}) IOD records ({:4.1f} %)'.format(TotalCount_IOD,100*TotalCount_IOD/TotalObsCount))
+        print('                                          ({:6d}) UK  records ({:4.1f} %)'.format(TotalCount_UK,100*TotalCount_UK/TotalObsCount))
+        print('                                          ({:6d}) RDE records ({:4.1f} %)\n'.format(TotalCount_RDE, 100*TotalCount_RDE/TotalObsCount))
 
     if (last_msgID is not None):
         log.info("Last messageID imported from: {}\n".format(last_msgID))
