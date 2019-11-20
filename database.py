@@ -1897,7 +1897,8 @@ class Database:
                 SELECT null
                 FROM TLE
                 WHERE TLE.satellite_number = ParsedIOD.object_number)
-            ORDER BY obs_time DESC;"""
+            ORDER BY obs_time DESC
+            LIMIT 20;"""
 
         self.c.execute(query)
         return self.c.fetchall()
@@ -1941,7 +1942,7 @@ class Database:
         """
 
         query = """
-            WITH most_recent_iods AS (SELECT max(submitted) AS iod_time, object_number FROM ParsedIOD
+            WITH most_recent_iods AS (SELECT max(obs_time) AS iod_time, object_number FROM ParsedIOD
                                       WHERE valid_position = 1
                                       GROUP BY object_number),
                 most_recent_tles AS (SELECT satellite_number, max(epoch) AS tle_time FROM TLE
@@ -1950,7 +1951,7 @@ class Database:
               FROM most_recent_iods
               INNER JOIN most_recent_tles
                 ON (most_recent_iods.object_number = most_recent_tles.satellite_number)
-              WHERE iod_time > (tle_time + INTERVAL 1 SECOND)
+              WHERE iod_time > (tle_time + INTERVAL 60 SECOND)
               AND object_number < 70000 /* Skip analyst objects for now */
               ORDER BY object_number;"""
 
@@ -2035,6 +2036,41 @@ class Database:
                     LIMIT 1);"""
 
         self.c.execute(query, {'noradNumber': noradNumber})
+        return QueryTupleListToList(self.c.fetchall())
+
+
+    def findLastNIODs(self, noradNumber, IOD_count=10):
+        """ For a particular object, find the last IOD_num observations.
+
+            If no TLEs exist, we return zero rows.
+
+            Parameters
+            ----------
+            noradNumber : int
+                The NORAD number of the object we are interested in. Only observations of this object are considered.
+            IOD_count : int
+                The number of IODs to return
+
+            Returns
+            -------
+            list of one-element (int) tuples
+                The NORAD numbers of all objects for which we are aware of one or more IODs but zero TLEs.
+        """
+        query = """
+            WITH tle_exists AS (
+              SELECT satellite_number FROM TLE
+              WHERE satellite_number = %(noradNumber)s
+              ORDER BY epoch desc
+              LIMIT 1)
+            SELECT obs_id
+            FROM ParsedIOD
+            WHERE object_number = %(noradNumber)s
+            AND valid_position = 1
+            AND object_number IN (SELECT * FROM tle_exists)
+            ORDER BY obs_time DESC
+            LIMIT %(IOD_count)s;"""
+
+        self.c.execute(query, {'noradNumber': noradNumber, 'IOD_count': IOD_count})
         return QueryTupleListToList(self.c.fetchall())
 
 
@@ -2469,20 +2505,6 @@ class Database:
             LIMIT 1"""
         query_parameters = {'EPOCH_DATETIME': query_epoch_datetime,
             'SATELLITE_NUMBER': satellite_number}
-        self.cdict.execute(query_tmp, query_parameters)
-        row = [self.cdict.fetchone()]    # Put single result into an array
-        return self.cdictQueryToTruSatelliteObj(row)[0]  # Unpack the array to the object, for just one result
-
-
-    def selectTLEid(self, tle_id):
-        """ Query to return the specific tle_id requested
-
-        Returns TruSatellite() object
-        """
-        query_tmp = """SELECT * FROM TLE
-            WHERE tle_id=%(TLE_ID)s
-            LIMIT 1"""
-        query_parameters = {'TLE_ID': tle_id}
         self.cdict.execute(query_tmp, query_parameters)
         row = [self.cdict.fetchone()]    # Put single result into an array
         return self.cdictQueryToTruSatelliteObj(row)[0]  # Unpack the array to the object, for just one result
