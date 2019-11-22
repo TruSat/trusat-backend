@@ -3211,7 +3211,7 @@ class Database:
     def selectFindObject(self, partial_string):
         """ Facilitate a search of objects contained in the database, by NORAD number or name.
         Provide a partial result of matches to allow the user to choose their specific object of interest.
-        Partial-match accepting IOD varient of the international designators
+        Partial-match accepting IOD variant of the international designators
         """
         try:
             partial_string = int(partial_string)
@@ -3228,6 +3228,7 @@ class Database:
                 """
         except ValueError:
             query_parameters = {'PARTIAL': '%' + partial_string + '%'}    # Append trailing wildcard to string
+            # replace space character (%20) with wildcard character (%)
             query_parameters['PARTIAL'] = query_parameters['PARTIAL'].replace("%20", "%")
             query_tmp = """SELECT DISTINCT Json_Object(
                 'norad_number', norad_num,
