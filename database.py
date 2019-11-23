@@ -1027,9 +1027,12 @@ class Database:
         except Exception as e:
             error_messages.append("Could not determine observation format.")
             print(e)
+            return (0, error_messages)
         if success > 0:
-            self.commit_IOD_db_writes()
-        return (success, error_messages)
+            commit_message = self.commit_IOD_db_writes()
+            if commit_message:
+                return (success, error_messages)
+        return (0, error_messages)
 
     def addObserver(self,
             eth_addr,
@@ -2252,8 +2255,11 @@ class Database:
                     self.c_addParsedIOD.executemany(self.addParsedIOD_query,self._IODentryList)
                     self._IODentryList = []
                     self._IODPendingEntryFingerprintList = []
+                    return True
                 except Exception as e:
+                    self._IODentryList = []
                     log.error("MYSQL ERROR: {}".format(e))
+                    return False
                     # FIXME - (Work in progress) - try to get rid of duplicate entry in a executemany list
                     # This is sensitive to when a user includes a duplicate entry in the same email
 
