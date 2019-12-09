@@ -760,56 +760,95 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_200_JSON2(response_message)
             else:
                 print("Login Failed")
-                self.send_400()
+                self.send_400(message='message', explain='explanation')
                 return
 
         elif self.path == "/editProfile":
+            print('')
+            print('')
+            print(json_body)
+            print('')
+            print('')
             try:
                 user_jwt = json_body["jwt"]
                 decoded_jwt = decode_jwt(user_jwt)
                 public_address = decoded_jwt["address"]
+                observer_id = self.db.selectObserverIDFromAddress(public_address)
             except Exception as e:
                 print(e)
-                self.send_400()
+                self.send_400(message='message', explain='explanation')
                 return
             if isValidEthereumAddress(public_address) is False:
-                self.send_400()
+                self.send_400(message='message', explain='explanation')
                 return
-            if self.db.getObserverJWT(public_address)[0].decode("utf-8") == user_jwt:
-                try:
-                    username = json_body["username"]
-                    if (username != "null" and
-                        username != None and
-                        isValidUserSetting(username)):
-                        self.db.updateObserverUsername(username, public_address)
-                except Exception as e:
-                    print("Username not being updated")
-                    print(e)
-                #try:
-                #    email = json_body["email"]
-                #    if isValidEmailAddress(email):
-                #        self.db.updateObserverEmail(email, public_address)
-                #except Exception as e:
-                #    print("Email not being updated")
-                #    print(e)
-                try:
-                    bio = json_body["bio"]
-                    if (bio != "null" and
-                        bio != None and
-                        isValidUserSetting(bio)):
-                        self.db.updateObserverBio(bio, public_address)
-                except Exception as e:
-                    print("Bio not being updated")
-                    print(e)
-                try:
-                    location = json_body["location"]
-                    if (location != "null" and
-                        location != None and
-                        isValidUserSetting(location)):
-                        self.db.updateObserverLocation(location, public_address)
-                except Exception as e:
-                    print("Location not being updated")
-                    print(e)
+            try:
+                username = json_body["username"]
+                if (username != "null" and
+                    username != None and
+                    isValidUserSetting(username)):
+                    self.db.updateObserverUsername(username, public_address)
+            except Exception as e:
+                print("Username not being updated")
+                print(e)
+            #try:
+            #    email = json_body["email"]
+            #    if isValidEmailAddress(email):
+            #        self.db.updateObserverEmail(email, public_address)
+            #except Exception as e:
+            #    print("Email not being updated")
+            #    print(e)
+            try:
+                bio = json_body["bio"]
+                if (bio != "null" and
+                    bio != None and
+                    isValidUserSetting(bio)):
+                    self.db.updateObserverBio(bio, public_address)
+            except Exception as e:
+                print("Bio not being updated")
+                print(e)
+            try:
+                location = json_body["location"]
+                if (location != "null" and
+                    location != None and
+                    isValidUserSetting(location)):
+                    self.db.updateObserverLocation(location, public_address)
+            except Exception as e:
+                print("Location not being updated")
+                print(e)
+            try:
+                deleted_stations = json_body["deleted_stations"]
+                for station in deleted_stations:
+                    result = self.db.deleteStation(station, observer_id)
+                    if result is not True:
+                        print("failed to delete station")
+            except Exception as e:
+                print("No stations to delete")
+                print(e)
+            try:
+                station_name = json_body['new_station_names']
+                print('STATION')
+                
+                for station in station_name:
+                    print(station)
+                    print("NAME")
+                    print(station_name[station])
+                    print("ID")
+                    print(observer_id)
+                    result = self.db.updateStationName(station, station_name[station], observer_id)
+                    if result is not True:
+                        print("failed ot update name for " + station + " " + station_name[station])
+            except Exception as e:
+                print('No station name change')
+                print(e)
+            try:
+                station_notes = json_body['new_station_notes']
+                for station in station_notes:
+                    result = self.db.updateStationNotes(station, station_notes[station], observer_id)
+                    if result is not True:
+                        print("failed ot update notes for " + station + ' ' + station_notes[station])
+            except Exception as e:
+                print('No station notes change')
+                print(e)
             self.send_200_JSON(response_body)
 
         elif self.path == '/claimAccount':
