@@ -195,7 +195,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 path == "/object/history" or \
                 path == "/object/userSightings" or \
                 path == "/tle/object" or \
-                path == "/findObject":
+                path == "/findObject" or \
+                path == '/errorTest':
             self.send_response(200)
             self.send_header('Accept', 'GET')
             self.send_header('Access-Control-Allow-Origin', '*')
