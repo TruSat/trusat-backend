@@ -322,7 +322,7 @@ class Database:
 
         # Latest TLEs for each object that are not known to be decayed
         self.selectLatestTLEPerObject = """
-            SELECT TLE.line0, TLE.line1, TLE.line2,  TLE.satellite_number, TLE.epoch, SatCat.ops_status_code FROM
+            SELECT TLE.line0, TLE.line1, TLE.line2,  TLE.satellite_number, TLE.epoch FROM
               (SELECT max(epoch) AS epoch, satellite_number
               FROM TLE
               GROUP BY satellite_number) AS latest_tles
