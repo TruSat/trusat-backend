@@ -88,26 +88,26 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         self.db = database.Database(db_name, db_type, endpoint, username, password)
         super().__init__(request, client_address, server)
 
-    def send_500(self):
-        self.send_response(500)
+    def send_500(self, message='', explain=''):
+        self.send_error(500, message=message, explain=explain)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         self.db.clean()
 
-    def send_400(self):
-        self.send_response(400)
+    def send_400(self, message='', explain=''):
+        self.send_error(400, message=message, explain=explain)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         self.db.clean()
 
-    def send_401(self):
-        self.send_response(401)
+    def send_401(self, message='', explain=''):
+        self.send_error(401, message=message, explain=explain)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         self.db.clean()
 
-    def send_404(self):
-        self.send_response(404)
+    def send_404(self, message='', explain=''):
+        self.send_error(404, message=message)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         self.db.clean()
@@ -240,7 +240,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 json_object = self.db.selectCatalog_Priorities_JSON()
             except Exception as e:
                 print(e)
-                self.send_500()
+                self.send_500(message='Could not get priorities', explain='Priorities query failed')
                 return
             if json_object is not False:
                 self.send_200_JSON_cache(json_object)
@@ -253,7 +253,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 json_object = self.db.selectCatalog_Undisclosed_JSON()
             except Exception as e:
                 print(e)
-                self.send_500()
+                self.send_500(message='Could not get undisclosed', explain='Undisclosed query failed')
                 return
             if json_object is not False:
                 self.send_200_JSON_cache(json_object)
@@ -266,7 +266,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 json_object = self.db.selectCatalog_Debris_JSON()
             except Exception as e:
                 print(e)
-                self.send_500()
+                self.send_500(message='Could not get debris', explain='Debris query failed')
                 return
             if json_object is not False:
                 self.send_200_JSON_cache(json_object)
@@ -279,7 +279,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 json_object = self.db.selectCatalog_Latest_JSON()
             except Exception as e:
                 print(e)
-                self.send_500()
+                self.send_500(message='Could not get latest', explain='Latest query failed')
                 return
             if json_object is not False:
                 self.send_200_JSON_cache(json_object)
@@ -292,7 +292,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 json_object = self.db.selectCatalog_All_JSON()
             except Exception as e:
                 print(e)
-                self.send_500()
+                self.send_500(message='Could not get all', explain='All query failed')
                 return
             if json_object is not False:
                 self.send_200_JSON_cache(json_object)
@@ -305,7 +305,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 two_line_elements = self.db.selectTLE_all()
             except Exception as e:
                 print(e)
-                self.send_500()
+                self.send_500(message='Could not get TLEs', explain='TLE query failed')
                 return
             if two_line_elements is not False:
                 self.send_200_text_cache(two_line_elements)
@@ -318,7 +318,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 two_line_elements = self.db.selectTLE_priorities()
             except Exception as e:
                 print(e)
-                self.send_500()
+                self.send_500(message='Could not get TLEs', explain='TLE query failed')
                 return
             if two_line_elements is not False:
                 self.send_200_text_cache(two_line_elements)
@@ -331,7 +331,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 two_line_elements = self.db.selectTLE_high_confidence()
             except Exception as e:
                 print(e)
-                self.send_500()
+                self.send_500(message='Could not get TLEs', explain='TLE query failed')
                 return
             if two_line_elements is not False:
                 self.send_200_text_cache(two_line_elements)
@@ -344,7 +344,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 tles_json = self.db.selectTLE_Astriagraph()
             except Exception as e:
                 print(e)
-                self.send_500()
+                self.send_500(message='Could not get TLEs', explain='TLE query failed')
                 return
             if tles_json is not False:
                 self.send_200_text_cache(tles_json)
@@ -358,10 +358,10 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 user_addr = parameters_map["address"]
             except Exception as e:
                 print(e)
-                self.send_400()
+                self.send_400(message='Missing address', explain='Address is missing from the parameters')
                 return
             if isValidEthereumAddress(user_addr) is False:
-                self.send_400()
+                self.send_400(message='Address is invalid', explain='Address is not an Ethereum Address')
                 return
             try:
                 user_profile_json = self.db.selectProfileInfo_JSON(user_addr)
@@ -372,7 +372,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 user_profile_json["observation_stations"] = []
             except Exception as e:
                 print(e)
-                self.send_500()
+                self.send_500(message='Could not retrieve user information', explain='User information is missing in the database')
                 return
             try:
                 user_jwt = parameters_map["jwt"]
@@ -382,16 +382,16 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 print(e)
                 pass
             if isValidEthereumAddress(jwt_user_addr) is False:
-                self.send_400()
+                self.send_400(message='Invalid Ethereum address', explain='Ethereum address pulled from user JWT is not valid')
                 return
             if jwt_user_addr.lower() == user_addr.lower():
                 try:
                     observation_station_numbers = self.db.selectUserStationNumbers_JSON(user_addr)
                     for station in observation_station_numbers:
-                        user_profile_json["observation_stations"].append(station["station_number"])
+                        user_profile_json["observation_stations"].append(station)
                 except Exception as e:
                     print(e)
-                    self.send_500()
+                    self.send_500(message='Observation information could not be retrieved', explain='Error in query to retrieve observer station information')
                     return
 
             for k,v in user_profile_json.items():
@@ -406,16 +406,16 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 norad_number = parameters_map['norad_number']
             except Exception as e:
                 print(e)
-                self.send_400()
+                self.send_400(message='Norad number is missing from parameters', explain='Did not recieve norad_number in the URI')
                 return
             if isValidNoradNumber(norad_number) is False:
-                self.send_400()
+                self.send_400(message='Norad number is not valid', explain='Norad number is not a number from 1-99999')
                 return
             try:
                 json_object = self.db.selectObjectInfluence_JSON(norad_number)
             except Exception as e:
                 print(e)
-                self.send_500()
+                self.send_500(message='Object influence could not be retrieved', explain='Query for object influce failed')
                 return
             if json_object:
                 self.send_200_JSON_cache(json_object)
@@ -428,16 +428,16 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 norad_number = parameters_map['norad_number']
             except Exception as e:
                 print(e)
-                self.send_400()
+                self.send_400(message='Norad number is missing from parameters', explain='Did not recieve norad_number in the URI')
                 return
             if isValidNoradNumber(norad_number) is False:
-                self.send_400()
+                self.send_400(message='Norad number is not valid', explain='Norad number is not a number from 1-99999')
                 return
             try:
                 json_object = self.db.selectObjectInfo_JSON(norad_number)
             except Exception as e:
                 print(e)
-                self.send_500()
+                self.send_500(message='Object info could not be retrieved', explain='Query for object info failed')
                 return
             if json_object:
                 self.send_200_JSON_cache(json_object)
@@ -452,12 +452,12 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 int_year = int(year)
             except Exception as e:
                 print(e)
-                self.send_400()
+                self.send_400(message='Missing norad number and/or year', explain='Parameters need a valid year and norad number')
                 return
             if (isValidNoradNumber(norad_number) is False or
                 int_year < 1957 or
                 int_year > datetime.now().year):
-                self.send_400()
+                self.send_400(message='Year is out of range or norad number is invalid', explain='year is less than 1957, greater than the current year, or norad number is not valid')
                 return
             try:
                 real_entry = self.db.selectObjectHistoryByMonth_JSON(norad_number, year)
@@ -485,7 +485,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_200_JSON_cache(response_body)
             except Exception as e:
                 print(e)
-                self.send_500()
+                self.send_500(message='Could not get history', explain='Object history querie failed')
                 return
 
         elif path == '/object/userSightings':
@@ -497,11 +497,11 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 public_address = decoded_jwt["address"]
             except Exception as e:
                 print(e)
-                self.send_400()
+                self.send_400(message='Parameter(s) missing', explain='norad_number, jwt, address')
                 return
             if (isValidNoradNumber(norad_number) is False or
                 isValidEthereumAddress is False):
-                self.send_400()
+                self.send_400(message='Invalid norad number or Ethereum address', explain='Not proper format')
                 return
             try:
                 response_body = self.db.selectObjectUserSightings_JSON(norad_number, public_address)
@@ -509,7 +509,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_200_JSON_cache(response_body)
             except Exception as e:
                 print(e)
-                self.send_500()
+                self.send_500(message='userSighting failed', explain='Query for userSightings was not successful')
                 return
 
         elif path == "/tle/object":
@@ -517,16 +517,16 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 norad_number = parameters_map["norad_number"]
             except Exception as e:
                 print(e)
-                self.send_400()
+                self.send_400(message='Missing Norad number', explain='Norad number parameter missing')
                 return
             if isValidNoradNumber(norad_number) is False:
-                self.send_400()
+                self.send_400(message='Invalid Norad number', explain='Norad number is not valid')
                 return
             try:
                 two_line_elements = self.db.selectTLE_single(norad_number)
             except Exception as e:
                 print(e)
-                self.send_500()
+                self.send_500(message='Could not get TLE', explain='Query failed to get TLE')
                 return
             if two_line_elements:
                 self.send_200_text_cache(two_line_elements)
@@ -536,18 +536,22 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
         elif path == "/findObject":
             try:
-                partial_string = parameters_map["partial_string"]
+                partial_string = parameters_map["objectName"]
             except Exception as e:
                 print(e)
-                self.send_400()
+                self.send_400(message='Object name missing', explain='Object name parameter missing')
                 return
             try:
                 objects = self.db.selectFindObject(partial_string)
                 self.send_200_text_cache(objects)
             except Exception as e:
-                self.send_500()
+                self.send_500(message='Could not find object', explain='Query failed ot find object')
                 print(e)
                 return
+
+        elif path == '/errorTest':
+            self.send_400(message='message', explain='explanation')
+            return
 
         else:
             self.send_response(404)
@@ -564,7 +568,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             json_body = json.loads(body)
         except Exception as e:
             print(e)
-            self.send_400()
+            self.send_400(message='Body improperly formatted', explain='Body is not properly formatted')
             return
 
         ### GET NONCE ENDPOINT ###
@@ -573,15 +577,15 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 addr = json_body["address"]
             except Exception as e:
                 print(e)
-                self.send_400()
+                self.send_400(message='Ethereum address missing', explain='Ethereum address is not a parameter')
                 return
             if isValidEthereumAddress(addr) is False:
-                self.send_400()
+                self.send_400(message='Invalid Ethereum address', explain='Ethereum address is not valid')
                 return
             try:
                 email = json_body["email"]
                 if isValidEmailAddress is False:
-                    self.send_400()
+                    self.send_400(message='message', explain='explanation')
                     return
                 results = self.db.selectObserverAddressFromEmail(email)
                 if len(results) == 42:
@@ -595,7 +599,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 public_address_count = self.db.getObserverCountByID(public_address=addr)
             except Exception as e:
                 print(e)
-                self.send_500()
+                self.send_500(message='message', explain='explanation')
                 return
             random_number = str(secrets.randbits(256))
             response_message = '{"nonce":\"%s\"}' % random_number
@@ -606,7 +610,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     self.db.updateObserverNonceBytes(nonce=random_number, public_address=addr)
                 except Exception as e:
                     print(e)
-                    self.send_500()
+                    self.send_500(message='message', explain='explanation')
                     return
             elif public_address_count[0] >= 1:
                 # Old User
@@ -614,7 +618,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     self.db.updateObserverNonceBytes(nonce=random_number, public_address=addr)
                 except Exception as e:
                     print(e)
-                    self.send_500()
+                    self.send_500(message='message', explain='explanation')
                     return
             self.send_200_JSON(response_message)
 
@@ -622,7 +626,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             try:
                 addr = json_body["address"]
                 if isValidEthereumAddress(addr) is False:
-                    self.send_400()
+                    self.send_400(message='message', explain='explanation')
                     return
                 old_nonce = self.db.getObserverNonceBytes(addr)
                 email = json_body["email"]
@@ -630,13 +634,13 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 payload = json_body["secret"]
             except Exception as e:
                 print(e)
-                self.send_400()
+                self.send_400(message='message', explain='explanation')
                 return
 
             try:
                 if (isValidEmailAddress(email) is False or
                     isValidSecret(payload) is False):
-                    self.send_400()
+                    self.send_400(message='message', explain='explanation')
                     return
 
                 nonce = old_nonce.encode('utf-8')
@@ -645,7 +649,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 message_hash = encode_defunct(hexstr=message_hash)
             except Exception as e:
                 print(e)
-                self.send_500()
+                self.send_500(message='message', explain='explanation')
                 return
             try:
                 signed_public_key = Account.recover_message(message_hash, signature=signed_message)
@@ -677,7 +681,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                                 if response.status_code != 200:
                                     print(response)
                                     print("Email failed to send.")
-                                    self.send_500()
+                                    self.send_500(message='message', explain='explanation')
                                     return
                                 #email_status = google_email.send_email(email, payload)
                                 #if email_status == False:
@@ -688,14 +692,14 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                                 return
                             except Exception as e:
                                 print(e)
-                                self.send_500()
+                                self.send_500(message='message', explain='explanation')
                                 return
             except Exception as e:
                 print(e)
             else:
-                self.send_400()
+                self.send_400(message='message', explain='explanation')
                 return
-            self.send_500()
+            self.send_500(message='message', explain='explanation')
             return
 
 
@@ -707,10 +711,10 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 signed_message = json_body["signedMessage"]
             except Exception as e:
                 print(e)
-                self.send_400()
+                self.send_400(message='message', explain='explanation')
                 return
             if isValidEthereumAddress(addr) is False:
-                self.send_400()
+                self.send_400(message='message', explain='explanation')
                 return
             nonce = old_nonce.encode('utf-8')
             self.db.updateObserverNonceBytes(nonce='NULL', public_address=addr)
@@ -730,7 +734,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 secret = None
             if (email is not None and isValidEmailAddress(email) is False or
                 secret is not None and isValidSecret(secret) is False):
-                self.send_400()
+                self.send_400(message='message', explain='explanation')
                 return
             if signed_public_key.lower() == addr.lower():
                 email_from_addr = self.db.selectEmailFromObserverAddress(addr)
@@ -740,13 +744,13 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                             self.db.updateObserverEmail(email, addr)
                             email_status = google_email.send_email(email, secret)
                             if email_status == False:
-                                self.send_500()
+                                self.send_500(message='message', explain='explanation')
                                 return
                             self.send_200_JSON(json.dumps({'result':True}))
                             return
                         except Exception as e:
                             print(e)
-                            self.send_500()
+                            self.send_500(message='message', explain='explanation')
                             return
                 encoded_jwt = encode_jwt(addr.lower())
                 self.db.updateObserverJWT(encoded_jwt, '', addr)
@@ -816,7 +820,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_200_JSON(json.dumps({'result': False}))
                 return
             if isValidEmailAddress(email) is False:
-                self.send_400()
+                self.send_400(message='message', explain='explanation')
                 return
             try:
                 with open('unsafe_private.pem', 'r') as file:
@@ -861,7 +865,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 if response.status_code != 200:
                     print(response)
                     print("Email failed to send.")
-                    self.send_500()
+                    self.send_500(message='message', explain='explanation')
                     return
                 #email_status = google_email.send_recovery_email(email, 'http://trusat.org/claim/' + encoded_jwt.decode('utf-8'))
                 #if email_status == False:
@@ -872,7 +876,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     return
             except Exception as e:
                 print(e)
-                self.send_500()
+                self.send_500(message='message', explain='explanation')
                 return
             self.send_200_JSON(json.dumps({'result': False}))
 
@@ -883,11 +887,15 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 user_jwt = json_body["jwt"]
             except Exception as e:
                 print(e)
-                self.send_400()
+                self.send_400(message='message', explain='explanation')
                 return
             if (isValidEthereumAddress(address) is False or
                 isValidSecret(message_text) is False):
-                self.send_400()
+                print("Ëthereum address:")
+                print(address)
+                print("Secret:")
+                print(message_text)
+                self.send_400(message='message', explain='explanation')
                 return
             #Lookup number and old address
             try:
@@ -896,7 +904,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 to = decoded_jwt["email"]
                 old_address = self.db.selectObserverAddressFromPassword(user_jwt).decode('utf-8')
                 if old_address is None:
-                    self.send_400()
+                    self.send_400(message='message', explain='explanation')
                     return
 
                 #replace address
@@ -920,7 +928,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 if response.status_code != 200:
                     print(response)
                     print("Email failed to send.")
-                    self.send_500()
+                    self.send_500(message='message', explain='explanation')
                     return
                 #email_status = google_email.send_email(to, message_text)
                 #if email_status == False:
@@ -934,7 +942,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.db.updateObserverPassword('NULL', address)
             except Exception as e:
                 print(e)
-                self.send_500()
+                self.send_500(message='message', explain='explanation')
                 return
 
         elif self.path == "/submitObservation":
@@ -944,10 +952,10 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 user_addr = decoded_jwt["address"]
             except Exception as e:
                 print(e)
-                self.send_400()
+                self.send_400(message='message', explain='explanation')
                 return
             if isValidEthereumAddress(user_addr) is False:
-                self.send_400()
+                self.send_400(message='message', explain='explanation')
                 return
             try:
                 single = json_body["single"]
@@ -960,11 +968,11 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 if results is not False:
                     (success, error_messages) = results
                 else:
-                    self.send_500()
+                    self.send_500(message='message', explain='explanation')
                     return
             except Exception as e:
                 print(e)
-                self.send_500()
+                self.send_500(message='message', explain='explanation')
                 return
             success_length = {'success':success, 'error_messages':error_messages}
             self.send_200_JSON(json.dumps(success_length))
