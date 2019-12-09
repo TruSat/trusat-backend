@@ -1024,6 +1024,72 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             print(google_email.get_email_history(email_history['historyId']))
             self.send_204()
 
+        elif self.path == "/getObservationStations":
+            try:
+                user_jwt = json_body["jwt"]
+                decoded_jwt = decode_jwt(user_jwt)
+                jwt_user_addr = decoded_jwt["address"]
+            except Exception as e:
+                print(e)
+                pass
+            if isValidEthereumAddress(jwt_user_addr) is False:
+                self.send_400(message='Invalid Ethereum address', explain='Ethereum address pulled from user JWT is not valid')
+                return
+            if jwt_user_addr.lower() == user_addr.lower():
+                try:
+                    observation_station_numbers = self.db.selectUserStationNumbers_JSON(user_addr)
+                    return observation_station_numbers
+                except Exception as e:
+                    print(e)
+                    self.send_500(message='Could not get station information', explain='Query to get observation stations has failed')
+
+        elif self.path == '/generateStation':
+            try:
+                print("TEST")
+                user_jwt = json_body["jwt"]
+                decoded_jwt = decode_jwt(user_jwt)
+                user_addr = decoded_jwt["address"]
+                station_name = json_body["station"]
+                latitude = json_body["latitude"]
+                longitude = json_body["longitude"]
+                altitude = json_body["altitude"]
+                notes = json_body["notes"]
+            except Exception as e:
+                print(e)
+                self.send_400(message='Missing parameter(s)', explain='One or more of the required parameters are missing form the request body')
+                return
+            if isValidEthereumAddress(user_addr) is False:
+                self.send_400(message='message', explain='explanation')
+                return
+            try:
+                user_id = self.db.selectObserverIDFromAddress(user_addr)
+                latest_station = self.db.selectLatestStationID()
+                if latest_station[0:1] == 'T':
+                    station_index = latest_station[1:]
+                    station_index = int(station_index, 36) + 1
+                    # Prevent I or O character
+                    if station_index == 18 or station_index == 24:
+                        station_index = station_index + 1
+                    station_index = numpy.base_repr(station_index, 36)
+                    while len(station_index) < 3:
+                        station_index = '0' + station_index
+                    station_id = 'T' + station_index
+                else:
+                    station_id = 'T000'
+                print(station_id)
+                self.db.addStation(station_id, user_id, latitude, longitude, altitude, station_name, notes)
+                # get last station
+                # increment station
+                # remove O and I
+                # set and return
+                self.send_200_JSON(json.dumps({'station_id': station_id}))
+                return
+            except Exception as e:
+                print(e)
+                self.send_500()
+                return
+            
+
         else:
             self.send_response(404)
             self.end_headers()
