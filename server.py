@@ -18,6 +18,7 @@ from coinaddr import validate
 import os
 import re
 import requests
+import numpy
 
 import database
 import google_email
@@ -196,7 +197,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 path == "/object/userSightings" or \
                 path == "/tle/object" or \
                 path == "/findObject" or \
-                path == '/errorTest':
+                path == "/errorTest":
             self.send_response(200)
             self.send_header('Accept', 'GET')
             self.send_header('Access-Control-Allow-Origin', '*')
@@ -208,6 +209,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 path == "/editProfile" or \
                 path == "/claimAccount" or \
                 path == "/verifyClaimAccount" or \
+                path == "/getObservationStations" or \
+                path == "/generateStation" or \
                 path == "/submitObservation":
             self.send_response(200)
             self.send_header('Accept', 'POST')
