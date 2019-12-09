@@ -319,12 +319,17 @@ class Database:
         self.selectTLEFingerprint_query = '''SELECT tle_fingerprint FROM TLE WHERE tle_fingerprint LIKE ? LIMIT 1'''
         self.selectIODFingerprint_query = '''SELECT obsFingerPrint FROM ParsedIOD WHERE obsFingerPrint LIKE ? LIMIT 1'''
         # !TODO: there may be more than one IOD for a given {object, observation time}. Limit to 1, perhaps arbitrarily if we have no way of discriminating.
+
+        # Latest TLEs for each object that are not known to be decayed
         self.selectLatestTLEPerObject = """
-            select TLE.line0, TLE.line1, TLE.line2,  TLE.satellite_number, TLE.epoch from
-              (SELECT max(epoch) as epoch, satellite_number
+            SELECT TLE.line0, TLE.line1, TLE.line2,  TLE.satellite_number, TLE.epoch, SatCat.ops_status_code FROM
+              (SELECT max(epoch) AS epoch, satellite_number
               FROM TLE
-              GROUP BY satellite_number) as latest_tles
-            left join TLE on (TLE.satellite_number = latest_tles.satellite_number and TLE.epoch = latest_tles.epoch)"""
+              GROUP BY satellite_number) AS latest_tles
+            LEFT JOIN TLE ON (TLE.satellite_number = latest_tles.satellite_number AND TLE.epoch = latest_tles.epoch)
+            LEFT JOIN celestrak_SATCAT SatCat ON (TLE.satellite_number = SatCat.norad_num)
+			WHERE (SatCat.ops_status_code <> 'D' OR SatCat.ops_status_code IS NULL)
+            """
 
         self.selectCatalogQueryPrefix = """
             WITH catalog as (
@@ -355,6 +360,7 @@ class Database:
                               		FROM categories
                               		GROUP BY obj_no
                               	) AS C ON LU.object_number = C.obj_no
+                              WHERE (SatCat.ops_status_code <> 'D' OR SatCat.ops_status_code IS NULL)  
                               )
               SELECT
                 IODs.*,
@@ -2470,7 +2476,7 @@ class Database:
         # TODO: Replace with real priority sort. https://consensys-cpl.atlassian.net/browse/MVP-389
         # In the meantime, return TLEs older than 30 days, oldest first
         query_tmp = self.selectLatestTLEPerObject + """
-            WHERE DATEDIFF(NOW(),TLE.epoch) > 30
+            AND DATEDIFF(NOW(),TLE.epoch) > 30
   		    AND DATEDIFF(NOW(),TLE.epoch) <= 365
             ORDER BY TLE.epoch DESC;"""
         self.c.execute(query_tmp)
@@ -2487,7 +2493,7 @@ class Database:
         # TODO: Replace with real confidence sort. https://consensys-cpl.atlassian.net/browse/MVP-390
         # In the meantime, return TLEs younger than 30 days, newest first
         query_tmp = self.selectLatestTLEPerObject + """
-            WHERE DATEDIFF(NOW(),TLE.epoch) < 30
+            AND DATEDIFF(NOW(),TLE.epoch) < 30
             ORDER BY TLE.epoch DESC;"""
         self.c.execute(query_tmp)
         result = ""
