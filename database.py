@@ -540,7 +540,7 @@ class Database:
             submitted                   DATETIME,                       /* Datetime when the user submitted the observation (receipt time or time of email) */
             object_number               MEDIUMINT(5) UNSIGNED,          /* NORAD number */
             international_designation   VARCHAR(14),                    /* International designation */
-            station_number              SMALLINT(4) UNSIGNED NOT NULL,  /* Station number that made observation */
+            station_number              VARCHAR(4) NOT NULL,  /* Station number that made observation */
             station_status_code         CHAR(1),        /* Packed code of station status - unpacked in station_status table */
             obs_time_string             VARCHAR(27),    /* Source ascii string for observation time (for IOD.py debugging) */
             obs_time                    DATETIME(6),    /* Exact time of observation */
@@ -643,7 +643,7 @@ class Database:
         TODO: Will need to provide better separation between Observers / Stations in future releases.
         """
         createquery = """CREATE TABLE IF NOT EXISTS Station (
-            station_num INT UNSIGNED NOT NULL,  /* 4 Digit COSPAR number of observation station */
+            station_num VARCHAR(4) NOT NULL,    /* 4 Digit COSPAR number of observation station */
             initial TINYTEXT,                   /* Observer initials */
             latitude FLOAT,                     /* WGS84 Latitude (degrees) */
             longitude FLOAT,                    /* WGS84 Longitude (degrees) */
@@ -3227,7 +3227,7 @@ class Database:
                 'international_designator', intl_desg,
                 'name', name)
                 FROM celestrak_SATCAT
-                WHERE norad_num LIKE '%(PARTIAL)s%'
+                WHERE norad_num LIKE %(PARTIAL)s'
                 OR intl_desg LIKE %(PARTIAL)s
                 ORDER by norad_num ASC
                 LIMIT 100;
