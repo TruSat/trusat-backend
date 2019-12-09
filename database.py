@@ -2589,12 +2589,24 @@ class Database:
             return None
 
     def selectUserStationNumbers_JSON(self, eth_addr):
-        query_tmp = """SELECT Json_Object(
-            'station_number', Station.station_num)
-            FROM Station
+        query_tmp = """WITH SOC as (
+            SELECT COUNT(ParsedIOD.object_number) OVER (PARTITION BY Station.station_num) as observation_count,
+            Station.station_num
+            FROM ParsedIOD
+            RIGHT JOIN Station ON Station.station_num = ParsedIOD.station_number
             JOIN Observer ON Observer.id = Station.user
-            WHERE Observer.eth_addr = %(ETH_ADDR)s
-            ORDER BY Station.station_num ASC;"""
+            WHERE Observer.eth_addr = %(ETH_ADDR)s)
+            SELECT Json_Object(
+            'station_id', Station.station_num,
+            'station_name', Station.name,
+            'latitude', Station.latitude,
+            'longitude', Station.longitude,
+            'altitude', Station.elevation_m,
+            'notes', Station.notes,
+            'observation_count', SOC.observation_count)
+            FROM SOC
+            JOIN Station ON Station.station_num = SOC.station_num
+            GROUP BY SOC.station_num;"""
         query_parameters = {'ETH_ADDR': eth_addr}
         try:
             self.c.execute(query_tmp, query_parameters)
@@ -3252,6 +3264,120 @@ class Database:
         except:
             return None
 
+    def selectLatestStationID(self):
+        try:
+            query_tmp = """SELECT station_num
+                FROM Station
+                ORDER BY station_num DESC
+                LIMIT 2;"""
+            self.c.execute(query_tmp)
+        except Exception as e:
+            print(e)
+            return None
+        try:
+            return self.c.fetchall()[1][0]
+            #return stringArrayToJSONArray(self.c.fetchall())
+        except Exception as e:
+            print(e)
+            return None
+
+    def selectObserverIDFromAddress(self, addr):
+        try:
+            query_parameters = {"ADDR": addr}
+            query_tmp = """SELECT id
+                FROM Observer
+                WHERE eth_addr=%(ADDR)s
+                LIMIT 1"""
+            self.c.execute(query_tmp, query_parameters)
+        except Exception as e:
+            print(e)
+            return None
+        try:
+            return self.c.fetchone()[0]
+        except Exception as e:
+            print(e)
+            return None
+
+    def addStation(self, station_num, user, latitude, longitude, elevation_m, name, notes):
+        try:
+            query_tmp = """INSERT INTO Station(
+                station_num,
+                user,
+                latitude,
+                longitude,
+                elevation_m,
+                name,
+                notes)
+                VALUES(
+                %(STATION)s,
+                %(USER)s,
+                %(LAT)s,
+                %(LONG)s,
+                %(ELEVATION)s,
+                %(NAME)s,
+                %(NOTES)s)
+                """
+            query_parameters = {
+                'STATION': station_num,
+                'USER': user,
+                'LAT': latitude,
+                'LONG': longitude,
+                'ELEVATION': elevation_m,
+                'NAME': name,
+                'NOTES': notes
+                }
+            self.c.execute(query_tmp, query_parameters)
+        except Exception as e:
+            print(e)
+            return None
+        try:
+            self.conn.commit()
+            return True
+        except Exception as e:
+            print(e)
+            return None
+
+    def deleteStation(self, station_num, user_id):
+        try:
+            query_tmp = """DELETE
+                FROM Station
+                WHERE station_num = %(STATION)s
+                AND user = %(USER)s"""
+            query_parameters = {"STATION": station_num, "USER": user_id}
+            self.c.execute(query_tmp, query_parameters)
+            self.conn.commit()
+            return True
+        except Exception as e:
+            print(e)
+            return None
+
+    def updateStationName(self, station_num, name, user_id):
+        try:
+            query_tmp = """UPDATE Station
+                SET name = %(NAME)s
+                WHERE station_num = %(STATION)s
+                AND user = %(USER)s"""
+            query_parameters = {"NAME": name, "STATION": station_num, "USER": user_id}
+            self.c.execute(query_tmp, query_parameters)
+            self.conn.commit()
+            return True
+        except Exception as e:
+            print(e)
+            return None
+
+    def updateStationNotes(self, station_num, notes, user_id):
+        try:
+            query_tmp = """UPDATE Station
+                SET notes = %(NOTES)s
+                WHERE station_num = %(STATION)s
+                AND user = %(USER)s"""
+            query_parameters = {"NOTES": notes, "STATION": station_num, "USER": user_id}
+            self.c.execute(query_tmp, query_parameters)
+            self.conn.commit()
+            return True
+        except Exception as e:
+            print(e)
+            return None
 
 
     def clean(self):
