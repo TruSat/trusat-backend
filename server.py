@@ -1035,13 +1035,13 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             if isValidEthereumAddress(jwt_user_addr) is False:
                 self.send_400(message='Invalid Ethereum address', explain='Ethereum address pulled from user JWT is not valid')
                 return
-            if jwt_user_addr.lower() == user_addr.lower():
-                try:
-                    observation_station_numbers = self.db.selectUserStationNumbers_JSON(user_addr)
-                    return observation_station_numbers
-                except Exception as e:
-                    print(e)
-                    self.send_500(message='Could not get station information', explain='Query to get observation stations has failed')
+            try:
+                observation_station_numbers = self.db.selectUserStationNumbers_JSON(jwt_user_addr)
+                self.send_200_JSON(json.dumps(observation_station_numbers))
+                return observation_station_numbers
+            except Exception as e:
+                print(e)
+                self.send_500(message='Could not get station information', explain='Query to get observation stations has failed')
 
         elif self.path == '/generateStation':
             try:
@@ -1077,7 +1077,11 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 else:
                     station_id = 'T000'
                 print(station_id)
-                self.db.addStation(station_id, user_id, latitude, longitude, altitude, station_name, notes)
+                station_result = self.db.addStation(station_id, user_id, latitude, longitude, altitude, station_name, notes)
+                if station_result is None:
+                    self.send_500(message='Could not add station', explain='Query failed to add station for user')
+                if station_result is False:
+                    self.send_400(message='User has too many stations', explain='User has 10 or more stations')
                 # get last station
                 # increment station
                 # remove O and I
