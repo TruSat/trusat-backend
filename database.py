@@ -2688,6 +2688,9 @@ class Database:
             return None
 
     def selectUserStationNumbers_JSON(self, eth_addr):
+        """
+            Return JSON Object of station and station stats
+        """
         query_tmp = """WITH SOC as (
             SELECT COUNT(ParsedIOD.object_number) OVER (PARTITION BY Station.station_num) as observation_count,
             Station.station_num
@@ -3399,7 +3402,22 @@ class Database:
 
     def addStation(self, station_num, user, latitude, longitude, elevation_m, name, notes):
         try:
-            query_tmp = """INSERT INTO Station(
+            query_tmp = """
+                SELECT COUNT(station_num)
+                FROM Station
+                WHERE user=%(USER)s
+                LIMIT 1;
+            """
+            query_parameters={'USER': user}
+            self.c.execute(query_tmp, query_parameters)
+
+            station_count = self.c.fetchone()[0]
+            print(station_count)
+            if station_count >= 10:
+                return False
+
+            query_tmp = """
+                INSERT INTO Station(
                 station_num,
                 user,
                 latitude,
@@ -3414,7 +3432,7 @@ class Database:
                 %(LONG)s,
                 %(ELEVATION)s,
                 %(NAME)s,
-                %(NOTES)s)
+                %(NOTES)s);
                 """
             query_parameters = {
                 'STATION': station_num,
