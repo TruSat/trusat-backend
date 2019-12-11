@@ -683,11 +683,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                                     print("Email failed to send.")
                                     self.send_500(message='message', explain='explanation')
                                     return
-                                #email_status = google_email.send_email(email, payload)
-                                #if email_status == False:
-                                #    print("Email failed to send.")
-                                #    self.send_500()
-                                #    return
                                 self.send_200_JSON(json.dumps({'result': True}))
                                 return
                             except Exception as e:
@@ -896,10 +891,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     print("Email failed to send.")
                     self.send_500(message='message', explain='explanation')
                     return
-                #email_status = google_email.send_recovery_email(email, 'http://trusat.org/claim/' + encoded_jwt.decode('utf-8'))
-                #if email_status == False:
-                #    self.send_500()
-                #    return
                 else:
                     self.send_200_JSON(json.dumps({'result': True}))
                     return
@@ -959,10 +950,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     print("Email failed to send.")
                     self.send_500(message='message', explain='explanation')
                     return
-                #email_status = google_email.send_email(to, message_text)
-                #if email_status == False:
-                #    self.send_500()
-                #    return
                 self.db.updateObserverJWT(encoded_jwt, "", address)
                 jwt_string = encoded_jwt.decode('utf-8')
                 response_body = json.dumps({'jwt': jwt_string})
