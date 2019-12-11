@@ -1052,7 +1052,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 station_name = json_body["station"]
                 latitude = json_body["latitude"]
                 longitude = json_body["longitude"]
-                altitude = json_body["altitude"]
+                elevation = json_body["elevation"]
                 notes = json_body["notes"]
             except Exception as e:
                 print(e)
@@ -1073,7 +1073,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     if (station_index & 648) == 648 or (station_index & 864) == 864:
                         station_index = station_index + 36
                     if (station_index & 23328) == 23328 or (station_index & 31104) == 31104:
-                        station-index = station_index + 1296
+                        station_index = station_index + 1296
                     station_index = numpy.base_repr(station_index, 36)
                     while len(station_index) < 3:
                         station_index = '0' + station_index
@@ -1081,7 +1081,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 else:
                     station_id = 'T000'
                 print(station_id)
-                station_result = self.db.addStation(station_id, user_id, latitude, longitude, altitude, station_name, notes)
+                station_result = self.db.addStation(station_id, user_id, latitude, longitude, elevation, station_name, notes)
                 if station_result is None:
                     self.send_500(message='Could not add station', explain='Query failed to add station for user')
                 if station_result is False:
