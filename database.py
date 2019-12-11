@@ -2604,7 +2604,7 @@ class Database:
             'station_name', Station.name,
             'latitude', Station.latitude,
             'longitude', Station.longitude,
-            'altitude', Station.elevation_m,
+            'elevation', Station.elevation_m,
             'notes', Station.notes,
             'observation_count', SOC.observation_count)
             FROM SOC
