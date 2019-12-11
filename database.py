@@ -3242,7 +3242,7 @@ class Database:
                 'international_designator', intl_desg,
                 'name', name)
                 FROM celestrak_SATCAT
-                WHERE norad_num LIKE %(PARTIAL)s'
+                WHERE norad_num LIKE %(PARTIAL)s
                 OR intl_desg LIKE %(PARTIAL)s
                 ORDER by norad_num ASC
                 LIMIT 100;
@@ -3268,23 +3268,38 @@ class Database:
             return None
 
     def selectLatestStationID(self):
+        """
+            Get the latest station ID while ignoreing the TRU0 to increment
+
+            Return
+            The latest T prefixed station ID
+        """
         try:
             query_tmp = """SELECT station_num
                 FROM Station
                 ORDER BY station_num DESC
-                LIMIT 2;"""
+                LIMIT 1;"""
             self.c.execute(query_tmp)
         except Exception as e:
             print(e)
             return None
         try:
-            return self.c.fetchall()[1][0]
+            return self.c.fetchone()[0]
             #return stringArrayToJSONArray(self.c.fetchall())
         except Exception as e:
             print(e)
             return None
 
     def selectObserverIDFromAddress(self, addr):
+        """
+            Get the Observer ID of a user from their Address
+
+            Input
+            User Ethereum Address
+
+            Return
+            User Observer ID 
+        """
         try:
             query_parameters = {"ADDR": addr}
             query_tmp = """SELECT id
@@ -3302,6 +3317,21 @@ class Database:
             return None
 
     def addStation(self, station_num, user, latitude, longitude, elevation_m, name, notes):
+        """
+            Add station row for a user
+
+            Inputs
+            station_num: User station number
+            user: User ID
+            latitude: Station latitude
+            longitude: Station longitude
+            elevation_m: Station elevation above sea level
+            name: User chosen name for the station
+            notes: User notes for the station
+
+            Return
+            Success or failure. True, False, or None
+        """
         try:
             query_tmp = """
                 SELECT COUNT(station_num)
@@ -3356,6 +3386,16 @@ class Database:
             return None
 
     def deleteStation(self, station_num, user_id):
+        """
+            Delete station from database
+
+            Inputs
+            station_num: User station numbser
+            use_id: User identificaiton
+
+            Return
+            If query was successful or not
+        """
         try:
             query_tmp = """DELETE
                 FROM Station
@@ -3370,6 +3410,17 @@ class Database:
             return None
 
     def updateStationName(self, station_num, name, user_id):
+        """
+            Update name used for a user's station
+
+            Inputs
+            station_num: User station numbser
+            name: User chosen name for the station
+            use_id: User identificaiton
+
+            Return
+            If query was successful or not
+        """
         try:
             query_tmp = """UPDATE Station
                 SET name = %(NAME)s
@@ -3384,6 +3435,17 @@ class Database:
             return None
 
     def updateStationNotes(self, station_num, notes, user_id):
+        """
+            Update notes on a user's station
+
+            Inputs
+            station_num: User station numbser
+            notes: User notes for the station
+            use_id: User identificaiton
+
+            Return
+            If query was successful or not
+        """
         try:
             query_tmp = """UPDATE Station
                 SET notes = %(NOTES)s
