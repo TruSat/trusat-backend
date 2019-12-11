@@ -655,7 +655,7 @@ class Database:
             source_url TINYTEXT,                /* URL where confirming data can be found */
             notes TINYTEXT,                     /* TruSat team processing notes */
             user INT,                           /* Associated User table ID */
-            KEY Station_station_num_idx (station_num) USING BTREE,
+            UNIQUE KEY Station_station_num_idx (station_num) USING BTREE,
             KEY Station_user_idx (user) USING BTREE,
             KEY Station_user_station_idx (user, station_num)
             )""" + self.charset_string
