@@ -3486,7 +3486,8 @@ class Database:
 
     def deleteStation(self, station_num, user_id):
         """
-            Delete station from database
+            Query if user chooses to delete their station. This does not delete and instead
+            sets the Station values to NULL and sets opt_out flag.
 
             Inputs
             station_num: User station numbser
@@ -3496,10 +3497,22 @@ class Database:
             If query was successful or not
         """
         try:
-            query_tmp = """DELETE
-                FROM Station
+            query_tmp = """
+                UPDATE Station SET
+                initial = NULL,
+                latitude = NULL,
+                longitude = NULL,
+                elevation_m = NULL,
+                name = NULL,
+                MPC = NULL,
+                details = NULL,
+                preferred_format = NULL,
+                source_url = NULL,
+                notes = NULL,
+                opt_out = 1
                 WHERE station_num = %(STATION)s
-                AND user = %(USER)s"""
+                AND user = %(USER)s
+                LIMIT 1;"""
             query_parameters = {"STATION": station_num, "USER": user_id}
             self.c.execute(query_tmp, query_parameters)
             self.conn.commit()
