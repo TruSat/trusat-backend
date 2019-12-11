@@ -1068,11 +1068,11 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     station_index = latest_station[1:]
                     station_index = int(station_index, 36) + 1
                     # Prevent I or O character
-                    if (station_index | 18) == 18 or (station_index | 24) == 24:
+                    if (station_index & 18) == 18 or (station_index & 24) == 24:
                         station_index = station_index + 1
-                    if (station_index | 648) == 648 or (station_index | 864) == 864:
+                    if (station_index & 648) == 648 or (station_index & 864) == 864:
                         station_index = station_index + 36
-                    if (station_index | 23328) == 23328 or (station_index | 31104) == 31104:
+                    if (station_index & 23328) == 23328 or (station_index & 31104) == 31104:
                         station-index = station_index + 1296
                     station_index = numpy.base_repr(station_index, 36)
                     while len(station_index) < 3:
