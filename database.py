@@ -662,7 +662,7 @@ class Database:
             source_url TINYTEXT,                /* URL where confirming data can be found */
             notes TINYTEXT,                     /* TruSat team processing notes */
             opt_out TINYINT(1) DEFAULT NULL,    /* Flag to prevent processing of data from disinterested stations */
-            KEY Station_station_num_idx (station_num) USING BTREE,
+            UNIQUE KEY Station_station_num_idx (station_num) USING BTREE,
             KEY Station_user_idx (user) USING BTREE,
             KEY Station_user_station_idx (user, station_num),
             KEY Station_opt_out_idx (opt_out) USING BTREE

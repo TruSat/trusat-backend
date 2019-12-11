@@ -764,11 +764,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 return
 
         elif self.path == "/editProfile":
-            print('')
-            print('')
-            print(json_body)
-            print('')
-            print('')
             try:
                 user_jwt = json_body["jwt"]
                 decoded_jwt = decode_jwt(user_jwt)
@@ -829,11 +824,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 print('STATION')
                 
                 for station in station_name:
-                    print(station)
-                    print("NAME")
-                    print(station_name[station])
-                    print("ID")
-                    print(observer_id)
                     result = self.db.updateStationName(station, station_name[station], observer_id)
                     if result is not True:
                         print("failed ot update name for " + station + " " + station_name[station])
@@ -1038,14 +1028,13 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             try:
                 observation_station_numbers = self.db.selectUserStationNumbers_JSON(jwt_user_addr)
                 self.send_200_JSON(json.dumps(observation_station_numbers))
-                return observation_station_numbers
+                return
             except Exception as e:
                 print(e)
                 self.send_500(message='Could not get station information', explain='Query to get observation stations has failed')
 
         elif self.path == '/generateStation':
             try:
-                print("TEST")
                 user_jwt = json_body["jwt"]
                 decoded_jwt = decode_jwt(user_jwt)
                 user_addr = decoded_jwt["address"]
