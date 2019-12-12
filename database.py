@@ -2708,6 +2708,8 @@ class Database:
             'observation_count', SOC.observation_count)
             FROM SOC
             JOIN Station ON Station.station_num = SOC.station_num
+            WHERE opt_out IS NULL
+            OR opt_out=0
             GROUP BY SOC.station_num;"""
         query_parameters = {'ETH_ADDR': eth_addr}
         try:
@@ -3436,6 +3438,9 @@ class Database:
                 SELECT COUNT(station_num)
                 FROM Station
                 WHERE user=%(USER)s
+                AND opt_out IS NULL
+                OR user=%(USER)s
+                AND opt_out=0
                 LIMIT 1;
             """
             query_parameters={'USER': user}
