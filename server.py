@@ -1051,9 +1051,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     if (station_index & 23328) == 23328 or (station_index & 31104) == 31104:
                         station_index = station_index + 1296
                     station_index = numpy.base_repr(station_index, 36)
-                    while len(station_index) < 3:
-                        station_index = '0' + station_index
-                    station_id = 'T' + station_index
+                    station_id = 'T' + station_index.rjust(3, '0')
                 else:
                     station_id = 'T000'
                 print(station_id)
