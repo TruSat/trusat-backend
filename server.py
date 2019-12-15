@@ -549,6 +549,10 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 print(e)
                 return
 
+        elif path == '/heartbeat':
+            self.send_204()
+            return
+
         elif path == '/errorTest':
             self.send_400(message='message', explain='explanation')
             return
