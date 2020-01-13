@@ -75,6 +75,7 @@ From the same directory that you did the export, import the data into your local
  - Checkout the appropriate branch of ['trusat-backend'](https://github.com/consensys-space/trusat-backend).
  - Generate RSA Keys using `bash RSAKeyGen.sh` and follow the instructions provided.
  - Generate TLS Certificates.
+ - Export all website origins expected with a comma separated list without spaces. The environmental variable to set is `WEBSITE_ORIGINS` with an example of `http://localhost:3000,https://trusat.org`
  - Generate Gunmail api key
  - Set Gunmail Environmental Variables `GUNMAIL_API_KEY` and `GUNMAIL_EMAIL_ADDRESS`
 	- OR -
