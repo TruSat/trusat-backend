@@ -224,7 +224,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 path == "/findObject" or \
                 path == "/cookieMonster" or \
                 path == "/errorTest":
-                path == '/errorTest':
             self.send_response(200)
             self.send_header('Accept', 'GET')
             #self.send_header('Access-Control-Allow-Origin', '*')
