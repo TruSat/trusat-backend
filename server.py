@@ -28,6 +28,7 @@ import google_email
 MAILGUN_API_KEY = os.getenv('MAILGUN_API_KEY', False)
 MAILGUN_EMAIL_ADDRESS = os.getenv('MAILGUN_EMAIL_ADDRESS', False)
 WEBSITE_ORIGINS = os.getenv('WEBSITE_ORIGINS', False)
+WEBSITE_ORIGINS = WEBSITE_ORIGINS.split(',')
 PORT_NUMBER = 8080
 
 #TODO: take object instead of address to encode with a specified time
@@ -76,9 +77,6 @@ def isValidUserSetting(setting):
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
     def __init__(self, request, client_address, server):
-        # TODO: Find which timeout is correct
-        self.timeout = 10
-        print(request)
         # Read database config from login.txt
         f = open('login.txt', 'r')
         lines = f.readlines()
@@ -233,7 +231,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 path == "/errorTest":
             self.send_response(200)
             self.send_header('Accept', 'GET')
-            #self.send_header('Access-Control-Allow-Origin', '*')
             self.send_header('Access-Control-Allow-Origin', request_origin)
             self.send_header('Access-Control-Allow-Credentials', 'true')
             self.send_header('Access-Control-Allow-Headers', 'Cache-Control')
@@ -633,7 +630,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type', 'text/plain')
             self.send_header('Access-Control-Allow-Origin', request_origin=request_origin)
-            #self.send_header('Access-Control-Allow-Origin', 'http://devvymcdevface.trusat.org')
             self.send_header('Access-Control-Allow-Credentials', 'true')
             self.send_header("Set-Cookie", C.output(header='', sep=''))
             self.end_headers()
@@ -776,7 +772,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                                         'Questions? Please email: Help@Beta.TruSat.org'
                                 data = {"from": "TruSat Help <" + MAILGUN_EMAIL_ADDRESS + ">",
                                         "to": [email],
-                                        "subject": "DEVVY TEST TruSat - Save this email: Recovery Info",
+                                        "subject": "TruSat - Save this email: Recovery Info",
                                         "text": message_text}
                                 response = requests.post(
                                         "https://api.mailgun.net/v3/beta.trusat.org/messages",
@@ -899,13 +895,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 print("Username not being updated")
                 print(e)
-            #try:
-            #    email = json_body["email"]
-            #    if isValidEmailAddress(email):
-            #        self.db.updateObserverEmail(email, public_address)
-            #except Exception as e:
-            #    print("Email not being updated")
-            #    print(e)
             try:
                 bio = json_body["bio"]
                 if (bio != "null" and
@@ -998,7 +987,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                         '\n\nIf you did not request recovery of your account please contact us at:\nHelp@Beta.TruSat.org\n'
                 data = {"from": "TruSat Help <" + MAILGUN_EMAIL_ADDRESS + ">",
                         "to": [email],
-                        "subject": "DEVVY TEST TruSat - Recover Account",
+                        "subject": "TruSat - Recover Account",
                         "text": message_text}
                 response = requests.post(
                         "https://api.mailgun.net/v3/beta.trusat.org/messages",
@@ -1060,7 +1049,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     'Questions? Please email: Help@Beta.TruSat.org'
                 data = {"from": "TruSat Help <" + MAILGUN_EMAIL_ADDRESS + ">",
                     "to": [to],
-                    "subject": "DEVVY TEST TruSat - Save this email: Recovery Info",
+                    "subject": "TruSat - Save this email: Recovery Info",
                     "text": message_text}
                 response = requests.post(
                     "https://api.mailgun.net/v3/beta.trusat.org/messages",
