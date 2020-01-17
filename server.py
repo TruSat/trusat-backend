@@ -1123,15 +1123,18 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
         elif self.path == "/getObservationStations":
             try:
+                jwt_user_addr = decoded_jwt["address"]
                 if cookie_jwt is not False:
                     user_jwt = cookie_jwt
                 else:
                     user_jwt = json_body["jwt"]
                 decoded_jwt = decode_jwt(user_jwt)
-                jwt_user_addr = decoded_jwt["address"]
             except Exception as e:
                 print(e)
                 pass
+            if jwt_user_addr != decoded_jwt["address"]:
+                self.send_400(message='Invalid Ethereum address for user', explain='User gave Ethereum address they do not have access to', request_origin=request_origin)
+                return
             if isValidEthereumAddress(jwt_user_addr) is False:
                 self.send_400(message='Invalid Ethereum address', explain='Ethereum address pulled from user JWT is not valid', request_origin=request_origin)
                 return
