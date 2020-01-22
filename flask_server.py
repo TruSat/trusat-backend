@@ -547,14 +547,14 @@ def cookie_monster():
 @app.route('/getNonce', methods=['POST'])
 def get_nonce():
     try:
-        addr = request.args.get("address")
+        addr = request.get_json()["address"]
     except Exception as e:
         print(e)
         raise InvalidUsage('Ethereum address missing', status_code=400)
     if isValidEthereumAddress(addr) is False:
         raise InvalidUsage('Invalid Ethereum address', status_code=400)
     try:
-        email = request.args.get("email")
+        email = request.get_json()["email"]
         if isValidEmailAddress is False:
             raise InvalidUsage('Invalid email address', status_code=400)
         results = g.get('db').selectObserverAddressFromEmail(email)
@@ -591,13 +591,13 @@ def get_nonce():
 def signup():
     signed_public_key = '0'
     try:
-        addr = request.args.get("address")
+        addr = request.get_json()["address"]
         if isValidEthereumAddress(addr) is False:
             raise InvalidUsage('message', status_code=400)
         old_nonce = g.get('db').getObserverNonceBytes(addr)
-        email = request.args.get("email")
-        signed_message = request.args.get("signedMessage")
-        payload = request.args.get("secret")
+        email = request.get_json()["email"]
+        signed_message = request.get_json()["signedMessage"]
+        payload = request.get_json()["secret"]
     except Exception as e:
         print(e)
         raise InvalidUsage('message', status_code=400)
@@ -659,14 +659,14 @@ def login():
     signed_public_key = '0'
     response_message = b''
     try:
-        addr = request.args.get("address")
+        addr = request.get_json()["address"]
         old_nonce = g.get('db').getObserverNonceBytes(addr)
-        signed_message = request.args.get("signedMessage")
+        signed_message = request.get_json()["signedMessage"]
     except Exception as e:
         print(e)
-        raise InvalidUsage('message', status_code=400)
+        raise InvalidUsage('Address or signed message missing', status_code=400)
     if isValidEthereumAddress(addr) is False:
-        raise InvalidUsage('message', status_code=400)
+        raise InvalidUsage('Address is not valid', status_code=400)
     nonce = old_nonce.encode('utf-8')
     g.get('db').updateObserverNonceBytes(nonce='NULL', public_address=addr)
     message_hash = sha3.keccak_256(nonce).hexdigest()
@@ -677,15 +677,15 @@ def login():
         print(e)
         print('message could not be checked')
     try:
-        email = request.args.get("email")
-        secret = request.args.get("secret")
+        email = request.get_json()["email"]
+        secret = request.get_json()["secret"]
     except Exception as e:
         print(e)
         email = None
         secret = None
     if (email is not None and isValidEmailAddress(email) is False or
         secret is not None and isValidSecret(secret) is False):
-        raise InvalidUsage('message', status_code=400)
+        raise InvalidUsage('Email or secret are not valid', status_code=400)
     if signed_public_key.lower() == addr.lower():
         email_from_addr = g.get('db').selectEmailFromObserverAddress(addr)
         if email_from_addr == None or email_from_addr == '' or email_from_addr == b'NULL':
@@ -694,23 +694,23 @@ def login():
                     g.get('db').updateObserverEmail(email, addr)
                     email_status = google_email.send_email(email, secret)
                     if email_status == False:
-                        raise InvalidUsage('message', status_code=500)
+                        raise InvalidUsage('Email failed to send', status_code=500)
                     return {'result':True}
                 except Exception as e:
                     print(e)
-                    raise InvalidUsage('message', status_code=500)
+                    raise InvalidUsage('Email failed', status_code=500)
         encoded_jwt = encode_jwt(addr.lower())
         g.get('db').updateObserverJWT(encoded_jwt, '', addr)
         frontend_exp = time.time() + 604800
         response_message += b'{ "address": "' + bytes(addr.lower(), 'utf-8') + b'", "exp": ' + bytes(str(frontend_exp), 'utf-8') +  b' } '
         @after_this_request
         def add_header(response):
-            response.set_cookie('test', encoded_jwt.decode('utf-8'), max_age=604800, httponly=True, samesite="Strict") #secure=True, httponly=True, samesite="Strict")
+            response.set_cookie('jwt', encoded_jwt.decode('utf-8'), max_age=604800, secure=True, httponly=True)#, samesite="Strict") #secure=True, httponly=True, samesite="Strict")
             return response
         return response_message
     else:
         print("Login Failed")
-        raise InvalidUsage('message', status_code=400)
+        raise InvalidUsage('Login failed', status_code=400)
 
 
 @app.route('/editProfile', methods=['POST'])
@@ -726,7 +726,7 @@ def edit_profile():
     if isValidEthereumAddress(public_address) is False:
         raise InvalidUsage('message', status_code=400)
     try:
-        username = request.args.get("username")
+        username = request.get_json()["username"]
         if (username != "null" and
             username != None and
             isValidUserSetting(username)):
@@ -734,7 +734,7 @@ def edit_profile():
     except Exception as e:
         print(e)
     try:
-        bio = request.args.get("bio")
+        bio = request.get_json()["bio"]
         if (bio != "null" and
             bio != None and
             isValidUserSetting(bio)):
@@ -742,7 +742,7 @@ def edit_profile():
     except Exception as e:
         print(e)
     try:
-        location = request.args.get("location")
+        location = request.get_json()["location"]
         if (location != "null" and
             location != None and
             isValidUserSetting(location)):
@@ -750,7 +750,7 @@ def edit_profile():
     except Exception as e:
         print(e)
     try:
-        deleted_stations = request.args.get("deleted_stations")
+        deleted_stations = request.get_json()["deleted_stations"]
         for station in deleted_stations:
             result = g.get('db').deleteStation(station, observer_id)
             if result is not True:
@@ -758,7 +758,7 @@ def edit_profile():
     except Exception as e:
         print(e)
     try:
-        station_name = request.args.get('new_station_names')
+        station_name = request.get_json()['new_station_names']
         
         for station in station_name:
             result = g.get('db').updateStationName(station, station_name[station], observer_id)
@@ -767,7 +767,7 @@ def edit_profile():
     except Exception as e:
         print(e)
     try:
-        station_notes = request.args.get('new_station_notes')
+        station_notes = request.get_json()['new_station_notes']
         for station in station_notes:
             result = g.get('db').updateStationNotes(station, station_notes[station], observer_id)
             if result is not True:
@@ -780,7 +780,7 @@ def edit_profile():
 @app.route('/claimAccount', methods=['POST'])
 def claim_account():
     try:
-        email = request.args.get('email')
+        email = request.get_json()['email']
     except Exception as e:
         print(e)
         return {'result': False}
@@ -839,9 +839,9 @@ def claim_account():
 def verify_claim_account():
     response_message = b''
     try:
-        message_text = request.args.get("secret")
-        address = request.args.get("address")
-        user_jwt = request.args.get('jwt')
+        message_text = request.get_json()["secret"]
+        address = request.get_json()["address"]
+        user_jwt = request.get_json()['jwt']
     except Exception as e:
         print(e)
         raise InvalidUsage('message', status_code=400)
@@ -883,7 +883,7 @@ def verify_claim_account():
         response_message += b'{ "address": "' + bytes(address.lower(), 'utf-8') + b'", "exp": ' + bytes(str(frontend_exp), 'utf-8') +  b' } '
         @after_this_request
         def add_header(response):
-            response.set_cookie('test', encoded_jwt.decode('utf-8'), max_age=604800, httponly=True, samesite="Strict") #secure=True, httponly=True, samesite="Strict")
+            response.set_cookie('jwt', encoded_jwt.decode('utf-8'), max_age=604800, secure=True, httponly=True)#, samesite="Strict") #secure=True, httponly=True, samesite="Strict")
             return response
         return response_message
     except Exception as e:
@@ -903,12 +903,12 @@ def submit_observation():
     if isValidEthereumAddress(user_addr) is False:
         raise InvalidUsage('message', status_code=400)
     try:
-        single = request.args.get("single")
+        single = request.get_json()["single"]
     except Exception as e:
         print(e)
     parsed_iod = []
     try:
-        multiple = request.args.get("multiple")
+        multiple = request.get_json()["multiple"]
         results = g.get('db').addObserverParsedIOD(multiple)
         if results is not False:
             (success, error_messages) = results
@@ -923,7 +923,7 @@ def submit_observation():
 
 @app.route('/seesat', methods=['POST'])
 def seesat():
-    email_information = request.args.get("message")["data"]
+    email_information = request.get_json()["message"]["data"]
     email_history = urlsafe_b64decode(email_information).decode('utf-8')
     email_history = json.loads(email_history)
     # print(email_history)
@@ -955,11 +955,11 @@ def generate_station():
         user_jwt = request.cookies.get('jwt')
         decoded_jwt = decode_jwt(user_jwt)
         user_addr = decoded_jwt["address"]
-        station_name = request.args.get("station")
-        latitude = request.args.get("latitude")
-        longitude = request.args.get("longitude")
-        elevation = request.args.get("elevation")
-        notes = request.args.get("notes")
+        station_name = request.get_json()["station"]
+        latitude = request.get_json()["latitude"]
+        longitude = request.get_json()["longitude"]
+        elevation = request.get_json()["elevation"]
+        notes = request.get_json()["notes"]
     except Exception as e:
         print(e)
         raise InvalidUsage('Missing parameter(s)', status_code=400)
