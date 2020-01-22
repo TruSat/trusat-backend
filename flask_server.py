@@ -254,7 +254,7 @@ def catalog_all():
         return {}
 
 
-@app.route('/catalog/trusat_all.txt', methods=['GET'])
+@app.route('/tle/trusat_all.txt', methods=['GET'])
 def catalog_trusat_all_txt():
     try:
         two_line_elements = g.get('db').selectTLE_all()
@@ -270,7 +270,7 @@ def catalog_trusat_all_txt():
         return ''
 
 
-@app.route('/catalog/trusat_priorities.txt', methods=['GET'])
+@app.route('/tle/trusat_priorities.txt', methods=['GET'])
 def catalog_trusat_priorities_txt():
     try:
         two_line_elements = g.get('db').selectTLE_priorities()
@@ -286,7 +286,7 @@ def catalog_trusat_priorities_txt():
         return ''
 
 
-@app.route('/catalog/trusat_high_confidence.txt', methods=['GET'])
+@app.route('/tle/trusat_high_confidence.txt', methods=['GET'])
 def catalog_trusat_high_confidence_txt():
     try:
         two_line_elements = g.get('db').selectTLE_high_confidence()
@@ -302,7 +302,7 @@ def catalog_trusat_high_confidence_txt():
         return ''
 
 
-@app.route('/catalog/astriagraph', methods=['GET'])
+@app.route('/astriagraph', methods=['GET'])
 def catalog_astriagraph():
     try:
         tles_json = g.get('db').selectTLE_Astriagraph()
