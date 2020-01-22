@@ -132,26 +132,21 @@ def handle_invalid_usage(error):
 
 @app.before_request
 def before_request_func():
-    print(g.get('db'))
-    g.db = "init db"
-    print(g.get('db'))
     # Read database config from login.txt
-    # f = open('login.txt', 'r')
-    # lines = f.readlines()
-    # db_name = lines[0].strip()
-    # db_type = lines[1].strip()
-    # endpoint = lines[2].strip()
-    # username = lines[3].strip()
-    # password = lines[4].strip()
-    # f.close()
-    # db = database.Database(db_name, db_type, endpoint, username, password)
-    # session['db'] = db
-    # print("before request")
+    f = open('login.txt', 'r')
+    lines = f.readlines()
+    db_name = lines[0].strip()
+    db_type = lines[1].strip()
+    endpoint = lines[2].strip()
+    username = lines[3].strip()
+    password = lines[4].strip()
+    f.close()
+    g.db = database.Database(db_name, db_type, endpoint, username, password)
 
 @app.after_request
 def after_request_func(response):
-    g.db = "clean"
-    print(g.get('db'))
+    if g.get('db') is not None:
+        g.get('db').clean()
     response.headers['Access-Control-Allow-Credentials'] = 'true'
     return response
 
