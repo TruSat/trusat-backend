@@ -5,6 +5,7 @@ import jwt
 import sha3
 import time
 import json
+import base64
 import numpy
 import secrets
 import requests
@@ -39,13 +40,14 @@ MAILGUN_EMAIL_ADDRESS = os.getenv('MAILGUN_EMAIL_ADDRESS', False)
 WEBSITE_ORIGINS = os.getenv('WEBSITE_ORIGINS', False)
 WEBSITE_ORIGINS = WEBSITE_ORIGINS.split(',')
 SECRET_KEY = os.getenv('SECRET_KEY', False)
-SECRET_KEY = bytes(SECRET_KEY, 'utf-8')
+SECRET_KEY = base64.b64decode(bytes(SECRET_KEY, 'utf-8'))
 PORT_NUMBER = 8080
 
 
 config = {
     "CACHE_TYPE": "simple",
-    "CACHE_DEFAULT_TIMEOUT": 300
+    "CACHE_DEFAULT_TIMEOUT": 300,
+    "SECRET_KEY": SECRET_KEY
 }
 
 
@@ -53,7 +55,7 @@ app = Flask(__name__)
 app.config.from_mapping(config)
 cache = Cache(app)
 cors = CORS(app, support_credentials=True, origins=WEBSITE_ORIGINS)
-csrf = CSRFProtect(app)
+#csrf = CSRFProtect(app)
 
 
 
