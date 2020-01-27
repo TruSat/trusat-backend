@@ -174,10 +174,10 @@ def error_route():
     raise InvalidUsage('This is an expected error', status_code=400)
 
 
-@app.route('/catalog/priorities', methods=['GET'])
-def catalog_priorities():
+@app.route('/catalog/priorities/<int:offset>', methods=['GET'])
+def catalog_priorities(offset):
     try:
-        json_object = g.get('db').selectCatalog_Priorities_JSON()
+        json_object = g.get('db').selectCatalog_Priorities_JSON(fetch_row_count=200, offset_row_count=offset)
     except Exception as e:
         print(e)
         raise InvalidUsage('Could not get priorities', status_code=500)
@@ -190,10 +190,10 @@ def catalog_priorities():
         return {}
 
 
-@app.route('/catalog/undisclosed', methods=['GET'])
-def catalog_undisclosed():
+@app.route('/catalog/undisclosed/<int:offset>', methods=['GET'])
+def catalog_undisclosed(offset):
     try:
-        json_object = g.get('db').selectCatalog_Undisclosed_JSON()
+        json_object = g.get('db').selectCatalog_Undisclosed_JSON(fetch_row_count=200, offset_row_count=offset)
     except Exception as e:
         print(e)
         raise InvalidUsage('Could not get undisclosed', status_code=500)
@@ -206,10 +206,10 @@ def catalog_undisclosed():
         return {}
 
 
-@app.route('/catalog/debris', methods=['GET'])
-def catalog_debris():
+@app.route('/catalog/debris/<int:offset>', methods=['GET'])
+def catalog_debris(offset):
     try:
-        json_object = g.get('db').selectCatalog_Debris_JSON()
+        json_object = g.get('db').selectCatalog_Debris_JSON(fetch_row_count=200, offset_row_count=offset)
     except Exception as e:
         print(e)
         raise InvalidUsage('Could not get debris', status_code=500)
@@ -222,10 +222,10 @@ def catalog_debris():
         return {}
 
 
-@app.route('/catalog/latest', methods=['GET'])
-def catalog_latest():
+@app.route('/catalog/latest/<int:offset>', methods=['GET'])
+def catalog_latest(offset):
     try:
-        json_object = g.get('db').selectCatalog_Latest_JSON()
+        json_object = g.get('db').selectCatalog_Latest_JSON(fetch_row_count=200, offset_row_count=offset)
     except Exception as e:
         print(e)
         raise InvalidUsage('Could not get latest', status_code=500)
@@ -238,10 +238,10 @@ def catalog_latest():
         return {}
 
 
-@app.route('/catalog/all', methods=['GET'])
-def catalog_all():
+@app.route('/catalog/all/<int:offset>', methods=['GET'])
+def catalog_all(offset):
     try:
-        json_object = g.get('db').selectCatalog_All_JSON()
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
     except Exception as e:
         print(e)
         raise InvalidUsage('Could not get all', status_code=500)
@@ -252,7 +252,6 @@ def catalog_all():
         return json_object
     else:
         return {}
-
 
 @app.route('/tle/trusat_all.txt', methods=['GET'])
 def catalog_trusat_all_txt():
@@ -351,7 +350,7 @@ def profile():
     if jwt_user_addr.lower() == user_addr.lower():
         try:
             observation_station_numbers = g.get('db').selectUserStationNumbers_JSON(user_addr)
-            for station in observation_station_numbers:
+            for station in observation_station_numbers["user_stations"]:
                 user_profile_json["observation_stations"].append(station)
         except Exception as e:
             print(e)
