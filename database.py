@@ -2713,10 +2713,14 @@ class Database:
             GROUP BY SOC.station_num;"""
         query_parameters = {'ETH_ADDR': eth_addr}
         try:
+            observation_stations_json = {}
+            observation_stations_json["user_stations"] = []
             self.c.execute(query_tmp, query_parameters)
-            return stringArrayToJSONArray_JSON(self.c.fetchall())
+            observation_stations = stringArrayToJSONArray_JSON(self.c.fetchall())
+            observation_stations_json["user_stations"] = observation_stations
+            return observation_stations_json
         except:
-            return None
+            return observation_stations_json
 
 
     def selectProfileInfo_JSON(self, eth_addr):
@@ -3258,11 +3262,14 @@ class Database:
         }
         self.c.execute(query, queryParams)
         try:
+            observation_json = {}
+            observation_json["user_sightings"] = []
             observations = stringArrayToJSONArray_JSON(self.c.fetchall())
             convert_country_names(observations)
-            return observations
+            observation_json["user_sightings"] = observations
+            return observation_json
         except:
-            return None
+            return observation_json
 
     # /object/influence
     # https://consensys-cpl.atlassian.net/browse/MVP-380
