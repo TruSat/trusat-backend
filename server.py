@@ -618,7 +618,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 print('noo cookies :(')
             C = cookies.SimpleCookie()
             cookie_exp = time.strftime("%a, %d %Y %H:%M:%S %Z", time.gmtime(time.time() + 518400))
-            jwt_cookie = 'jwt=\"' + 'test' + '\"; Max-Age=6048000; Secure; HttpOnly; SameSite=Strict'
+            jwt_cookie = 'jwt=\"' + 'test' + '\"; Max-Age=6048000; Secure; HttpOnly;'
             C.load(jwt_cookie)
             print(cookie_exp)
             self.send_response(200)
@@ -849,7 +849,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 response_message += encoded_jwt
                 response_message += b'", "address": "' + bytes(addr.lower(), 'utf-8') + b'", "exp": ' + bytes(str(frontend_exp), 'utf-8') +  b' } '
                 C = cookies.SimpleCookie()
-                jwt_cookie = 'jwt=\"' + encoded_jwt.decode('utf-8') + '\"; Max-Age=604800; Secure; HttpOnly; SameSite=Strict'
+                jwt_cookie = 'jwt=\"' + encoded_jwt.decode('utf-8') + '\"; Max-Age=604800; Secure; HttpOnly'
                 C.load(jwt_cookie)
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
@@ -1061,7 +1061,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 response_message += encoded_jwt
                 response_message += b'", "address": "' + bytes(address.lower(), 'utf-8') + b'", "exp": ' + bytes(str(frontend_exp), 'utf-8') +  b' } '
                 C = cookies.SimpleCookie()
-                jwt_cookie = 'jwt=\"' + encoded_jwt.decode('utf-8') + '\"; Max-Age=604800; Secure; HttpOnly; SameSite=Strict'
+                jwt_cookie = 'jwt=\"' + encoded_jwt.decode('utf-8') + '\"; Max-Age=604800; Secure; HttpOnly'
                 C.load(jwt_cookie)
                 self.send_response(200)
                 self.send_header('Content-type', 'text/plain')
