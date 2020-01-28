@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 from base64 import urlsafe_b64decode
 
 
-from flask import Flask, abort, Response, jsonify, after_this_request, session, request, make_response, g
+from flask import Flask, abort, Response, jsonify, after_this_request, session, request, make_response, g, send_from_directory
 from flask_cors import CORS
 from flask_caching import Cache
 from flask_wtf.csrf import CSRFProtect
@@ -51,7 +51,7 @@ config = {
 }
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="trusat-frontend/build/static", template_folder="trusat-frontend/build")
 app.config.from_mapping(config)
 cache = Cache(app)
 cors = CORS(app, support_credentials=True, origins=WEBSITE_ORIGINS)
@@ -158,15 +158,13 @@ def catalog_cache(response):
 
 
 
-
-@app.route('/', methods=['GET'])
-@cache.cached(timeout=50)
-def hello_world():
-    @after_this_request
-    def add_header(response):
-        return catalog_cache(response)
-    print(g.get('db'))
-    return 'Hello, World!'
+@app.route("/", defaults={'path': ''})
+@app.route('/<path:path>')
+def index(path):
+    if path != '' and os.path.exists("trusat-frontend/build/" + path):
+        return send_from_directory('trusat-frontend/build', path)
+    else:
+        return send_from_directory("trusat-frontend/build", "index.html")
 
 
 @app.route('/error', methods=['GET'])
@@ -995,3 +993,6 @@ def generate_station():
     except Exception as e:
         print(e)
         raise InvalidUsage('message', status_code=500)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0')
