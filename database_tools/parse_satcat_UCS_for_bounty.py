@@ -82,7 +82,7 @@ def load_ucs_satdb_data():
 
 
 def load_celestrak_satcat_data():
-    log.info("Fetching CELESTRAK SAT CAT data and loading into memory...")
+    log.info("Fetching CELESTRAK SATCAT data and loading into memory...")
     satcat_url = "https://www.celestrak.com/pub/satcat.txt"
     satcat = pd.read_csv(
         satcat_url, engine="python", delimiter=r"\n", encoding="Windows-1252"
@@ -118,7 +118,7 @@ def load_celestrak_satcat_data():
 
 
 def fix_discrepencies(satdb, satcat):
-    log.info("Fixing discrepencies in the data...")
+    log.info("Fixing discrepencies in the UCS data...")
     # discrepencies_url = "http://celestrak.com/pub/UCS-SD-Discrepancies.txt"
     for i, satdb_row in satdb.iterrows():
         norad_number = format(satdb_row.loc["norad_number"])
@@ -207,7 +207,7 @@ def update_ucs_satdb_table(Database, df):
 
 
 def update_ucs_satdb_fixed_table(Database, df):
-    log.info("Updating the ucs_satdb_fixed table...")
+    log.info("Updating the ucs_satdb table...")
 
     total_rows = 0
     data_batch = []
@@ -285,11 +285,15 @@ def update_celestrak_satcat_table(Database, df):
     if len(data_batch) > 0:
         db.add_celestrak_satcat_batch(data_batch)
 
+# make it print to the console.
+console = logging.StreamHandler()
+log.addHandler(console)
+log.setLevel(logging.DEBUG)
 
 db = database.Database(CONFIG)
 db.create_celestrak_satcat_table()
+db.create_ucs_satdb_raw_table()
 db.create_ucs_satdb_table()
-db.create_ucs_satdb_fixed_table()
 
 satdb = load_ucs_satdb_data()
 satcat = load_celestrak_satcat_data()
