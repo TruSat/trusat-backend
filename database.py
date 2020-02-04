@@ -938,12 +938,12 @@ class Database:
 
         find_query = """
             SELECT * FROM `ucs_SATDB`
-            WHERE `line_fingerprint`=%s
+            WHERE `line_fingerprint`=%s;
         """
 
         find_with_norad = """
             SELECT * FROM `ucs_SATDB`
-            WHERE `norad_number`=%s
+            WHERE `norad_number`=%s;
         """
 
         delete_by_norad = """
@@ -1013,7 +1013,7 @@ class Database:
 
                 if not existing_fingerprint:
                     self.c.execute(find_with_norad, (norad_number,))
-                    existing_row = self.c.fetchone()
+                    existing_row = self.c.fetchall()
                     if existing_row:
                         self.c.execute(delete_by_norad, (norad_number,))
                         log.info(
