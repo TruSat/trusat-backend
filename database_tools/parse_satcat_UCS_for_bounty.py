@@ -1,277 +1,305 @@
 #!/usr/bin/env python
-# Template code for start of bounty - extracted from other source, and has not been tested in this form
-
 from hashlib import md5
+import os
+import sys
+
+# The following 4 lines are necessary until our modules are public
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+sys.path.insert(1,os.path.dirname(currentdir)) 
+import database
+
+from io import StringIO
+import pandas as pd
+import requests
+
+from datetime import datetime
+
 import logging
 log = logging.getLogger(__name__)
 
+CONFIG = os.path.abspath("../../login-config.yaml")
 
-def fingerprint_file(file):
-    """Open, read file and calculate MD5 on its contents"""
-    with open(file,'rb') as fd:
-        # read contents of the file
-        _file_data = fd.read()    
-        # pipe contents of the file through
-        file_fingerprint = md5(_file_data).hexdigest()
-    return file_fingerprint
+# Use this as our browser, to get past UCS 403 errors
+http_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.76 Safari/537.36'}
 
 
 def fingerprint_line(line):
     """ Creates a unique signature from a line."""
-    return md5(line.encode('utf-8')).hexdigest()
+    return md5(line.encode("utf-8")).hexdigest()
 
 
-class Database:
-    def __init__(self, dbname,dbtype,dbhostname,dbusername,dbpassword):
-        self._dbname     = dbname
-        self._dbtype     = dbtype
-        self._dbhostname = dbhostname
-        self._dbusername = dbusername
-        self._dbpassword = dbpassword
-        self.charset_string = "CHARSET=utf8 ENGINE=Aria;"
-        self.increment = " AUTO_INCREMENT"
+def load_ucs_satdb_data():
+    log.info("Fetching UCSATDB data and loading into memory...")
+#    satdb_url = "https://s3.amazonaws.com/ucs-documents/nuclear-weapons/sat-database/5-9-19-update/UCS_Satellite_Database_4-1-2019.txt"
+    satdb_url = "https://www.ucsusa.org/sites/default/files/2019-12/UCS-Satellite-Database-10-1-19.txt"
 
-        self.conn = mariadb.connect(
-            host=self._dbhostname,
-            user=self._dbusername,
-            passwd=self._dbpassword,
-            db=self._dbname,
-            charset='utf8',
-            use_unicode=True
+    # https://datascience.stackexchange.com/questions/49751/read-csv-file-directly-from-url-how-to-fix-a-403-forbidden-error
+    s=requests.get(satdb_url, headers= http_headers).text
+    satdb=pd.read_csv(StringIO(s), sep=";", delimiter="\t", encoding="Windows-1252")
+
+#    satdb = pd.read_csv(satdb_url, delimiter="\t", encoding="Windows-1252")
+    satdb = satdb.iloc[:, :35]
+    satdb.applymap(format)
+    satdb.columns = [
+        "name",
+        "country_registered",
+        "country_owner",
+        "owner_operator",
+        "users",
+        "purpose",
+        "purpose_detailed",
+        "orbit_class",
+        "orbit_type",
+        "GEO_longitude",
+        "perigee_km",
+        "apogee_km",
+        "eccentricity",
+        "inclination_degrees",
+        "period_minutes",
+        "launch_mass_kg",
+        "dry_mass_kg",
+        "power_watts",
+        "launch_date",
+        "expected_lifetime_years",
+        "contractor",
+        "contractor_country",
+        "launch_site",
+        "launch_vehicle",
+        "international_designator",
+        "norad_number",
+        "comments",
+        "detailed_comments",
+        "source_1",
+        "source_2",
+        "source_3",
+        "source_4",
+        "source_5",
+        "source_6",
+        "source_7",
+    ]
+    return satdb
+
+
+def load_celestrak_satcat_data():
+    log.info("Fetching CELESTRAK SAT CAT data and loading into memory...")
+    satcat_url = "https://www.celestrak.com/pub/satcat.txt"
+    satcat = pd.read_csv(
+        satcat_url, engine="python", delimiter=r"\n", encoding="Windows-1252"
+    )
+    data = []
+    for row in satcat.itertuples(index=False, name=None):
+        row = [format(q) for q in parse_celestrak_row(row[0])]
+        data.append(row)
+
+    df = pd.DataFrame(
+        data,
+        columns=[
+            "intl_desg",
+            "norad_num",
+            "multiple_name_flag",
+            "payload_flag",
+            "ops_status_code",
+            "name",
+            "source",
+            "launch_date",
+            "launch_site",
+            "decay_date",
+            "orbit_period_minutes",
+            "inclination_deg",
+            "apogee",
+            "perigee",
+            "radar_crosssec",
+            "orbit_status_code",
+        ],
+    )
+    df.set_index("norad_num")
+    return df
+
+
+def fix_discrepencies(satdb, satcat):
+    log.info("Fixing discrepencies in the data...")
+    # discrepencies_url = "http://celestrak.com/pub/UCS-SD-Discrepancies.txt"
+    for i, satdb_row in satdb.iterrows():
+        norad_number = format(satdb_row.loc["norad_number"])
+        try:
+            satcat_row = satcat.loc[norad_number]
+            satdb.loc[i, "name"] = satcat_row.loc["name"]
+            satdb.loc[i, "perigee_km"] = satcat_row.loc["perigee"]
+            satdb.loc[i, "apogee_km"] = satcat_row.loc["apogee"]
+            satdb.loc[i, "inclination_degrees"] = satcat_row.loc["inclination_deg"]
+            satdb.loc[i, "period_minutes"] = satcat_row.loc["orbit_period_minutes"]
+            satdb.loc[i, "launch_date"] = satcat_row.loc["launch_date"]
+            satdb.loc[i, "launch_site"] = satcat_row.loc["launch_site"]
+            satdb.loc[i, "international_designator"] = satcat_row.loc["intl_desg"]
+
+            import random
+
+            if random.randint(1, 101) < 3:
+                satdb.loc[i, "name"] = "BLAH BLAH BLAH"
+
+        except (KeyError, ValueError):
+            log.warning(
+                f"""Satellite with norad number {norad_number} in satdb is not found in the Celestrak Catalog.
+                    Relying on SatDB data only."""
             )
-        self.c = self.conn.cursor()
 
-        self.c_addSATCAT_query = self.conn.cursor(prepared=True)
-        self.c_addUCSDB_query = self.conn.cursor(prepared=True)
-
-    def createSATCATtable(self):
-        """ Celestrak SATCAT """
-        print("Creating Celestrak SAT CAT table...")
-
-        # TODO: make another table from the multiple_name_flag data in https://celestrak.com/pub/satcat-annex.txt
-        createquery = '''CREATE TABLE IF NOT EXISTS celestrak_SATCAT (
-            satcat_id               INTEGER ''' + self.increment + ''',
-            intl_desg               VARCHAR(11) NOT NULL,
-            norad_num               MEDIUMINT UNSIGNED NOT NULL,
-            multiple_name_flag      TINYINT(1) UNSIGNED NOT NULL,
-            payload_flag            TINYINT(1) UNSIGNED NOT NULL,
-            ops_status_code         VARCHAR,
-            name                    VARCHAR(24) NOT NULL,
-            source                  CHAR(5),
-            launch_date             DATE,
-            decay_date              DATE,
-            orbit_period_minutes    MEDIUMINT,
-            inclination_deg         DOUBLE,
-            apogee                  DOUBLE,
-            perigee                 DOUBLE,
-            radar_crosssec          DOUBLE,
-            orbit_status_code       CHAR(3),
-            line_fingerprint        CHAR(32) NOT NULL,
-            file_fingerprint        CHAR(32) NOT NULL,
-            import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-            PRIMARY KEY (`satcat_id`),
-            KEY `celestrak_SATCAT_intl_desg_idx` (`intl_desg`(11)) USING BTREE,
-            KEY `celestrak_SATCAT_norad_num_idx` (`norad_num`) USING BTREE,
-            KEY `celestrak_SATCAT_name_idx` (`name`) USING BTREE,
-            KEY `celestrak_SATCAT_orbit_status_code_idx` (`orbit_status_code`) USING BTREE
-        )''' + self.charset_string
-        self.c.execute(createquery)
-        self.conn.commit()
+    return satdb
 
 
-    def createUCSSATDBtable(self):
-        """ Union of Concerned Scientists Satellite Database """
-        print("Creating Union of Concerned Scientists Satellite Database table...")
+def format(val):
+    if pd.isna(val):
+        return None
 
-        # FIXME: Need to optimize these auto-gen types
-        createquery = '''CREATE TABLE IF NOT EXISTS ucs_SATDB (
-            satdb_id              INTEGER PRIMARY KEY''' + self.increment + ''',
-            name text DEFAULT NULL,
-            country_registered text DEFAULT NULL,
-            country_owner text DEFAULT NULL,
-            owner_operator text DEFAULT NULL,
-            users text DEFAULT NULL,
-            purpose text DEFAULT NULL,
-            purpose_detailed text DEFAULT NULL,
-            orbit_class text DEFAULT NULL,
-            orbit_type text DEFAULT NULL,
-            GEO_longitude int(11) DEFAULT NULL,
-            perigee_km int(11) DEFAULT NULL,
-            apogee_km int(11) DEFAULT NULL,
-            eccentricity float DEFAULT NULL,
-            inclination_degrees float DEFAULT NULL,
-            period_minutes int(11) DEFAULT NULL,
-            launch_mass_kg int(11) DEFAULT NULL,
-            dry_mass_kg text DEFAULT NULL,
-            power_watts text DEFAULT NULL,
-            launch_date DATE DEFAULT NULL,
-            expected_lifetime_years text DEFAULT NULL,
-            contractor text DEFAULT NULL,
-            contractor_country text DEFAULT NULL,
-            launch_site text DEFAULT NULL,
-            launch_vehicle text DEFAULT NULL,
-            international_designator text DEFAULT NULL,
-            norad_number int(11) DEFAULT NULL,
-            comments text DEFAULT NULL,
-            detailed_comments text DEFAULT NULL,
-            source_1 text DEFAULT NULL,
-            source_2 text DEFAULT NULL,
-            source_3 text DEFAULT NULL,
-            source_4 text DEFAULT NULL,
-            source_5 text DEFAULT NULL,
-            source_6 text DEFAULT NULL,
-            source_7 text DEFAULT NULL,
-            line_fingerprint        CHAR(32) NOT NULL,
-            file_fingerprint        CHAR(32) NOT NULL,
-            import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-            KEY `ucs_SATDB_satdb_id_idx` (`satdb_id`) USING BTREE,
-            KEY `ucs_SATDB_norad_number_idx` (`norad_number`) USING BTREE,
-            KEY `ucs_SATDB_international_designator_idx` (`international_designator`(11)) USING BTREE
-        )''' + self.charset_string
-        self.c.execute(createquery)
-        self.conn.commit()
+    if type(val).__module__ == "numpy":
+        val = val.item()
 
+    if type(val) is int or type(val) is float:
+        return val
 
-    def addSATCATentry(self, newentryTuple):
-        """ Add an SATCAT entry to the database """
-        self._satcatid = 0 # Set this as a variable in case we want to generate our own in the future
+    val = val.strip()
 
-        try:
-            self.c_addSATCAT_query.execute(self.addSATCAT_query, newentryTuple)
-        except Exception as e:
-            log.error("MYSQL ERROR: {}".format(e))
-        return True
-
-
-    def addUCSDBentry(self, newentryTuple):
-        """ Add an UCS DB entry to the database """
-        self._satcatid = 0 # Set this as a variable in case we want to generate our own in the future
-
-        try:
-            self.c_addUCSDB_query.execute(self.addUCSDB_query, newentryTuple)
-        except Exception as e:
-            log.error("MYSQL ERROR: {}".format(e))
-        return True
-
-    def fixUCSDB_from_SATCAT(self):
-        """ TODO """
+    try:
+        return int(val.replace(",", ""))
+    except:
         pass
 
-
-    def update_SATCAT(self):
-        """ TODO """
+    try:
+        return float(val.replace(",", ""))
+    except:
         pass
 
-
-    def update_UCSDB(self):
-        """ TODO """
+    try:
+        return datetime.strptime(val, "%m/%d/%y").date()
+    except:
         pass
 
+    try:
+        return datetime.strptime(val, "%m/%d/%Y").date()
+    except:
+        pass
 
-def populate_SATCATtable():
-    # Set up database connection
-    db = Database(dbname,dbtype,dbhostname,dbusername,dbpassword)
-    db.createSATCATtable()
+    try:
+        return datetime.strptime(val, "%Y/%m/%d").date()
+    except:
+        pass
 
+    if not val or val == "N/A":
+        return None
 
-    satcat_file_fingerprint = fingerprint_file('data/satcat.txt')
-    with open('data/satcat.txt') as file:
-        entry_batch = 0 
-        for line in (file):
-            entry_batch += 1
-            intl_desg = line[0:11].strip()
-            norad_number = int(line[13:18].strip())
-
-            multiple_name_flag = line[19].strip()
-            if not multiple_name_flag:
-                multiple_name_flag = 0
-            else:
-                multiple_name_flag = 1
-
-            payload_flag = line[20].strip()
-            if not payload_flag:
-                payload_flag = 0
-            else:
-                payload_flag = 1
-
-            ops_status_code = line[21].strip()
-            name = line[23:47].strip()
-            source = line[49:54].strip()
-            launch_date = line[56:66].strip()
-
-            decay_date = line[75:85].strip()
-            if not decay_date:
-                decay_date = '0000-00-00'
-
-            try:
-                orbit_period_minutes = float(line[87:94].strip())
-            except ValueError:
-                orbit_period_minutes = -1
-
-            try:
-                inclination_deg = float(line[96:101])
-            except ValueError:
-                inclination_deg = -1
-
-            try:
-                apogee = int(line[103:109])
-            except ValueError:
-                apogee = -1
-
-            try:
-                perigee = int(line[111:117])
-            except ValueError:
-                perigee = -1
-
-            try:
-                radar_crosssec = float(line[119:127])
-            except ValueError:
-                radar_crosssec = -1
-
-            orbit_status_code = line[129:132].strip()
-
-            record_fingerprint = fingerprint_line(line)
-
-            satcat_tuple = (intl_desg, norad_number, multiple_name_flag, payload_flag, ops_status_code,
-                            name, source, launch_date, decay_date, orbit_period_minutes, inclination_deg,
-                            apogee, perigee, radar_crosssec, orbit_status_code, 
-                            satcat_file_fingerprint, record_fingerprint)
-
-            satcatid = db.addSATCATentry(satcat_tuple)
-            print(satcat_tuple)
-            if(entry_batch>100):
-                db.conn.commit()
-                entry_batch=0
-    db.conn.commit()
+    return val
 
 
-def populate_UCSSATDBtable():
-    # Set up database connection
-    db = Database(dbname,dbtype,dbhostname,dbusername,dbpassword)
-    db.createUCSSATDBtable()
+def update_ucs_satdb_table(Database, df):
+    log.info("Updating the ucs_satdb table...")
 
-    file_to_import = 'data/UCS_Satellite_Database_4-1-2019.txt'
+    total_rows = 0
+    data_batch = []
+    for row in df.itertuples(index=False, name=None):
+        record_fingerprint = fingerprint_line("".join(str(e) for e in row))
+        savable = [format(i) for i in row] + [record_fingerprint]
 
-    ucsdb_file_fingerprint = fingerprint_file(file_to_import)
-    # FIXME: There still appear to be some character encoding issues around "Earth's geomagnetic field"
-    with open(file_to_import, 'r', encoding='latin-1') as file: # FIXME: Doesn't work with UTF-8 type on import (it should)
-        entry_batch = 0 
-        for line in (file):
-            entry_batch += 1
-            if (entry_batch == 1):
-                continue
-            fields = line.split('\t')
+        data_batch.append(savable)
+        total_rows = total_rows + 1
 
-            # The source CSV file has many more columns encoded than actual valid data
-            good_part = fields[0:35]
+    if len(data_batch) > 0:
+        db.add_ucs_satdb_batch(data_batch)
 
-            record_fingerprint = fingerprint_line(line)
 
-            ucsdb_tuple = tuple(good_part) + (ucsdb_file_fingerprint, record_fingerprint)
+def update_ucs_satdb_fixed_table(Database, df):
+    log.info("Updating the ucs_satdb_fixed table...")
 
-            ucsdbid = db.addUCSDBentry(ucsdb_tuple)
-            print(ucsdb_tuple)
-            if(entry_batch>100):
-                db.conn.commit()
-                entry_batch=0
-    db.conn.commit()
+    total_rows = 0
+    data_batch = []
+    for row in df.itertuples(index=False, name=None):
+        record_fingerprint = fingerprint_line("".join(str(e) for e in row))
+        savable = [format(i) for i in row] + [record_fingerprint]
+
+        data_batch.append(savable)
+        total_rows = total_rows + 1
+
+    if len(data_batch) > 0:
+        db.add_ucs_satdb_fixed_batch(data_batch)
+
+
+def parse_celestrak_row(line):
+    intl_desg = line[0:11]
+    norad_number = line[13:18]
+
+    multiple_name_flag = line[19]
+    if not multiple_name_flag:
+        multiple_name_flag = 0
+    else:
+        multiple_name_flag = 1
+
+    payload_flag = line[20]
+    if not payload_flag:
+        payload_flag = 0
+    else:
+        payload_flag = 1
+
+    ops_status_code = line[21]
+    name = line[23:47]
+    source = line[49:54]
+    launch_date = line[56:66]
+    launch_site = line[69:73]
+    decay_date = line[75:85]
+    orbit_period_minutes = line[87:94]
+    inclination_deg = line[96:101]
+    apogee = line[103:109]
+    perigee = line[111:117]
+    radar_crosssec = line[119:127]
+    orbit_status_code = line[129:132]
+
+    satcat_tuple = (
+        intl_desg,
+        norad_number,
+        multiple_name_flag,
+        payload_flag,
+        ops_status_code,
+        name,
+        source,
+        launch_date,
+        launch_site,
+        decay_date,
+        orbit_period_minutes,
+        inclination_deg,
+        apogee,
+        perigee,
+        radar_crosssec,
+        orbit_status_code,
+    )
+    return satcat_tuple
+
+
+def update_celestrak_satcat_table(Database, df):
+    log.info("Updating the celestrak_satcat table...")
+
+    data_batch = []
+    for row in df.itertuples(index=False, name=None):
+        record_fingerprint = fingerprint_line("".join(str(e) for e in row))
+        savable = [format(i) for i in row] + [record_fingerprint]
+
+        data_batch.append(savable)
+
+    if len(data_batch) > 0:
+        db.add_celestrak_satcat_batch(data_batch)
+
+
+db = database.Database(CONFIG)
+db.create_celestrak_satcat_table()
+db.create_ucs_satdb_table()
+db.create_ucs_satdb_fixed_table()
+
+satdb = load_ucs_satdb_data()
+satcat = load_celestrak_satcat_data()
+
+update_ucs_satdb_table(db, satdb)
+update_celestrak_satcat_table(db, satcat)
+
+satdb = fix_discrepencies(satdb, satcat)
+
+update_ucs_satdb_fixed_table(db, satdb)
+
+log.info("Script Complete")
+sys.exit(0)
