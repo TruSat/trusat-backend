@@ -18,7 +18,7 @@ from datetime import datetime
 import logging
 log = logging.getLogger(__name__)
 
-CONFIG = os.path.abspath("../../login-config.yaml")
+CONFIG = os.path.abspath("../../trusat-config.yaml")
 
 # Use this as our browser, to get past UCS 403 errors
 http_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.76 Safari/537.36'}
@@ -191,7 +191,7 @@ def format(val):
 
 
 def update_ucs_satdb_raw_table(Database, df):
-    log.info("Updating the ucs_satdb raw table...")
+    log.info("Updating the ucs_satdb_raw table...")
 
     total_rows = 0
     data_batch = []
@@ -207,7 +207,7 @@ def update_ucs_satdb_raw_table(Database, df):
 
 
 def update_ucs_satdb_table(Database, df):
-    log.info("Updating the (fixed) ucs_satdb table...")
+    log.info("Updating the (corrected) ucs_satdb table...")
 
     total_rows = 0
     data_batch = []

@@ -76,16 +76,9 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         # TODO: Find which timeout is correct
         self.timeout = 10
         print(request)
-        # Read database config from login.txt
-        f = open('login.txt', 'r')
-        lines = f.readlines()
-        db_name = lines[0].strip()
-        db_type = lines[1].strip()
-        endpoint = lines[2].strip()
-        username = lines[3].strip()
-        password = lines[4].strip()
-        f.close()
-        self.db = database.Database(db_name, db_type, endpoint, username, password)
+        # Read config and set up database connection
+        CONFIG = os.path.abspath("../../trusat-config.yaml")
+        self.db = database.Database(CONFIG)
         super().__init__(request, client_address, server)
 
     def send_500(self, message='', explain=''):

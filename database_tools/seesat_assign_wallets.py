@@ -29,42 +29,6 @@ if __name__ == '__main__':
                              const=1,                             
                              type=str,                             
                              metavar="FILE")
-    conf_parser.add_argument("-dbname", "--database", 
-                             help="database to USE",
-                             dest='dbname',
-                             default='opensatcat_dev',                           
-                             nargs='?',
-                             const=1,                             
-                             type=str,                             
-                             metavar="NAME")
-    conf_parser.add_argument("-H", "--hostname", 
-                             help="database hostname",
-                             dest='dbhostname',
-                             default='opensatcat.cvpypmmxjtv1.us-east-2.rds.amazonaws.com',
-                             nargs='?',
-                             const=1,
-                             type=str,                             
-                             metavar="HOSTNAME")
-    conf_parser.add_argument("-u", "--user", 
-                             help="database user name",
-                             dest='dbusername',
-                             nargs='?',
-                             type=str,                             
-                             metavar="USER")
-    conf_parser.add_argument("-p", "--password", 
-                             help="database user password",
-                             dest='dbpassword',
-                             nargs='?',
-                             type=str,                             
-                             metavar="PASSWD")
-    conf_parser.add_argument("-t", "--dbtype", 
-                             help="database type [INFILE, sqlserver, sqlite] default: INFILE",
-                             dest='dbtype',
-                             nargs='?',
-                             choices=['INFILE', 'sqlserver', 'sqlite'],
-                             default='INFILE',
-                             type=str,                             
-                             metavar="TYPE")
     conf_parser.add_argument("-q", "--quiet", help="Suppress console output",
                              dest='quiet',
                              action="store_true")
@@ -78,11 +42,6 @@ if __name__ == '__main__':
     args = conf_parser.parse_args()
     # Process commandline options and parse configuration
     root_dir = args.root_dir
-    dbname = args.dbname
-    dbhostname = args.dbhostname
-    dbusername = args.dbusername
-    dbpassword = args.dbpassword
-    dbtype = args.dbtype
     verbose = args.verbose
     quiet = args.quiet
 
@@ -108,14 +67,8 @@ if __name__ == '__main__':
             log.debug("%s : %s",arg, getattr(args, arg))
 
     try:
-        with open('../../login.txt-remote', 'r') as f:
-            lines = f.readlines()
-            dbname = lines[0].strip()
-            dbtype = lines[1].strip()
-            dbhostname = lines[2].strip()
-            dbusername = lines[3].strip()
-            dbpassword = lines[4].strip()
-        db = database.Database(dbname,dbtype,dbhostname,dbusername,dbpassword)
+        CONFIG = os.path.abspath("../../trusat-config.yaml")
+        db = database.Database(CONFIG)
     except: 
         log.error("DB Login credentials not available.")
 
@@ -141,5 +94,5 @@ if __name__ == '__main__':
         db.c.execute(query_tmp2)
 
 
-    # if (dbtype != "INFILE"):
+    # if (db._dbtype != "INFILE"):
     #     db.commit_IOD_db_writes()

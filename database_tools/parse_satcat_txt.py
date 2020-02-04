@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 from hashlib import md5
 import logging
 log = logging.getLogger(__name__)
@@ -7,17 +8,11 @@ log = logging.getLogger(__name__)
 import database
 from tle_util import fingerprint_file, fingerprint_line
 
-dbname = 'opensatcat_dev'
-dbhostname = 'opensatcat.cvpypmmxjtv1.us-east-2.rds.amazonaws.com'
-dbusername = 'chris.lewicki'
-dbpassword = ''
-dbtype = "INFILE"
-#dbtype = "sqlite"
-#dbtype = 'sqlserver'
-
 # Set up database connection or files
-db = database.Database(dbname,dbtype,dbhostname,dbusername,dbpassword)
-if (dbtype != "INFILE"):
+CONFIG = os.path.abspath("../../trusat-config.yaml")
+db = database.Database(CONFIG)
+
+if (db._dbtype != "INFILE"):
     db.createSATCATtable()
 
 satcat_file_fingerprint = fingerprint_file('data/satcat.txt')

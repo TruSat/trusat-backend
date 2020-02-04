@@ -73,28 +73,8 @@ def opt_out_station(db, Station_queryParams):
     return Station_check
 
 try:
-    with open('../../login.txt', 'r') as f:
-        lines = f.readlines()
-        dbname = lines[0].strip()
-        dbtype = lines[1].strip()
-        dbhostname = lines[2].strip()
-        dbusername = lines[3].strip()
-        dbpassword = lines[4].strip()
-except:
-    pass
-# --- CONSTANTS ---
-
-dbname = dbname or os.getenv('TRUSAT_DATABASE_NAME', None)
-dbhostname = dbhostname or os.getenv('TRUSAT_DATABASE_HOST', None)
-dbusername = dbusername or os.getenv('TRUSAT_DATABASE_USER', None)
-dbpassword = dbpassword or os.getenv('TRUSAT_DATABASE_PASSWORD', "")
-
-dbname or print("No database name specified")
-dbhostname or print("No database host specified")
-dbusername or print("No database user specified")
-
-try:
-    db = database.Database(dbname,dbtype,dbhostname,dbusername,dbpassword)
+    CONFIG = os.path.abspath("../../trusat-config.yaml")
+    db = database.Database(CONFIG)
     db.conn.autocommit = False # Turn off autocommit so we can verify/commit results
 except: 
     log.error("DB Login credentials not available.")

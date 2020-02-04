@@ -29,6 +29,7 @@ database.py: Does database interactions for the Open Satellite Catalog
 """
 
 def batch(iterable, n=1):
+    "Produce batch from <iterable> of size <n>."
     l = len(iterable)
     for ndx in range(0, l, n):
         yield iterable[ndx : min(ndx + n, l)]
@@ -175,7 +176,6 @@ class Station:
         self.notes			= None
         self.user			= None
 
-# TODO: Add index statements to the appropriate fields when creating the tables
 class Database:
     """ Database class opens and stores connection to the database, and performs database operations.
 
@@ -835,6 +835,7 @@ class Database:
 
 
     def create_ucs_satdb_raw_table(self, ext=""):
+        """ Raw table is direct from UCS, with no errors corrected from Celestrak SATCAT """
         self.create_ucs_satdb_table("_raw")
 
 
@@ -907,9 +908,18 @@ class Database:
     def add_celestrak_satcat_batch(self, data_batch):
         """ Add an SATCAT entry to the database """
 
-        find_query = """
+        fingerprint_query = """
+            SELECT line_fingerprint FROM `celestrak_SATCAT`;
+        """
+
+        find_with_norad = """
             SELECT * FROM `celestrak_SATCAT`
-            WHERE `line_fingerprint`=%s
+            WHERE `norad_numb`=%s;
+        """
+
+        delete_by_norad = """
+            DELETE FROM celestrak_SATCAT
+            WHERE `norad_num`=%s;
         """
 
         insert_query = """
@@ -917,28 +927,43 @@ class Database:
             (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
             %s, %s, %s, %s, %s, %s, %s, %s, NULL)
         """
-        data_to_update = []
+        data_to_insert = []
+        updated_entries = 0
         try:
+            self.c.execute(fingerprint_query)
+            SATCAT_fingerprints = QueryTupleListToList(self.c.fetchall())
+
             for data in data_batch:
-                self.c.execute(find_query, (data[-1],))
-                existing_row = self.c.fetchone()
-                if not existing_row:
-                    data_to_update.append(data)
-            if len(data_to_update) > 0:
-                for data in batch(data_to_update, 1000):
+                norad_number = data[1]
+                fingerprint = data[-1]
+                if fingerprint not in SATCAT_fingerprints:
+                    self.c.execute(find_with_norad, (norad_number,))
+                    existing_rows = self.c.fetchall()
+                    if existing_rows:
+                        self.c.execute(delete_by_norad, (norad_number,))
+                        log.info(
+                            f"""
+                            Removing existing entries with norad number {norad_number}.
+                            Satellite with Norad Number {norad_number} will be updated.
+                            """
+                        )
+                        updated_entries += 1
+                    data_to_insert.append(data)
+            if len(data_to_insert) > 0:
+                for data in batch(data_to_insert, 1000):
                     self.c.executemany(insert_query, data)
                     self.conn.commit()
-                log.info(f"{len(data_to_update)} rows added to celestrak_SATCAT")
+                log.info(f"{len(data_to_insert)-updated_entries} new rows added to celestrak_SATCAT")
+                log.info(f"{updated_entries} existing rows updated in celestrak_SATCAT")
         except Exception as e:
             log.error("MYSQL ERROR: {}".format(e))
 
 
     def add_ucs_satdb_batch(self, data_batch):
-        """ Add an UCS DB Fixed entry to the database """
+        """ Add an UCS DB (corrected) entry to the database """
 
-        find_query = """
-            SELECT * FROM `ucs_SATDB`
-            WHERE `line_fingerprint`=%s;
+        fingerprint_query = """
+            SELECT line_fingerprint FROM `ucs_SATDB`;
         """
 
         find_with_norad = """
@@ -959,62 +984,20 @@ class Database:
             %s, %s, %s, %s, %s, %s, %s, NULL)
         """
 
-        update_query = """
-        UPDATE ucs_SATDB
-        SET
-            name = %s,
-            country_registered = %s,
-            country_owner = %s,
-            owner_operator = %s,
-            users = %s,
-            purpose = %s,
-            purpose_detailed = %s,
-            orbit_class = %s,
-            orbit_type = %s,
-            GEO_longitude = %s,
-            perigee_km = %s,
-            apogee_km = %s,
-            eccentricity = %s,
-            inclination_degrees = %s,
-            period_minutes = %s,
-            launch_mass_kg = %s,
-            dry_mass_kg = %s,
-            power_watts = %s,
-            launch_date = %s,
-            expected_lifetime_years = %s,
-            contractor = %s,
-            contractor_country = %s,
-            launch_site = %s,
-            launch_vehicle = %s,
-            international_designator = %s, 
-            norad_number = %s,
-            comments = %s,
-            detailed_comments = %s,
-            source_1 = %s,
-            source_2 = %s,
-            source_3 = %s,
-            source_4 = %s,
-            source_5 = %s,
-            source_6 = %s,
-            source_7 = %s,
-            line_fingerprint = %s,
-            import_timestamp = NOW()
-        WHERE norad_number = %s;
-        """
-
         data_to_insert = []
-        data_to_update = []
+        updated_entries = 0
         try:
+            self.c.execute(fingerprint_query)
+            ucs_SATDB_fingerprints = QueryTupleListToList(self.c.fetchall())
+
             for data in data_batch:
                 norad_number = data[25]
                 fingerprint = data[-1]
-                self.c.execute(find_query, (fingerprint,))
-                existing_fingerprint = self.c.fetchone()
 
-                if not existing_fingerprint:
+                if fingerprint not in ucs_SATDB_fingerprints:
                     self.c.execute(find_with_norad, (norad_number,))
-                    existing_row = self.c.fetchall()
-                    if existing_row:
+                    existing_rows = self.c.fetchall()
+                    if existing_rows:
                         self.c.execute(delete_by_norad, (norad_number,))
                         log.info(
                             f"""
@@ -1022,29 +1005,34 @@ class Database:
                             Satellite with Norad Number {norad_number} will be updated.
                             """
                         )
-
-                        # data_to_update.append(data + [norad_number])
+                        updated_entries += 1
                     data_to_insert.append(data)
 
             if len(data_to_insert) > 0:
                 for data in batch(data_to_insert, 1000):
                     self.c.executemany(insert_query, data)
                     self.conn.commit()
-                log.info(f"{len(data_to_insert)} rows added to ucs_SATDB")
-            if len(data_to_update) > 0:
-                for data in batch(data_to_update, 1000):
-                    self.c.executemany(update_query, data)
-                    self.conn.commit()
-                log.info(f"{len(data_to_update)} rows updated in ucs_SATDB")
+                log.info(f"{len(data_to_insert)-updated_entries} new rows added to ucs_SATDB")
+                log.info(f"{updated_entries} existing rows updated in ucs_SATDB")
         except Exception as e:
             log.error("MYSQL ERROR: {}".format(e))
+
 
     def add_ucs_satdb_raw_batch(self, data_batch):
         """ Add an UCS DB entry to the database """
 
-        find_query = """
+        fingerprint_query = """
+            SELECT line_fingerprint FROM `ucs_SATDB_raw`;
+        """
+
+        find_with_norad = """
             SELECT * FROM `ucs_SATDB_raw`
-            WHERE `line_fingerprint`=%s
+            WHERE `norad_number`=%s;
+        """
+
+        delete_by_norad = """
+            DELETE FROM ucs_SATDB_raw
+            WHERE `norad_number`=%s;
         """
 
         insert_query = """
@@ -1054,18 +1042,34 @@ class Database:
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s, %s, NULL)
         """
-        data_to_update = []
+        data_to_insert = []
+        updated_entries = 0
         try:
+            self.c.execute(fingerprint_query)
+            ucs_SATDB_raw_fingerprints = QueryTupleListToList(self.c.fetchall())
+
             for data in data_batch:
-                self.c.execute(find_query, (data[-1],))
-                existing_row = self.c.fetchone()
-                if not existing_row:
-                    data_to_update.append(data)
-            if len(data_to_update) > 0:
-                for data in batch(data_to_update, 1000):
+                norad_number = data[25]
+                fingerprint = data[-1]
+                if fingerprint not in ucs_SATDB_raw_fingerprints:
+                    self.c.execute(find_with_norad, (norad_number,))
+                    existing_rows = self.c.fetchall()
+                    if existing_rows:
+                        self.c.execute(delete_by_norad, (norad_number,))
+                        log.info(
+                            f"""
+                            Removing existing entries with norad number {norad_number}.
+                            Satellite with Norad Number {norad_number} will be updated.
+                            """
+                        )
+                        updated_entries += 1
+                    data_to_insert.append(data)
+            if len(data_to_insert) > 0:
+                for data in batch(data_to_insert, 1000):
                     self.c.executemany(insert_query, data)
                     self.conn.commit()
-                log.info(f"{len(data_to_update)} rows added to ucs_SATDB_raw")
+                log.info(f"{len(data_to_insert)-updated_entries} new rows added to ucs_SATDB")
+                log.info(f"{updated_entries} existing rows updated in ucs_SATDB_raw")
         except Exception as e:
             log.error("MYSQL ERROR: {}".format(e))
 
