@@ -7,16 +7,9 @@ sys.path.insert(1,"../sathunt-database")
 import database
 import pytest
 
-# Read database config from login.txt
-f = open('login.txt', 'r')
-lines = f.readlines()
-db_name = lines[0].strip()
-db_type = lines[1].strip()
-endpoint = lines[2].strip()
-username = lines[3].strip()
-password = lines[4].strip()
-f.close()
-pytest.db = database.Database(db_name, db_type, endpoint, username, password)
+# Read config and set up database connection
+CONFIG = os.path.abspath("../../trusat-config.yaml")
+pytest.db = database.Database(CONFIG)
 
 # START IOD cluster search section
 def test_find_cluster_simple(snapshot):

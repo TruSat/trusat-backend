@@ -257,15 +257,8 @@ def wait_for_email(history_id):
 
     service = build('gmail', 'v1', credentials=creds)
 
-    f = open('login.txt', 'r')
-    lines = f.readlines()
-    db_name = lines[0].strip()
-    db_type = lines[1].strip()
-    endpoint = lines[2].strip()
-    username = lines[3].strip()
-    password = lines[4].strip()
-    f.close()
-    db = database.Database(db_name, db_type, endpoint, username, password)
+    CONFIG = os.path.abspath("../../trusat-config.yaml")
+    db = database.Database(CONFIG)
 
     try:
         history = (service.users().history().list(userId='me', startHistoryId=history_id).execute())

@@ -1,0 +1,7 @@
+# Trusat Database Connection Configuration
+Database:
+  name: "space"
+  type:
+  hostname: "127.0.0.1"
+  username: "root"
+  password:
