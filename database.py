@@ -482,8 +482,8 @@ class Database:
     - TLE             - Two Line Elements
     - TLEFILE         - File record of externally-source elements (for dupe detection or source traceability)
     - celestrak_SATCAT - Catalog description (externally sourced from Celestrak)
-    - ucs_SATDB        - Catalog description (externally sourced from UCS database)
-    - ucs_SATDB_fixed  - ucs_SATDB fixed with data from celestrak.org
+    - ucs_SATDB_raw    - Catalog description (raw data, externally sourced from UCS database)
+    - ucs_SATDB        - ucs_SATDB fixed with data from celestrak.org
     """
 
     def checkTableExists(self, tablename):
@@ -796,7 +796,7 @@ class Database:
             # TODO: make another table from the multiple_name_flag data in https://celestrak.com/pub/satcat-annex.txt
             createquery = (
             """CREATE TABLE IF NOT EXISTS celestrak_SATCAT (
-                satcat_id               INTEGER """
+                sat_cat_id               INTEGER """
                   + self.increment 
                   + """,
                 intl_desg               VARCHAR(11) NOT NULL,
@@ -817,7 +817,7 @@ class Database:
                 orbit_status_code       CHAR(3),
                 line_fingerprint        CHAR(32) NOT NULL,
                 import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-                PRIMARY KEY (`satcat_id`),
+                PRIMARY KEY (`sat_cat_id`),
                 KEY `celestrak_SATCAT_intl_desg_idx` (`intl_desg`(11)) USING BTREE,
                 KEY `celestrak_SATCAT_norad_num_idx` (`norad_num`) USING BTREE,
                 KEY `line_fingerprint` (`line_fingerprint`) USING BTREE,
@@ -834,8 +834,8 @@ class Database:
                 True
 
 
-    def create_ucs_satdb_fixed_table(self, ext=""):
-        self.create_ucs_satdb_table("_fixed")
+    def create_ucs_satdb_raw_table(self, ext=""):
+        self.create_ucs_satdb_table("_raw")
 
 
     def create_ucs_satdb_table(self, ext=""):
@@ -937,22 +937,22 @@ class Database:
         """ Add an UCS DB Fixed entry to the database """
 
         find_query = """
-            SELECT * FROM `ucs_SATDB_fixed`
+            SELECT * FROM `ucs_SATDB`
             WHERE `line_fingerprint`=%s
         """
 
         find_with_norad = """
-            SELECT * FROM `ucs_SATDB_fixed`
+            SELECT * FROM `ucs_SATDB`
             WHERE `norad_number`=%s
         """
 
         delete_by_norad = """
-            DELETE FROM ucs_SATDB_fixed
+            DELETE FROM ucs_SATDB
             WHERE norad_number=%s;
         """
 
         insert_query = """
-        INSERT INTO ucs_SATDB_fixed VALUES
+        INSERT INTO ucs_SATDB VALUES
             (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
@@ -960,7 +960,7 @@ class Database:
         """
 
         update_query = """
-        UPDATE ucs_SATDB_fixed
+        UPDATE ucs_SATDB
         SET
             name = %s,
             country_registered = %s,
@@ -1030,12 +1030,12 @@ class Database:
                 for data in batch(data_to_insert, 1000):
                     self.c.executemany(insert_query, data)
                     self.conn.commit()
-                log.info(f"{len(data_to_insert)} rows added to ucs_SATDB_fixed")
+                log.info(f"{len(data_to_insert)} rows added to ucs_SATDB")
             if len(data_to_update) > 0:
                 for data in batch(data_to_update, 1000):
                     self.c.executemany(update_query, data)
                     self.conn.commit()
-                log.info(f"{len(data_to_update)} rows updated in ucs_SATDB_fixed")
+                log.info(f"{len(data_to_update)} rows updated in ucs_SATDB")
         except Exception as e:
             log.error("MYSQL ERROR: {}".format(e))
 
@@ -1043,12 +1043,12 @@ class Database:
         """ Add an UCS DB entry to the database """
 
         find_query = """
-            SELECT * FROM `ucs_SATDB`
+            SELECT * FROM `ucs_SATDB_raw`
             WHERE `line_fingerprint`=%s
         """
 
         insert_query = """
-        INSERT INTO ucs_SATDB VALUES
+        INSERT INTO ucs_SATDB_raw VALUES
             (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
@@ -1065,7 +1065,7 @@ class Database:
                 for data in batch(data_to_update, 1000):
                     self.c.executemany(insert_query, data)
                     self.conn.commit()
-                log.info(f"{len(data_to_update)} rows added to ucs_SATDB")
+                log.info(f"{len(data_to_update)} rows added to ucs_SATDB_raw")
         except Exception as e:
             log.error("MYSQL ERROR: {}".format(e))
 
