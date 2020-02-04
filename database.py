@@ -933,7 +933,7 @@ class Database:
             log.error("MYSQL ERROR: {}".format(e))
 
 
-    def add_ucs_satdb_fixed_batch(self, data_batch):
+    def add_ucs_satdb_batch(self, data_batch):
         """ Add an UCS DB Fixed entry to the database """
 
         find_query = """
@@ -1039,7 +1039,7 @@ class Database:
         except Exception as e:
             log.error("MYSQL ERROR: {}".format(e))
 
-    def add_ucs_satdb_batch(self, data_batch):
+    def add_ucs_satdb_raw_batch(self, data_batch):
         """ Add an UCS DB entry to the database """
 
         find_query = """

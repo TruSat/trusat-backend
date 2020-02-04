@@ -190,8 +190,24 @@ def format(val):
     return val
 
 
+def update_ucs_satdb_raw_table(Database, df):
+    log.info("Updating the ucs_satdb raw table...")
+
+    total_rows = 0
+    data_batch = []
+    for row in df.itertuples(index=False, name=None):
+        record_fingerprint = fingerprint_line("".join(str(e) for e in row))
+        savable = [format(i) for i in row] + [record_fingerprint]
+
+        data_batch.append(savable)
+        total_rows = total_rows + 1
+
+    if len(data_batch) > 0:
+        db.add_ucs_satdb_raw_batch(data_batch)
+
+
 def update_ucs_satdb_table(Database, df):
-    log.info("Updating the ucs_satdb table...")
+    log.info("Updating the (fixed) ucs_satdb table...")
 
     total_rows = 0
     data_batch = []
@@ -204,22 +220,6 @@ def update_ucs_satdb_table(Database, df):
 
     if len(data_batch) > 0:
         db.add_ucs_satdb_batch(data_batch)
-
-
-def update_ucs_satdb_fixed_table(Database, df):
-    log.info("Updating the ucs_satdb table...")
-
-    total_rows = 0
-    data_batch = []
-    for row in df.itertuples(index=False, name=None):
-        record_fingerprint = fingerprint_line("".join(str(e) for e in row))
-        savable = [format(i) for i in row] + [record_fingerprint]
-
-        data_batch.append(savable)
-        total_rows = total_rows + 1
-
-    if len(data_batch) > 0:
-        db.add_ucs_satdb_fixed_batch(data_batch)
 
 
 def parse_celestrak_row(line):
@@ -298,12 +298,12 @@ db.create_ucs_satdb_table()
 satdb = load_ucs_satdb_data()
 satcat = load_celestrak_satcat_data()
 
-update_ucs_satdb_table(db, satdb)
+update_ucs_satdb_raw_table(db, satdb)
 update_celestrak_satcat_table(db, satcat)
 
 satdb = fix_discrepencies(satdb, satcat)
 
-update_ucs_satdb_fixed_table(db, satdb)
+update_ucs_satdb_table(db, satdb)
 
 log.info("Script Complete")
 sys.exit(0)
