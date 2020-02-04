@@ -948,7 +948,7 @@ class Database:
 
         delete_by_norad = """
             DELETE FROM ucs_SATDB
-            WHERE norad_number=%s;
+            WHERE `norad_number`=%s;
         """
 
         insert_query = """
@@ -1015,7 +1015,7 @@ class Database:
                     self.c.execute(find_with_norad, (norad_number,))
                     existing_row = self.c.fetchone()
                     if existing_row:
-                        self.c.execute(delete_by_norad, (norad_number))
+                        self.c.execute(delete_by_norad, (norad_number,))
                         log.info(
                             f"""
                             Removing existing entries with norad number {norad_number}.
