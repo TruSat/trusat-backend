@@ -45,6 +45,7 @@ PORT_NUMBER = 8080
 
 
 config = {
+    "JSON_SORT_KEYS": False,
     "CACHE_TYPE": "simple",
     "CACHE_DEFAULT_TIMEOUT": 300,
     "SECRET_KEY": SECRET_KEY
