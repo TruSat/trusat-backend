@@ -3073,7 +3073,8 @@ class Database:
           FROM user_observations Obs
           LEFT JOIN celestrak_SATCAT ON Obs.object_number = celestrak_SATCAT.norad_num
           LEFT JOIN station_status ON Obs.station_status_code = station_status.code
-          LEFT JOIN TLE_process ON Obs.obs_id = TLE_process.obs_id;
+          LEFT JOIN TLE_process ON Obs.obs_id = TLE_process.obs_id
+          GROUP BY Obs.obs_id;
         """
         queryParams = {
             'ETH_ADDR': eth_addr,
