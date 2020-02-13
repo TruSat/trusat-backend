@@ -133,7 +133,7 @@ def handle_invalid_usage(error):
 @app.before_request
 def before_request_func():
     # Read config and set up database connection
-    CONFIG = os.path.abspath("../../trusat-config.yaml")
+    CONFIG = os.path.abspath("../trusat-config.yaml")
     g.db = database.Database(CONFIG)
 
 @app.after_request
