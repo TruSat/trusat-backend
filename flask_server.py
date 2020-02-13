@@ -34,14 +34,13 @@ from flask_wtf.csrf import CSRFProtect
 # - MAILGUN_API_KEY
 # - MAILGUN_EMAIL_ADDRESS
 # - WEBSITE_ORIGINS
-# - 
+# - SECRET_KEY
 MAILGUN_API_KEY = os.getenv('MAILGUN_API_KEY', False)
 MAILGUN_EMAIL_ADDRESS = os.getenv('MAILGUN_EMAIL_ADDRESS', False)
 WEBSITE_ORIGINS = os.getenv('WEBSITE_ORIGINS', False)
 WEBSITE_ORIGINS = WEBSITE_ORIGINS.split(',')
 SECRET_KEY = os.getenv('SECRET_KEY', False)
 SECRET_KEY = base64.b64decode(bytes(SECRET_KEY, 'utf-8'))
-PORT_NUMBER = 8080
 
 
 config = {
