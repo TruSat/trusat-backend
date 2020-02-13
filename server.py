@@ -77,7 +77,6 @@ def isValidUserSetting(setting):
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
     def __init__(self, request, client_address, server):
-        print(request)
         # Read config and set up database connection
         CONFIG = os.path.abspath("../../trusat-config.yaml")
         self.db = database.Database(CONFIG)
