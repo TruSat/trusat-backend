@@ -3,6 +3,7 @@ import mysql.connector as mariadb
 from datetime import datetime, timedelta
 from hashlib import md5
 from csv import writer
+from io import StringIO
 import pycountry
 import json
 import random
@@ -3170,6 +3171,74 @@ class Database:
         convert_country_names(object_observed)
         return object_observed
 
+
+    def selectUserIODs(self, eth_addr):
+        """ For a given ETH address, return IODs they have submitted, as well as the parsed values.
+
+        This function is for the user to be able to download their contributed data.
+        It downloads data for all stations associated with the user.
+        
+        """
+        query = """
+          -- Our user's ID
+          WITH user AS (
+            SELECT id, name
+            FROM Observer
+            WHERE eth_addr = %(ETH_ADDR)s
+          )
+          -- Our user's stations
+          , user_stations AS (
+            SELECT U.id user_id, U.name user_name, S.station_num
+            FROM user U
+            LEFT JOIN Station S on (U.id = S.user)
+          )
+          -- The objects our user has viewed, and the field-order for the returned data
+          , user_objects AS (
+            SELECT P.iod_string,P.station_number,P.object_number,
+            P.international_designation,P.station_status_code,P.obs_time_string,
+            CONVERT(P.obs_time, DATETIME(3)) as obs_time,P.time_uncertainty,
+            P.time_standard_code, P.angle_format_code,P.epoch_code,P.epoch,P.ra,
+            P.declination, P.azimuth,P.elevation,P.positional_uncertainty,
+            P.optical_behavior_code,P.visual_magnitude,P.visual_magnitude_high,
+            P.visual_magnitude_low,P.magnitude_uncertainty,P.flash_period,
+            P.remarks,P.obs_id,P.iod_type,P.valid_position,P.message_id,
+            P.obsFingerPrint,P.submitted,P.import_timestamp
+            FROM user_stations US
+            LEFT JOIN ParsedIOD P on (US.station_num = P.station_number)
+            WHERE P.obs_id IS NOT NULL
+            ORDER BY P.obs_time ASC)
+          SELECT * from user_objects;
+        """
+        queryParams = {
+            'ETH_ADDR': eth_addr
+            }
+        self.c.execute(query, queryParams)
+
+        # CSV writer needs a file-like object to write to
+        output = StringIO()
+
+        # Create CSV header
+        fieldnames = ["iod_string","station_number","object_number",
+             "international_designation","station_status_code","obs_time_string",
+             "obs_time","time_uncertainty","time_standard_code",
+             "angle_format_code","epoch_code","epoch","ra","declination",
+             "azimuth","elevation","positional_uncertainty",
+             "optical_behavior_code","visual_magnitude","visual_magnitude_high",
+             "visual_magnitude_low","magnitude_uncertainty","flash_period",
+             "remarks","obs_id","iod_type","valid_position","message_id",
+             "obsFingerPrint","submitted","import_timestamp"]
+        IOD_csv = writer(output, dialect='excel')
+        IOD_csv.writerow(fieldnames)
+
+        rows = self.c.fetchall()
+        if rows:
+            IOD_csv.writerows(rows)
+            output.seek(0)
+            return output.read()
+        else:
+            return None
+
+
     # https://consensys-cpl.atlassian.net/browse/MVP-311
     # /profile endpoint for a logged-in user
     def selectUserProfile(self, eth_addr):
@@ -3191,31 +3260,6 @@ class Database:
             json_dict,
             sort_keys=False,
             indent=4)
-
-
-    # FIXME: DEPRECATED It doesn't look like this function is used at all in server.py or internally in database.py
-    def selectObjectsObserved_JSON(self, fetch_row_count=10, offset_row_count=0):
-        """ Return list of (global) observed objects, ordered from most recent
-        """
-        query_tmp = """SELECT Json_Object(
-            'object_origin', ucs_SATDB.country_owner,
-            'primary_purpose', ucs_SATDB.purpose,
-            'object_type', ucs_SATDB.purpose_detailed,
-            'secondary_purpose', 'Secondary purpose does not exist, the variable is also misspelled.',
-            'observation_quality', ParsedIOD.station_status_code,
-            'time_last_tracked',date_format(ParsedIOD.obs_time, '%M %d, %Y') )
-            FROM ParsedIOD
-            LEFT JOIN ucs_SATDB ON ParsedIOD.object_number=ucs_SATDB.norad_number
-            WHERE valid_position = 1
-            ORDER BY obs_time DESC
-            LIMIT %(OFFSET)s,%(FETCH)s;"""
-        query_parameters = {
-                'OFFSET': offset_row_count,
-                'FETCH': fetch_row_count}
-        self.c.execute(query_tmp, query_parameters)
-        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
-        convert_country_names(observations)
-        return json.dumps(observations)
 
 
     # /catalog/priorities
