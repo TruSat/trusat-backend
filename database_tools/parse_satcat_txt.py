@@ -1,12 +1,25 @@
 #!/usr/bin/env python
 
 import os
+import sys
 from hashlib import md5
+from urllib.request import urlopen
+from hashlib import md5
+
 import logging
 log = logging.getLogger(__name__)
 
+# The following 5 lines are necessary until our modules are public
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+tle_util_path = os.path.join(parentdir, "../trusat-orbit")
+sys.path.insert(1,tle_util_path) 
+
+from tle_util import fingerprint_line
+
+sys.path.insert(1,os.path.dirname(currentdir)) 
 import database
-from tle_util import fingerprint_file, fingerprint_line
 
 # Set up database connection or files
 CONFIG = os.path.abspath("../../trusat-config.yaml")

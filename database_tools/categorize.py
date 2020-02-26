@@ -89,13 +89,14 @@ def main():
     URL = 'https://celestrak.com/NORAD/elements/'
     page = requests.get(URL)
     soup = BeautifulSoup(page.content, 'html.parser')
-    tables = soup.find_all('table', class_='striped-odd')
+    tables = soup.find_all('table', class_='striped')
 
     tot_files = 0
 
     for table in tables:
         # get main category
-        header = table.find('tr', class_='header')
+        # header = table.find('tr', class_='header')
+        header = table.find('tr')
         main_cat = header.next.next
         # find all links within main category
         links = header.find_next_siblings()
