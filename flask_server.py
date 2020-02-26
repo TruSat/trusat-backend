@@ -987,5 +987,23 @@ def generate_station():
         print(e)
         raise InvalidUsage('message', status_code=500)
 
+@app.route('/getAllObservations', methods=['POST'])
+def get_all_observations():
+    try:
+        user_jwt = request.cookies.get('jwt')
+        decoded_jwt = decode_jwt(user_jwt)
+        user_addr = decoded_jwt["address"]
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Missing parameter(s)', status_code=400)
+    if isValidEthereumAddress(user_addr) is False:
+        raise InvalidUsage('message', status_code=400)
+    try:
+        observations = g.get('db').selectUserIODs(user_addr)
+        return observations
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('query failed', status_code=500)
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
