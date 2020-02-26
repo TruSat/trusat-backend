@@ -58,42 +58,6 @@ if __name__ == '__main__':
                              const=1,                             
                              type=str,                             
                              metavar="FILE")
-    conf_parser.add_argument("-dbname", "--database", 
-                             help="database to USE",
-                             dest='dbname',
-                             default='opensatcat_dev',                           
-                             nargs='?',
-                             const=1,                             
-                             type=str,                             
-                             metavar="NAME")
-    conf_parser.add_argument("-H", "--hostname", 
-                             help="database hostname",
-                             dest='dbhostname',
-                             default='opensatcat.cvpypmmxjtv1.us-east-2.rds.amazonaws.com',
-                             nargs='?',
-                             const=1,
-                             type=str,                             
-                             metavar="HOSTNAME")
-    conf_parser.add_argument("-u", "--user", 
-                             help="database user name",
-                             dest='dbusername',
-                             nargs='?',
-                             type=str,                             
-                             metavar="USER")
-    conf_parser.add_argument("-p", "--password", 
-                             help="database user password",
-                             dest='dbpassword',
-                             nargs='?',
-                             type=str,                             
-                             metavar="PASSWD")
-    conf_parser.add_argument("-t", "--dbtype", 
-                             help="database type [INFILE, sqlserver, sqlite] default: INFILE",
-                             dest='dbtype',
-                             nargs='?',
-                             choices=['INFILE', 'sqlserver', 'sqlite'],
-                             default='INFILE',
-                             type=str,                             
-                             metavar="TYPE")
     conf_parser.add_argument("-q", "--quiet", help="Suppress console output",
                              dest='quiet',
                              action="store_true")
@@ -110,11 +74,6 @@ if __name__ == '__main__':
     args = conf_parser.parse_args()
     # Process commandline options and parse configuration
     root_dir = args.root_dir
-    dbname = args.dbname
-    dbhostname = args.dbhostname
-    dbusername = args.dbusername
-    dbpassword = args.dbpassword
-    dbtype = args.dbtype
     verbose = args.verbose
     quiet = args.quiet
     userinfo = args.userinfo
@@ -145,21 +104,10 @@ if __name__ == '__main__':
         log.warning("Unable to open directory {}. Exiting.".format(root_dir))
         sys.exit()
 
-    if (dbtype == "sqlserver"):
-        if dbusername == None:
-            try: 
-                dbusername = input("Username: ") 
-            except Exception as error: 
-                log.warning('ERROR: password must be specified {}'.format(error))
-        if dbpassword == None:
-            try: 
-                dbpassword = getpass() 
-            except Exception as error: 
-                log.warning('ERROR: password must be specified {}'.format(error))
-
     # Set up database connection or files
-    db = database.Database(dbname,dbtype,dbhostname,dbusername,dbpassword)
-    if (dbtype != "INFILE"):
+    CONFIG = os.path.abspath("../../trusat-config.yaml")
+    db = database.Database(CONFIG)
+    if (db._dbtype != "INFILE"):
         try:
             db.createObsTables()
         except:
@@ -262,7 +210,7 @@ if __name__ == '__main__':
         
                     obsid = db.addParsedIOD(IOD_records, submit_time)
 
-                    if (dbtype != "INFILE"):
+                    if (db._dbtype != "INFILE"):
                         db.commit_IOD_db_writes()
                     time_end = time()
                     delta = (time_end-time_start)

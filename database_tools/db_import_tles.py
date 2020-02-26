@@ -163,32 +163,8 @@ def main():
         update_from_online(tle_path)
 
     if (importTLE):
-        # Temporary database credentials hack
-        try:
-            with open('../../login.txt', 'r') as f:
-                lines = f.readlines()
-                dbname = lines[0].strip()
-                dbtype = lines[1].strip()
-                dbhostname = lines[2].strip()
-                dbusername = lines[3].strip()
-                dbpassword = lines[4].strip()
-        except: 
-            log.error("DB Login credentials not available.")
-
-        if (dbtype == "sqlserver"):
-            if dbusername == None:
-                try: 
-                    dbusername = input("Username: ") 
-                except Exception as error: 
-                    log.warning("ERROR: password must be specified {}".format(error)) 
-            if dbpassword == None:
-                try: 
-                    dbpassword = getpass() 
-                except Exception as error: 
-                    log.warning("ERROR: password must be specified {}".format(error))
-
-        # Set up database connection or files
-        db = database.Database(dbname,dbtype,dbhostname,dbusername,dbpassword)
+        CONFIG = os.path.abspath("../../trusat-config.yaml")
+        db = database.Database(CONFIG)
         # TODO: Probably need an error check to ensure this was set up correctly
         if (dbtype != "INFILE"):
             try:

@@ -8,24 +8,7 @@ from bs4 import BeautifulSoup
 from bs4 import element
 from threading import Thread
 
-with open('../../login.txt', 'r') as f:
-    lines = f.readlines()
-    dbname = lines[0].strip()
-    dbtype = lines[1].strip()
-    dbhostname = lines[2].strip()
-    dbusername = lines[3].strip()
-    dbpassword = lines[4].strip()
-
 # --- CONSTANTS ---
-
-dbname = dbname or os.getenv('TRUSAT_DATABASE_NAME', None)
-dbhostname = dbhostname or os.getenv('TRUSAT_DATABASE_HOST', None)
-dbusername = dbusername or os.getenv('TRUSAT_DATABASE_USER', None)
-dbpassword = dbpassword or os.getenv('TRUSAT_DATABASE_PASSWORD', "")
-
-dbname or print("No database name specified")
-dbhostname or print("No database host specified")
-dbusername or print("No database user specified")
 
 TABLE_create_query = """CREATE TABLE IF NOT EXISTS `categories` (
      `obj_no` MEDIUMINT(5) UNSIGNED NOT NULL,
@@ -73,17 +56,13 @@ def process_file(url, name, sub_cat, description):
 # --- INIT ---
 
 def main():
+    CONFIG = os.path.abspath("../../trusat-config.yaml")
+
     # connect to server
+
     try:
-        cnx = mysql.connector.connect(
-            host=dbhostname,
-            user=dbusername,
-            passwd=dbpassword,
-            db=dbname,
-            charset='utf8',
-            use_unicode=True
-        )
-        cursor = cnx.cursor()
+        db = database.Database(CONFIG)
+        cursor = db.cursor()
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
             print('Something is wrong with your user name or password')

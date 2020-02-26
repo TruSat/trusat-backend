@@ -1,3 +1,7 @@
+flask
+flask-cors
+Flask-Caching
+Flask-WTF
 pysha3
 pyjwt
 eth_account
@@ -11,6 +15,7 @@ cryptography
 python-dateutil
 coinaddr
 bs4
+pyyaml
 
 # Drop-in replacement for configparser which also reads config files
 ConfigArgParse

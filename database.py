@@ -3,10 +3,12 @@ import mysql.connector as mariadb
 from datetime import datetime, timedelta
 from hashlib import md5
 from csv import writer
+from io import StringIO
 import pycountry
 import json
 import random
 import re
+from yaml import load, Loader
 
 
 # The following 9 lines are necessary until the trusat-orbit repo is public
@@ -26,6 +28,13 @@ log = logging.getLogger(__name__)
 """
 database.py: Does database interactions for the Open Satellite Catalog
 """
+
+def batch(iterable, n=1):
+    "Produce batch from <iterable> of size <n>."
+    l = len(iterable)
+    for ndx in range(0, l, n):
+        yield iterable[ndx : min(ndx + n, l)]
+
 
 def QueryRowToJSON_JSON(var):
     """ Take the results of an SQL fetchone and returns a dictionary version of the string """
@@ -168,7 +177,6 @@ class Station:
         self.notes			= None
         self.user			= None
 
-# TODO: Add index statements to the appropriate fields when creating the tables
 class Database:
     """ Database class opens and stores connection to the database, and performs database operations.
 
@@ -180,22 +188,20 @@ class Database:
         dbusername - username for sqlserver
         dbpassword - password for sqlserver
     """
-    def __init__(self, dbname=None,dbtype="sqlserver",dbhostname=None,dbusername=None,dbpassword=None):
+    def __init__(self, db_config_path):
 
-        dbname = dbname or os.getenv('TRUSAT_DATABASE_NAME', None)
-        dbhostname = dbhostname or os.getenv('TRUSAT_DATABASE_HOST', None)
-        dbusername = dbusername or os.getenv('TRUSAT_DATABASE_USER', None)
-        dbpassword = dbpassword or os.getenv('TRUSAT_DATABASE_PASSWORD', "")
+        with open(db_config_path) as f:
+            db_config = load(f, Loader=Loader)["Database"]
+    
+        self._dbname = db_config["name"] or os.getenv('TRUSAT_DATABASE_NAME', None)
+        self._dbtype = db_config.get("type")
+        self._dbhostname = db_config.get("hostname") or os.getenv('TRUSAT_DATABASE_HOST', None)
+        self._dbusername = db_config.get("username") or os.getenv('TRUSAT_DATABASE_USER', None)
+        self._dbpassword = db_config.get("password") or os.getenv('TRUSAT_DATABASE_PASSWORD', "")
 
-        dbname or print("No database name specified")
-        dbhostname or print("No database host specified")
-        dbusername or print("No database user specified")
-
-        self._dbname     = dbname
-        self._dbtype     = dbtype
-        self._dbhostname = dbhostname
-        self._dbusername = dbusername
-        self._dbpassword = dbpassword
+        self._dbname or log.error("No database name specified")
+        self._dbhostname or log.error("No database host specified")
+        self._dbpassword or log.error("No database user specified")
 
         self._last_observer_id = None
         self._IODentryList = []
@@ -239,6 +245,7 @@ class Database:
             self._writer_UCSDB = writer(self._f_UCSDB, dialect='unix')
 
         elif self._dbtype == "sqlserver":  # Make database
+            log.info("Connecting to the sqlserver Database...")
             self.conn = mariadb.connect(
                 host=self._dbhostname,
                 user=self._dbusername,
@@ -291,6 +298,7 @@ class Database:
                 self._new_observerid = 0
 
         else:
+            log.info("Connecting to the SQLite Database...")
             self.conn = sqlite3.connect(self._dbname + ".db")
             self.c = self.conn.cursor()
 
@@ -319,12 +327,17 @@ class Database:
         self.selectTLEFingerprint_query = '''SELECT tle_fingerprint FROM TLE WHERE tle_fingerprint LIKE ? LIMIT 1'''
         self.selectIODFingerprint_query = '''SELECT obsFingerPrint FROM ParsedIOD WHERE obsFingerPrint LIKE ? LIMIT 1'''
         # !TODO: there may be more than one IOD for a given {object, observation time}. Limit to 1, perhaps arbitrarily if we have no way of discriminating.
+
+        # Latest TLEs for each object that are not known to be decayed
         self.selectLatestTLEPerObject = """
-            select TLE.line0, TLE.line1, TLE.line2,  TLE.satellite_number, TLE.epoch from
-              (SELECT max(epoch) as epoch, satellite_number
+            SELECT TLE.line0, TLE.line1, TLE.line2,  TLE.satellite_number, TLE.epoch FROM
+              (SELECT max(epoch) AS epoch, satellite_number
               FROM TLE
-              GROUP BY satellite_number) as latest_tles
-            left join TLE on (TLE.satellite_number = latest_tles.satellite_number and TLE.epoch = latest_tles.epoch)"""
+              GROUP BY satellite_number) AS latest_tles
+            LEFT JOIN TLE ON (TLE.satellite_number = latest_tles.satellite_number AND TLE.epoch = latest_tles.epoch)
+            LEFT JOIN celestrak_SATCAT SatCat ON (TLE.satellite_number = SatCat.norad_num)
+			WHERE (SatCat.ops_status_code <> 'D' OR SatCat.ops_status_code IS NULL)
+            """
 
         self.selectCatalogQueryPrefix = """
             WITH catalog as (
@@ -355,6 +368,7 @@ class Database:
                               		FROM categories
                               		GROUP BY obj_no
                               	) AS C ON LU.object_number = C.obj_no
+                              WHERE (SatCat.ops_status_code <> 'D' OR SatCat.ops_status_code IS NULL)  
                               )
               SELECT
                 IODs.*,
@@ -458,65 +472,7 @@ class Database:
             tle_result_rms,
             remarks
             ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'''
-        self.addSATCAT_query = '''INSERT INTO celestrak_SATCAT (
-            intl_desg,
-            norad_num,
-            multiple_name_flag,
-            payload_flag,
-            ops_status_code,
-            name,
-            source,
-            launch_date,
-            decay_date,
-            orbit_period_minutes,
-            inclination_deg,
-            apogee,
-            perigee,
-            radar_crosssec,
-            orbit_status_code,
-            line_fingerprint,
-            file_fingerprint) VALUES
-            (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'''
 
-        self.addUCSDB_query = '''INSERT INTO ucs_SATDB (
-            name,
-            country_registered,
-            country_owner,
-            owner_operator,
-            users,
-            purpose,
-            purpose_detailed,
-            orbit_class,
-            orbit_type,
-            GEO_longitude,
-            perigee_km,
-            apogee_km,
-            eccentricity,
-            inclination_degrees,
-            period_minutes,
-            launch_mass_kg,
-            dry_mass_kg,
-            power_watts,
-            launch_date,
-            expected_lifetime_years,
-            contractor,
-            contractor_country,
-            launch_site,
-            launch_vehicle,
-            international_designator,
-            norad_number,
-            comments,
-            detailed_comments,
-            source_1,
-            source_2,
-            source_3,
-            source_4,
-            source_5,
-            source_6,
-            source_7,
-            line_fingerprint,
-            file_fingerprint) VALUES
-            (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'''
 
     """ TruSat Table Schema overview:
     - ParsedIOD       - Observations from IOD, RDE or UK formats
@@ -527,332 +483,596 @@ class Database:
     - TLE             - Two Line Elements
     - TLEFILE         - File record of externally-source elements (for dupe detection or source traceability)
     - celestrak_SATCAT - Catalog description (externally sourced from Celestrak)
-    - ucs_SATDB        - Catalog description (externally sourced from UCS database)
+    - ucs_SATDB_raw    - Catalog description (raw data, externally sourced from UCS database)
+    - ucs_SATDB        - ucs_SATDB fixed with data from celestrak.org
     """
+
+    def checkTableExists(self, tablename):
+        """ Determine if the requested database exists on the server """
+        try:
+            self.c.execute(
+                """
+                SELECT COUNT(*)
+                FROM information_schema.tables
+                WHERE 
+                table_schema = %s
+                AND table_name = %s
+                """,
+                (self._dbname,tablename)
+            )
+            if self.c.fetchone()[0] == 1:
+                return True
+        except Exception as e:
+            log.error("MYSQL ERROR: {}".format(e))
+            return False
+
+        return False
+
 
     def createObsTables(self):
         """ Generate Observation tables """
-        log.info("Creating Observation tables...")
 
-        """ ParsedIOD """
-        createquery = '''CREATE TABLE IF NOT EXISTS ParsedIOD (
-            obs_id                      INT NOT NULL ''' + self.increment + ''',    /* Unique internal ID */
-            submitted                   DATETIME,                       /* Datetime when the user submitted the observation (receipt time or time of email) */
-            object_number               MEDIUMINT(5) UNSIGNED,          /* NORAD number */
-            international_designation   VARCHAR(14),                    /* International designation */
-            station_number              SMALLINT(4) UNSIGNED NOT NULL,  /* Station number that made observation */
-            station_status_code         CHAR(1),        /* Packed code of station status - unpacked in station_status table */
-            obs_time_string             VARCHAR(27),    /* Source ascii string for observation time (for IOD.py debugging) */
-            obs_time                    DATETIME(6),    /* Exact time of observation */
-            time_uncertainty            FLOAT,          /* Observation uncertainty (seconds) */
-            time_standard_code          TINYINT,        /* Coded time standard */
-            angle_format_code           TINYINT(4),     /* Packed code of angle format */
-            epoch_code                  TINYINT(4),     /* Packed code of angle EPOCH format */
-            epoch                       SMALLINT,       /* Decoded EPOCH year */
-            ra                          DOUBLE,         /* right ascension (radians) - derived from az/el by iod.py if not provided */
-            declination                 DOUBLE,         /* declination of observation (radians) - 'dec' appears to be namespace collision. derived from az/el by iod.py if not provided */
-            azimuth                     DOUBLE,         /* azimuth of observation (radians) - derived from ra/dec by iod.py if not provided */
-            elevation                   DOUBLE,         /* elevation of observation (radians) - derived from ra/dec by iod.py if not provided */
-            positional_uncertainty      DOUBLE,         /* Position uncertainy of observation (radians) */
-            optical_behavior_code       CHAR(1),        /* Packed code of optical behavior */
-            visual_magnitude            FLOAT,
-            visual_magnitude_high       FLOAT,
-            visual_magnitude_low        FLOAT,
-            magnitude_uncertainty       FLOAT,
-            flash_period                FLOAT,          /* seconds */
-            remarks                     TEXT,           /* Any comments right of the formatted portion of the record */
-            iod_type                    VARCHAR(3),     /* Source type of Observation: IOD, RDE, UK */
-            iod_string                  TEXT NOT NULL,  /* Full / original unparsed observation record */
-            valid_position              BOOL,           /* Status flag pertaining to iod.py validity checks */
-            message_id                  TEXT,           /* Source mail header message ID (if available) */
-            obsFingerPrint              CHAR(32) NOT NULL UNIQUE,   /* Unique MD5 fingerprint of observation */
-            import_timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, /* Timestamp of DB record creation */
-            PRIMARY KEY (`obs_id`),
-            UNIQUE KEY `ParsedIOD_obsFingerPrint_idx` (`obsFingerPrint`),
-            KEY `ParsedIOD_object_number_idx` (`object_number`) USING BTREE,
-            KEY `ParsedIOD_international_designation_idx` (`international_designation` (14)) USING BTREE,
-            KEY `ParsedIOD_station_number_idx` (`station_number`) USING BTREE,
-            KEY `ParsedIOD_obs_time_idx` (`obs_time`) USING BTREE,
-            KEY `ParsedIOD_valid_position_idx` (`valid_position`) USING BTREE
-            )''' + self.charset_string
-        self.c.execute(createquery)
+        if self.checkTableExists("ParsedIOD"):
+            log.info("ParsedIOD table found.")
+        else:
+            log.info("Creating Observation tables...")
 
-        # Requires setting log_bin_trust_function_creators=1 on the AWS RDS instance
-        # https://stackoverflow.com/a/30874794
-        # Note we're counting on iod.py to set object_number to 0 if it is not available (UK/RDE formats)
-        """ Populate the NORAD object number on INSERT by looking up known International Designation """
-        create_trigger_query = """CREATE TRIGGER IF NOT EXISTS add_object_number
-            BEFORE INSERT ON ParsedIOD FOR EACH ROW
-            BEGIN
-                IF NEW.object_number = 0 THEN
-                    SET NEW.object_number = (
-                    SELECT celestrak_SATCAT.norad_num from celestrak_SATCAT
-                    WHERE NEW.international_designation = celestrak_SATCAT.intl_desg LIMIT 1);
-                END IF;
-            END;"""
-        try:
-            self.c.execute(create_trigger_query)
-        except (MySQLdb.Error, MySQLdb.Warning) as e:
-            log.warning(e)
-            log.warning("You may need to set log_bin_trust_function_creators=1 in your database instance.")
+            """ ParsedIOD """
+            createquery = '''CREATE TABLE IF NOT EXISTS ParsedIOD (
+                obs_id                      INT NOT NULL ''' + self.increment + ''',    /* Unique internal ID */
+                submitted                   DATETIME,                       /* Datetime when the user submitted the observation (receipt time or time of email) */
+                object_number               MEDIUMINT(5) UNSIGNED,          /* NORAD number */
+                international_designation   VARCHAR(14),                    /* International designation */
+                station_number              VARCHAR(4) NOT NULL,  /* Station number that made observation */
+                station_status_code         CHAR(1),        /* Packed code of station status - unpacked in station_status table */
+                obs_time_string             VARCHAR(27),    /* Source ascii string for observation time (for IOD.py debugging) */
+                obs_time                    DATETIME(6),    /* Exact time of observation */
+                time_uncertainty            FLOAT,          /* Observation uncertainty (seconds) */
+                time_standard_code          TINYINT,        /* Coded time standard */
+                angle_format_code           TINYINT(4),     /* Packed code of angle format */
+                epoch_code                  TINYINT(4),     /* Packed code of angle EPOCH format */
+                epoch                       SMALLINT,       /* Decoded EPOCH year */
+                ra                          DOUBLE,         /* right ascension (radians) - derived from az/el by iod.py if not provided */
+                declination                 DOUBLE,         /* declination of observation (radians) - 'dec' appears to be namespace collision. derived from az/el by iod.py if not provided */
+                azimuth                     DOUBLE,         /* azimuth of observation (radians) - derived from ra/dec by iod.py if not provided */
+                elevation                   DOUBLE,         /* elevation of observation (radians) - derived from ra/dec by iod.py if not provided */
+                positional_uncertainty      DOUBLE,         /* Position uncertainy of observation (radians) */
+                optical_behavior_code       CHAR(1),        /* Packed code of optical behavior */
+                visual_magnitude            FLOAT,
+                visual_magnitude_high       FLOAT,
+                visual_magnitude_low        FLOAT,
+                magnitude_uncertainty       FLOAT,
+                flash_period                FLOAT,          /* seconds */
+                remarks                     TEXT,           /* Any comments right of the formatted portion of the record */
+                iod_type                    VARCHAR(3),     /* Source type of Observation: IOD, RDE, UK */
+                iod_string                  TEXT NOT NULL,  /* Full / original unparsed observation record */
+                valid_position              BOOL,           /* Status flag pertaining to iod.py validity checks */
+                message_id                  TEXT,           /* Source mail header message ID (if available) */
+                obsFingerPrint              CHAR(32) NOT NULL UNIQUE,   /* Unique MD5 fingerprint of observation */
+                import_timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, /* Timestamp of DB record creation */
+                PRIMARY KEY (`obs_id`),
+                UNIQUE KEY `ParsedIOD_obsFingerPrint_idx` (`obsFingerPrint`),
+                KEY `ParsedIOD_object_number_idx` (`object_number`) USING BTREE,
+                KEY `ParsedIOD_international_designation_idx` (`international_designation` (14)) USING BTREE,
+                KEY `ParsedIOD_station_number_idx` (`station_number`) USING BTREE,
+                KEY `ParsedIOD_obs_time_idx` (`obs_time`) USING BTREE,
+                KEY `ParsedIOD_valid_position_idx` (`valid_position`) USING BTREE
+                )''' + self.charset_string
+            self.c.execute(createquery)
 
-        # Note we're counting on iod.py to set international designation to "?" if it's questionable
-        """ Populate the International Designation on INSERT by looking up known NORAD object number """
-        create_trigger_query = """CREATE TRIGGER IF NOT EXISTS add_international_designation
-            BEFORE INSERT ON ParsedIOD FOR EACH ROW
-            BEGIN
-                IF NEW.international_designation = "?" THEN
-                    SET NEW.international_designation = (
-                    SELECT celestrak_SATCAT.intl_desg from celestrak_SATCAT
-                    WHERE NEW.object_number = celestrak_SATCAT.norad_num LIMIT 1);
-                END IF;
-            END;"""
-        try:
-            self.c.execute(create_trigger_query)
-        except (MySQLdb.Error, MySQLdb.Warning) as e:
-            log.warning(e)
-            log.warning("You may need to set log_bin_trust_function_creators=1 in your database instance.")
+            # Requires setting log_bin_trust_function_creators=1 on the AWS RDS instance
+            # https://stackoverflow.com/a/30874794
+            # Note we're counting on iod.py to set object_number to 0 if it is not available (UK/RDE formats)
+            """ Populate the NORAD object number on INSERT by looking up known International Designation """
+            create_trigger_query = """CREATE TRIGGER IF NOT EXISTS add_object_number
+                BEFORE INSERT ON ParsedIOD FOR EACH ROW
+                BEGIN
+                    IF NEW.object_number = 0 THEN
+                        SET NEW.object_number = (
+                        SELECT celestrak_SATCAT.norad_num from celestrak_SATCAT
+                        WHERE NEW.international_designation = celestrak_SATCAT.intl_desg LIMIT 1);
+                    END IF;
+                END;"""
+            try:
+                self.c.execute(create_trigger_query)
+            except (MySQLdb.Error, MySQLdb.Warning) as e:
+                log.warning(e)
+                log.warning("You may need to set log_bin_trust_function_creators=1 in your database instance.")
+
+            # Note we're counting on iod.py to set international designation to "?" if it's questionable
+            """ Populate the International Designation on INSERT by looking up known NORAD object number """
+            create_trigger_query = """CREATE TRIGGER IF NOT EXISTS add_international_designation
+                BEFORE INSERT ON ParsedIOD FOR EACH ROW
+                BEGIN
+                    IF NEW.international_designation = "?" THEN
+                        SET NEW.international_designation = (
+                        SELECT celestrak_SATCAT.intl_desg from celestrak_SATCAT
+                        WHERE NEW.object_number = celestrak_SATCAT.norad_num LIMIT 1);
+                    END IF;
+                END;"""
+            try:
+                self.c.execute(create_trigger_query)
+            except (MySQLdb.Error, MySQLdb.Warning) as e:
+                log.warning(e)
+                log.warning("You may need to set log_bin_trust_function_creators=1 in your database instance.")
+
+        if self.checkTableExists("TLE_process"):
+            log.info("TLE_process table found.")
+        else:
+            log.info("Creating TLE_process table...")
+
+            """ TLE_process """
+            createquery = '''CREATE TABLE IF NOT EXISTS TLE_process (
+                process_id                  INT NOT NULL ''' + self.increment + ''', /* Unique internal ID of observation */
+                object_number               MEDIUMINT(5) UNSIGNED,  /* NORAD Num of TLE/Obs */
+                obs_id                      INT NOT NULL,           /* ID of observation */
+                tle_source_id               INT NOT NULL,           /* ID of starting reference TLE */
+                tle_result_id               INT NOT NULL,           /* ID of TLE created with this obs_id */
+                aspect                      FLOAT,                  /* degrees */
+                cross_track_err             FLOAT,                  /* degrees, left of track is positive */
+                time_err                    FLOAT,                  /* seconds */
+                position_err                FLOAT,                  /* degrees */
+                obs_weight                  FLOAT,                  /* percentage */
+                tle_start_rms               FLOAT,                  /* degrees^2 - value of RMS against reference TLE */
+                tle_result_rms              FLOAT,                  /* degrees^2 - value of RMS against refined TLE */
+                remarks                     TEXT,                   /* Most likely for debugging notes */
+                process_timestamp           TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, /* Timestamp of record creation */
+                PRIMARY KEY (`process_id`),
+                KEY `Process_object_number_idx` (`object_number`) USING BTREE,
+                KEY `Process_obs_id_idx`        (`obs_id`)        USING BTREE,
+                KEY `Process_tle_source_id_idx` (`tle_source_id`) USING BTREE,
+                KEY `Process_tle_result_id_idx` (`tle_result_id`) USING BTREE
+                )''' + self.charset_string
+            self.c.execute(createquery)
 
 
-        """ TLE_process """
-        createquery = '''CREATE TABLE IF NOT EXISTS TLE_process (
-            process_id                  INT NOT NULL ''' + self.increment + ''', /* Unique internal ID of observation */
-            object_number               MEDIUMINT(5) UNSIGNED,  /* NORAD Num of TLE/Obs */
-            obs_id                      INT NOT NULL,           /* ID of observation */
-            tle_source_id               INT NOT NULL,           /* ID of starting reference TLE */
-            tle_result_id               INT NOT NULL,           /* ID of TLE created with this obs_id */
-            aspect                      FLOAT,                  /* degrees */
-            cross_track_err             FLOAT,                  /* degrees, left of track is positive */
-            time_err                    FLOAT,                  /* seconds */
-            position_err                FLOAT,                  /* degrees */
-            obs_weight                  FLOAT,                  /* percentage */
-            tle_start_rms               FLOAT,                  /* degrees^2 - value of RMS against reference TLE */
-            tle_result_rms              FLOAT,                  /* degrees^2 - value of RMS against refined TLE */
-            remarks                     TEXT,                   /* Most likely for debugging notes */
-            process_timestamp           TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, /* Timestamp of record creation */
-            PRIMARY KEY (`process_id`),
-            KEY `Process_object_number_idx` (`object_number`) USING BTREE,
-            KEY `Process_obs_id_idx`        (`obs_id`)        USING BTREE,
-            KEY `Process_tle_source_id_idx` (`tle_source_id`) USING BTREE,
-            KEY `Process_tle_result_id_idx` (`tle_result_id`) USING BTREE
-            )''' + self.charset_string
-        self.c.execute(createquery)
+        if self.checkTableExists("Station"):
+            log.info("Station table found.")
+        else:
+            log.info("Creating Station table...")
+
+            """ Station Table. These records are a mix of observer identity and station identity.
+            TODO: Will need to provide better separation between Observers / Stations in future releases.
+            """
+            createquery = """CREATE TABLE IF NOT EXISTS Station (
+                station_num VARCHAR(4) NOT NULL,    /* 4 Digit COSPAR number of observation station */
+                user INT,                           /* Associated User table ID */
+                initial TINYTEXT,                   /* Observer initials */
+                latitude FLOAT,                     /* WGS84 Latitude (degrees) */
+                longitude FLOAT,                    /* WGS84 Longitude (degrees) */
+                elevation_m SMALLINT(4),            /* Elevation above mean sea level (meters) */
+                name TINYTEXT,                      /* Name field for station/observer */
+                MPC TINYTEXT,                       /* Minor Planet Center observatory code (if available) */
+                details TINYTEXT,                   /* Details describing the station */
+                preferred_format TINYTEXT,          /* TruSat team notes on observer preferred reporting format IOD/RDE/UK */
+                source_url TINYTEXT,                /* URL where confirming data can be found */
+                notes TINYTEXT,                     /* TruSat team processing notes */
+                opt_out TINYINT(1) DEFAULT NULL,    /* Flag to prevent processing of data from disinterested stations */
+                UNIQUE KEY Station_station_num_idx (station_num) USING BTREE,
+                KEY Station_user_idx (user) USING BTREE,
+                KEY Station_user_station_idx (user, station_num),
+                KEY Station_opt_out_idx (opt_out) USING BTREE
+                )""" + self.charset_string
+            self.c.execute(createquery)
+
+        if self.checkTableExists("station_status"):
+            log.info("station_status table found.")
+        else:
+            log.info("Creating station_status table...")
+
+            """ Station Status """
+            createquery = """CREATE TABLE IF NOT EXISTS station_status (
+                code                ENUM('B','C','E','F','G','O','P','T') NOT NULL, /* Single character station status code */
+                short_description   TINYTEXT DEFAULT NULL,      /* Terse status description */
+                description         TINYTEXT DEFAULT NULL,      /* Full status description */
+                KEY station_status_code_id (code) USING BTREE
+                )""" + self.charset_string
+            self.c.execute(createquery)
+
+            """ Station Status contents """
+            insertquery = """INSERT INTO station_status (code, short_description, description) VALUES
+                ('E', 'excellent', 'no Moon/clouds, great seeing, minimal air/light pollution'),
+                ('G', 'good', 'no Moon/clouds, conditions could be better, but not much'),
+                ('F', 'fair     ', 'young/old Moon, some air/light pollution making fainter stars invisible'),
+                ('P', 'poor', 'gibbous Moon, haze, more air/light pollution making more stars invisible'),
+                ('B', 'bad', 'bright Moon, air/light pollution, some clouds; difficult'),
+                ('T', 'terrible', 'bright Moon, air/light pollution, looking through clouds'),
+                ('C', 'clouded out', 'station unavailable'),
+                ('O', 'sky clear, but observer not available', 'station unavailable');"""
+            self.c.execute(insertquery)
 
 
-        """ Station Table. These records are a mix of observer identity and station identity.
-        TODO: Will need to provide better separation between Observers / Stations in future releases.
-        """
-        createquery = """CREATE TABLE IF NOT EXISTS Station (
-            station_num INT UNSIGNED NOT NULL,  /* 4 Digit COSPAR number of observation station */
-            user INT,                           /* Associated User table ID */
-            initial TINYTEXT,                   /* Observer initials */
-            latitude FLOAT,                     /* WGS84 Latitude (degrees) */
-            longitude FLOAT,                    /* WGS84 Longitude (degrees) */
-            elevation_m SMALLINT(4),            /* Elevation above mean sea level (meters) */
-            name TINYTEXT,                      /* Name field for station/observer */
-            MPC TINYTEXT,                       /* Minor Planet Center observatory code (if available) */
-            details TINYTEXT,                   /* Details describing the station */
-            preferred_format TINYTEXT,          /* TruSat team notes on observer preferred reporting format IOD/RDE/UK */
-            source_url TINYTEXT,                /* URL where confirming data can be found */
-            notes TINYTEXT,                     /* TruSat team processing notes */
-            opt_out TINYINT(1) DEFAULT NULL,    /* Flag to prevent processing of data from disinterested stations */
-            KEY Station_station_num_idx (station_num) USING BTREE,
-            KEY Station_user_idx (user) USING BTREE,
-            KEY Station_user_station_idx (user, station_num),
-            KEY Station_opt_out_idx (opt_out) USING BTREE
-            )""" + self.charset_string
-        self.c.execute(createquery)
+        if self.checkTableExists("Observer"):
+            log.info("Observer table found.")
+        else:
+            log.info("Creating Observer table...")
+            """ Observer """
+            createquery = """CREATE TABLE IF NOT EXISTS Observer (
+                id          INTEGER PRIMARY KEY''' + self.increment + ''', /* Internal ID  */
+                eth_addr    CHAR(42),       /* Ethereum address for user */
+                verified    TEXT,           /* DEPRECATED */
+                reputation  INTEGER,        /* User rank value */
+                reference   TEXT,           /* Internal user ref notes for SeeSat archive */
+                nonce       INTEGER,
+                jwt         TEXT,
+                password    TEXT,
+                jwt_secret  CHAR(78),
+                location    TINYTEXT,       /* User-specified (publicly visible) location */
+                bio         TEXT,           /* User-specified (publicly visible) bio */
+                url_profile TEXT,           /* Profile URL - notionally gravitar or similar. FIXME: need to protect for exploits */
+                url_image   TEXT,           /* Profile Image URL - notionally gravitar or similar. FIXME: need to protect for exploits */
+                KEY `Observer_id_idx` (`id`) USING BTREE,
+                KEY `Observer_eth_addr_idx` (`eth_addr`) USING BTREE,
+                KEY `Observer_reputation_idx` (`reputation`) USING BTREE
+                )""" + self.charset_string
+            self.c.execute(createquery)
 
-        """ Station Status """
-        createquery = """CREATE TABLE IF NOT EXISTS station_status (
-            code                ENUM('B','C','E','F','G','O','P','T') NOT NULL, /* Single character station status code */
-            short_description   TINYTEXT DEFAULT NULL,      /* Terse status description */
-            description         TINYTEXT DEFAULT NULL,      /* Full status description */
-            KEY station_status_code_id (code) USING BTREE
-            )""" + self.charset_string
-        self.c.execute(createquery)
-
-        """ Station Status contents """
-        insertquery = """INSERT INTO station_status (code, short_description, description) VALUES
-            ('E', 'excellent', 'no Moon/clouds, great seeing, minimal air/light pollution'),
-            ('G', 'good', 'no Moon/clouds, conditions could be better, but not much'),
-            ('F', 'fair     ', 'young/old Moon, some air/light pollution making fainter stars invisible'),
-            ('P', 'poor', 'gibbous Moon, haze, more air/light pollution making more stars invisible'),
-            ('B', 'bad', 'bright Moon, air/light pollution, some clouds; difficult'),
-            ('T', 'terrible', 'bright Moon, air/light pollution, looking through clouds'),
-            ('C', 'clouded out', 'station unavailable'),
-            ('O', 'sky clear, but observer not available', 'station unavailable');"""
-        self.c.execute(insertquery)
-
-        """ Observer """
-        createquery = """CREATE TABLE IF NOT EXISTS Observer (
-            id          INTEGER PRIMARY KEY''' + self.increment + ''', /* Internal ID  */
-            eth_addr    CHAR(42),       /* Ethereum address for user */
-            verified    TEXT,           /* DEPRECATED */
-            reputation  INTEGER,        /* User rank value */
-            reference   TEXT,           /* Internal user ref notes for SeeSat archive */
-            nonce       INTEGER,
-            jwt         TEXT,
-            password    TEXT,
-            jwt_secret  CHAR(78),
-            location    TINYTEXT,       /* User-specified (publicly visible) location */
-            bio         TEXT,           /* User-specified (publicly visible) bio */
-            url_profile TEXT,           /* Profile URL - notionally gravitar or similar. FIXME: need to protect for exploits */
-            url_image   TEXT,           /* Profile Image URL - notionally gravitar or similar. FIXME: need to protect for exploits */
-            KEY `Observer_id_idx` (`id`) USING BTREE,
-            KEY `Observer_eth_addr_idx` (`eth_addr`) USING BTREE,
-            KEY `Observer_reputation_idx` (`reputation`) USING BTREE
-            )""" + self.charset_string
-        self.c.execute(createquery)
         self.conn.commit()
 
 
     def createTLETables(self):
-        log.info("Creating TLE tables...")
+        if self.checkTableExists("TLE"):
+            log.info("TLE table found.")
+        else:
+            log.info("Creating TLE table...")
 
-        """ TLE """
-        # TODO: add mean_motion_radians_per_minute from the TLE class to here
-        createquery = '''CREATE TABLE IF NOT EXISTS TLE (
-            tle_id                      INTEGER PRIMARY KEY''' + self.increment + ''', /* Internal unique record ID */
-            line0                       TINYTEXT,   /* line0/name from TLE */
-            line1                       TINYTEXT,   /* line1 of TLE */
-            line2                       TINYTEXT,   /* line2 of TLE record */
+            """ TLE """
+            # TODO: add mean_motion_radians_per_minute from the TLE class to here
+            createquery = '''CREATE TABLE IF NOT EXISTS TLE (
+                tle_id                      INTEGER PRIMARY KEY''' + self.increment + ''', /* Internal unique record ID */
+                line0                       TINYTEXT,   /* line0/name from TLE */
+                line1                       TINYTEXT,   /* line1 of TLE */
+                line2                       TINYTEXT,   /* line2 of TLE record */
 
-            sat_name                    TINYTEXT,   /* Name of object (may be same as line0) */
-            satellite_number            MEDIUMINT NOT NULL, /* NORAD catalog number */
-            classification              CHAR(1),    /* Classification Code - TruSat generated TLEs use T */
-            designation                 CHAR(24),   /* International Designator */
-            epoch                       DATETIME(6) NOT NULL,  /* FIXME: Python Datetime of TLE epoch. Rename to epoch_datetime for clarity */
-            mean_motion_derivative      DOUBLE,
-            mean_motion_sec_derivative  DOUBLE,
-            bstar                       DOUBLE,
-            ephemeris_type              TINYINT,
-            element_set_number          MEDIUMINT,
-            inclination                 DOUBLE NOT NULL, /* FIXME - need to rename to degrees */
-            inclination_radians         DOUBLE, /* Orbit inclination (radians) */
-            raan_degrees                DOUBLE, /* Right Ascension of the Ascending Node (degrees) */
-            raan_radians                DOUBLE, /* Right Ascension of the Ascending Node (radians) */
-            eccentricity                DOUBLE NOT NULL, /* Orbit eccentricity */
-            arg_perigee_degrees         DOUBLE, /* Argument of perigee (degrees) */
-            arg_perigee_radians         DOUBLE, /* Argument of perigee (radians) */
-            mean_anomaly_degrees        DOUBLE,
-            mean_anomaly_radians        DOUBLE,
-            mean_motion_orbits_per_day  DOUBLE,
-            mean_motion_radians_per_second DOUBLE, /* FIXME - need to at mean_motion_radians_per_minute for SGP4 convenience */
-            orbit_number                MEDIUMINT, /* Orbit number since launch */
+                sat_name                    TINYTEXT,   /* Name of object (may be same as line0) */
+                satellite_number            MEDIUMINT NOT NULL, /* NORAD catalog number */
+                classification              CHAR(1),    /* Classification Code - TruSat generated TLEs use T */
+                designation                 CHAR(24),   /* International Designator */
+                epoch                       DATETIME(6) NOT NULL,  /* FIXME: Python Datetime of TLE epoch. Rename to epoch_datetime for clarity */
+                mean_motion_derivative      DOUBLE,
+                mean_motion_sec_derivative  DOUBLE,
+                bstar                       DOUBLE,
+                ephemeris_type              TINYINT,
+                element_set_number          MEDIUMINT,
+                inclination                 DOUBLE NOT NULL, /* FIXME - need to rename to degrees */
+                inclination_radians         DOUBLE, /* Orbit inclination (radians) */
+                raan_degrees                DOUBLE, /* Right Ascension of the Ascending Node (degrees) */
+                raan_radians                DOUBLE, /* Right Ascension of the Ascending Node (radians) */
+                eccentricity                DOUBLE NOT NULL, /* Orbit eccentricity */
+                arg_perigee_degrees         DOUBLE, /* Argument of perigee (degrees) */
+                arg_perigee_radians         DOUBLE, /* Argument of perigee (radians) */
+                mean_anomaly_degrees        DOUBLE,
+                mean_anomaly_radians        DOUBLE,
+                mean_motion_orbits_per_day  DOUBLE,
+                mean_motion_radians_per_second DOUBLE, /* FIXME - need to at mean_motion_radians_per_minute for SGP4 convenience */
+                orbit_number                MEDIUMINT, /* Orbit number since launch */
 
-            launch_piece_number         SMALLINT,  /* Derived number of launch piece (from international desg) */
-            analyst_object              BOOL,      /* Flag of whether this is an uncorrelated object */
-            strict_import               BOOL,      /* Whether this record was imported / created through strict_import checks */
-            tle_fingerprint             CHAR(32) NOT NULL, /* MD5 fingerprint of this record */
-            tle_file_fingerprint        CHAR(32),          /* MD5 fingerprint of the file this record was imported from (optional) */
-            import_timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,   /* Timestamp of record creation */
-            KEY `TLE_epoch_idx` (`epoch`) USING BTREE,
-            KEY `TLE_sat_name_idx` (`sat_name`(24)) USING BTREE,
-            UNIQUE KEY `TLE_tle_fingerprint_idx` (`tle_fingerprint`(33)) USING BTREE,
-            KEY `TLE_tle_file_fingerprint_idx` (`tle_file_fingerprint`(33)) USING BTREE,
-            KEY `TLE_norad_idx` (`satellite_number`) USING BTREE
-        )''' + self.charset_string
-        self.c.execute(createquery)
-        self.conn.commit()
+                launch_piece_number         SMALLINT,  /* Derived number of launch piece (from international desg) */
+                analyst_object              BOOL,      /* Flag of whether this is an uncorrelated object */
+                strict_import               BOOL,      /* Whether this record was imported / created through strict_import checks */
+                tle_fingerprint             CHAR(32) NOT NULL, /* MD5 fingerprint of this record */
+                tle_file_fingerprint        CHAR(32),          /* MD5 fingerprint of the file this record was imported from (optional) */
+                import_timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,   /* Timestamp of record creation */
+                KEY `TLE_epoch_idx` (`epoch`) USING BTREE,
+                KEY `TLE_sat_name_idx` (`sat_name`(24)) USING BTREE,
+                UNIQUE KEY `TLE_tle_fingerprint_idx` (`tle_fingerprint`(33)) USING BTREE,
+                KEY `TLE_tle_file_fingerprint_idx` (`tle_file_fingerprint`(33)) USING BTREE,
+                KEY `TLE_norad_idx` (`satellite_number`) USING BTREE
+            )''' + self.charset_string
 
-        createquery = '''CREATE TABLE IF NOT EXISTS TLEFILE (
-            file_id                 INTEGER PRIMARY KEY''' + self.increment + ''', /* Unique internal record ID */
-            file_fingerprint        CHAR(32) NOT NULL, /* MD5 finger print of file */
-            source_filename         TINYTEXT,          /* Name of source file */
-            import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, /* Timestamp of record creation */
-            UNIQUE KEY `TLEFILE_file_fingerprint_33_idx` (`file_fingerprint`(33)) USING BTREE
-        )''' + self.charset_string
-        self.c.execute(createquery)
-        self.conn.commit()
+            try:
+                self.c.execute(createquery)
+                self.conn.commit()
+            finally:
+                True
+
+        if self.checkTableExists("TLEFILE"):
+            log.info("TLEFILE table found.")
+        else:
+            log.info("Creating TLEFILE table...")
+
+            createquery = '''CREATE TABLE IF NOT EXISTS TLEFILE (
+                file_id                 INTEGER PRIMARY KEY''' + self.increment + ''', /* Unique internal record ID */
+                file_fingerprint        CHAR(32) NOT NULL, /* MD5 finger print of file */
+                source_filename         TINYTEXT,          /* Name of source file */
+                import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, /* Timestamp of record creation */
+                UNIQUE KEY `TLEFILE_file_fingerprint_33_idx` (`file_fingerprint`(33)) USING BTREE
+            )''' + self.charset_string
+
+            try:
+                self.c.execute(createquery)
+                self.conn.commit()
+            finally:
+                True
 
 
-    def createSATCATtable(self):
+    def create_celestrak_satcat_table(self):
         """ Celestrak SATCAT """
-        print("Creating Celestrak SAT CAT table...")
 
-        # TODO: make another table from the multiple_name_flag data in https://celestrak.com/pub/satcat-annex.txt
-        createquery = '''CREATE TABLE IF NOT EXISTS celestrak_SATCAT (
-            satcat_id               INTEGER ''' + self.increment + ''',
-            intl_desg               VARCHAR(11) NOT NULL,
-            norad_num               MEDIUMINT UNSIGNED NOT NULL,
-            multiple_name_flag      TINYINT(1) UNSIGNED NOT NULL,
-            payload_flag            TINYINT(1) UNSIGNED NOT NULL,
-            ops_status_code         VARCHAR,
-            name                    VARCHAR(24) NOT NULL,
-            source                  CHAR(5),
-            launch_date             DATE,
-            decay_date              DATE,
-            orbit_period_minutes    MEDIUMINT,
-            inclination_deg         DOUBLE,
-            apogee                  DOUBLE,
-            perigee                 DOUBLE,
-            radar_crosssec          DOUBLE,
-            orbit_status_code       CHAR(3),
-            line_fingerprint        CHAR(32) NOT NULL,
-            file_fingerprint        CHAR(32) NOT NULL,
-            import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-            PRIMARY KEY (`satcat_id`),
-            KEY `celestrak_SATCAT_intl_desg_idx` (`intl_desg`(11)) USING BTREE,
-            KEY `celestrak_SATCAT_norad_num_idx` (`norad_num`) USING BTREE,
-            KEY `celestrak_SATCAT_name_idx` (`name`) USING BTREE,
-            KEY `celestrak_SATCAT_orbit_status_code_idx` (`orbit_status_code`) USING BTREE
-        )''' + self.charset_string
-        self.c.execute(createquery)
+        if self.checkTableExists("celestrak_SATCAT"):
+            log.info("celestrak_SATCAT table found.")
+        else:
+            log.info("Creating celestrak_SATCAT table...")
 
-        self.conn.commit()
+            # TODO: make another table from the multiple_name_flag data in https://celestrak.com/pub/satcat-annex.txt
+            createquery = (
+            """CREATE TABLE IF NOT EXISTS celestrak_SATCAT (
+                sat_cat_id               INTEGER """
+                  + self.increment 
+                  + """,
+                intl_desg               VARCHAR(11) NOT NULL,
+                norad_num               MEDIUMINT UNSIGNED NOT NULL,
+                multiple_name_flag      TINYINT(1) UNSIGNED NOT NULL,
+                payload_flag            TINYINT(1) UNSIGNED NOT NULL,
+                ops_status_code         VARCHAR(24),
+                name                    VARCHAR(24) NOT NULL,
+                source                  CHAR(5),
+                launch_date             DATE,
+                launch_site             VARCHAR(11),
+                decay_date              DATE,
+                orbit_period_minutes    DOUBLE,
+                inclination_deg         DOUBLE,
+                apogee                  MEDIUMINT UNSIGNED,
+                perigee                 MEDIUMINT UNSIGNED,
+                radar_crosssec          DOUBLE,
+                orbit_status_code       CHAR(3),
+                line_fingerprint        CHAR(32) NOT NULL,
+                import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                PRIMARY KEY (`sat_cat_id`),
+                KEY `celestrak_SATCAT_intl_desg_idx` (`intl_desg`(11)) USING BTREE,
+                KEY `celestrak_SATCAT_norad_num_idx` (`norad_num`) USING BTREE,
+                KEY `line_fingerprint` (`line_fingerprint`) USING BTREE,
+                KEY `celestrak_SATCAT_name_idx` (`name`) USING BTREE,
+                KEY `celestrak_SATCAT_orbit_status_code_idx` (`orbit_status_code`) USING BTREE
+                )""" 
+                  + self.charset_string
+            )
 
-    def createUCSSATDBtable(self):
+            try:
+                self.c.execute(createquery)
+                self.conn.commit()
+            finally:
+                True
+
+
+    def create_ucs_satdb_raw_table(self, ext=""):
+        """ Raw table is direct from UCS, with no errors corrected from Celestrak SATCAT """
+        self.create_ucs_satdb_table("_raw")
+
+
+    def create_ucs_satdb_table(self, ext=""):
         """ Union of Concerned Scientists Satellite Database """
-        print("Creating Union of Concerned Scientists Satellite Database table...")
 
-        # FIXME: Need to optimize these auto-gen types
-        createquery = '''CREATE TABLE IF NOT EXISTS ucs_SATDB (
-            satdb_id              INTEGER PRIMARY KEY''' + self.increment + ''',
-            name text DEFAULT NULL,
-            country_registered text DEFAULT NULL,
-            country_owner text DEFAULT NULL,
-            owner_operator text DEFAULT NULL,
-            users text DEFAULT NULL,
-            purpose text DEFAULT NULL,
-            purpose_detailed text DEFAULT NULL,
-            orbit_class text DEFAULT NULL,
-            orbit_type text DEFAULT NULL,
-            GEO_longitude int(11) DEFAULT NULL,
-            perigee_km int(11) DEFAULT NULL,
-            apogee_km int(11) DEFAULT NULL,
-            eccentricity float DEFAULT NULL,
-            inclination_degrees float DEFAULT NULL,
-            period_minutes int(11) DEFAULT NULL,
-            launch_mass_kg int(11) DEFAULT NULL,
-            dry_mass_kg text DEFAULT NULL,
-            power_watts text DEFAULT NULL,
-            launch_date DATE DEFAULT NULL,
-            expected_lifetime_years text DEFAULT NULL,
-            contractor text DEFAULT NULL,
-            contractor_country text DEFAULT NULL,
-            launch_site text DEFAULT NULL,
-            launch_vehicle text DEFAULT NULL,
-            international_designator text DEFAULT NULL,
-            norad_number int(11) DEFAULT NULL,
-            comments text DEFAULT NULL,
-            detailed_comments text DEFAULT NULL,
-            source_1 text DEFAULT NULL,
-            source_2 text DEFAULT NULL,
-            source_3 text DEFAULT NULL,
-            source_4 text DEFAULT NULL,
-            source_5 text DEFAULT NULL,
-            source_6 text DEFAULT NULL,
-            source_7 text DEFAULT NULL,
-            line_fingerprint        CHAR(32) NOT NULL,
-            file_fingerprint        CHAR(32) NOT NULL,
-            import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-            KEY `ucs_SATDB_satdb_id_idx` (`satdb_id`) USING BTREE,
-            KEY `ucs_SATDB_norad_number_idx` (`norad_number`) USING BTREE,
-            KEY `ucs_SATDB_international_designator_idx` (`international_designator`(11)) USING BTREE
-        )''' + self.charset_string
-        self.c.execute(createquery)
-        self.conn.commit()
+        if self.checkTableExists("ucs_SATDB" + ext):
+            log.info("UCS SAT DB" + ext + " table found.")
+        else:
+            log.info("Creating Union of Concerned Scientists Satellite Database (ucs_SATDB" + ext + " ) table...")
+
+            # FIXME: Need to optimize these auto-gen types
+            createquery = ("""CREATE TABLE IF NOT EXISTS ucs_SATDB"""
+                + ext
+                + """(
+                satdb_id              INTEGER PRIMARY KEY"""
+                + self.increment
+                + """,
+                name text DEFAULT NULL,
+                country_registered text DEFAULT NULL,
+                country_owner text DEFAULT NULL,
+                owner_operator text DEFAULT NULL,
+                users text DEFAULT NULL,
+                purpose text DEFAULT NULL,
+                purpose_detailed text DEFAULT NULL,
+                orbit_class text DEFAULT NULL,
+                orbit_type text DEFAULT NULL,
+                GEO_longitude int(11) DEFAULT NULL,
+                perigee_km int(11) DEFAULT NULL,
+                apogee_km int(11) DEFAULT NULL,
+                eccentricity float DEFAULT NULL,
+                inclination_degrees float DEFAULT NULL,
+                period_minutes int(11) DEFAULT NULL,
+                launch_mass_kg int(11) DEFAULT NULL,
+                dry_mass_kg text DEFAULT NULL,
+                power_watts text DEFAULT NULL,
+                launch_date DATE DEFAULT NULL,
+                expected_lifetime_years text DEFAULT NULL,
+                contractor text DEFAULT NULL,
+                contractor_country text DEFAULT NULL,
+                launch_site text DEFAULT NULL,
+                launch_vehicle text DEFAULT NULL,
+                international_designator text DEFAULT NULL,
+                norad_number int(11) DEFAULT NULL,
+                comments text DEFAULT NULL,
+                detailed_comments text DEFAULT NULL,
+                source_1 text DEFAULT NULL,
+                source_2 text DEFAULT NULL,
+                source_3 text DEFAULT NULL,
+                source_4 text DEFAULT NULL,
+                source_5 text DEFAULT NULL,
+                source_6 text DEFAULT NULL,
+                source_7 text DEFAULT NULL,
+                line_fingerprint        CHAR(32) NOT NULL,
+                import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                KEY `ucs_SATDB_satdb_id_idx` (`satdb_id`) USING BTREE,
+                KEY `line_fingerprint` (`line_fingerprint`) USING BTREE,
+                KEY `ucs_SATDB_norad_number_idx` (`norad_number`) USING BTREE,
+                KEY `ucs_SATDB_international_designator_idx` (`international_designator`(11)) USING BTREE
+            )""" 
+                + self.charset_string
+            )
+
+            try:
+                self.c.execute(createquery)
+                self.conn.commit()
+            finally:
+                True
+
+    def add_celestrak_satcat_batch(self, data_batch):
+        """ Add an SATCAT entry to the database """
+
+        fingerprint_query = """
+            SELECT line_fingerprint FROM `celestrak_SATCAT`;
+        """
+
+        find_with_norad = """
+            SELECT * FROM `celestrak_SATCAT`
+            WHERE `norad_numb`=%s;
+        """
+
+        delete_by_norad = """
+            DELETE FROM celestrak_SATCAT
+            WHERE `norad_num`=%s;
+        """
+
+        insert_query = """
+        INSERT INTO celestrak_SATCAT VALUES
+            (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
+            %s, %s, %s, %s, %s, %s, %s, %s, NULL)
+        """
+        data_to_insert = []
+        updated_entries = 0
+        try:
+            self.c.execute(fingerprint_query)
+            SATCAT_fingerprints = QueryTupleListToList(self.c.fetchall())
+
+            for data in data_batch:
+                norad_number = data[1]
+                fingerprint = data[-1]
+                if fingerprint not in SATCAT_fingerprints:
+                    self.c.execute(find_with_norad, (norad_number,))
+                    existing_rows = self.c.fetchall()
+                    if existing_rows:
+                        self.c.execute(delete_by_norad, (norad_number,))
+                        log.info(
+                            f"""
+                            Removing existing entries with norad number {norad_number}.
+                            Satellite with Norad Number {norad_number} will be updated.
+                            """
+                        )
+                        updated_entries += 1
+                    data_to_insert.append(data)
+            if len(data_to_insert) > 0:
+                for data in batch(data_to_insert, 1000):
+                    self.c.executemany(insert_query, data)
+                    self.conn.commit()
+                log.info(f"{len(data_to_insert)-updated_entries} new rows added to celestrak_SATCAT")
+                log.info(f"{updated_entries} existing rows updated in celestrak_SATCAT")
+        except Exception as e:
+            log.error("MYSQL ERROR: {}".format(e))
+
+
+    def add_ucs_satdb_batch(self, data_batch):
+        """ Add an UCS DB (corrected) entry to the database """
+
+        fingerprint_query = """
+            SELECT line_fingerprint FROM `ucs_SATDB`;
+        """
+
+        find_with_norad = """
+            SELECT * FROM `ucs_SATDB`
+            WHERE `norad_number`=%s;
+        """
+
+        delete_by_norad = """
+            DELETE FROM ucs_SATDB
+            WHERE `norad_number`=%s;
+        """
+
+        insert_query = """
+        INSERT INTO ucs_SATDB VALUES
+            (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s, %s, %s, %s, NULL)
+        """
+
+        data_to_insert = []
+        updated_entries = 0
+        try:
+            self.c.execute(fingerprint_query)
+            ucs_SATDB_fingerprints = QueryTupleListToList(self.c.fetchall())
+
+            for data in data_batch:
+                norad_number = data[25]
+                fingerprint = data[-1]
+
+                if fingerprint not in ucs_SATDB_fingerprints:
+                    self.c.execute(find_with_norad, (norad_number,))
+                    existing_rows = self.c.fetchall()
+                    if existing_rows:
+                        self.c.execute(delete_by_norad, (norad_number,))
+                        log.info(
+                            f"""
+                            Removing existing entries with norad number {norad_number}.
+                            Satellite with Norad Number {norad_number} will be updated.
+                            """
+                        )
+                        updated_entries += 1
+                    data_to_insert.append(data)
+
+            if len(data_to_insert) > 0:
+                for data in batch(data_to_insert, 1000):
+                    self.c.executemany(insert_query, data)
+                    self.conn.commit()
+                log.info(f"{len(data_to_insert)-updated_entries} new rows added to ucs_SATDB")
+                log.info(f"{updated_entries} existing rows updated in ucs_SATDB")
+        except Exception as e:
+            log.error("MYSQL ERROR: {}".format(e))
+
+
+    def add_ucs_satdb_raw_batch(self, data_batch):
+        """ Add an UCS DB entry to the database """
+
+        fingerprint_query = """
+            SELECT line_fingerprint FROM `ucs_SATDB_raw`;
+        """
+
+        find_with_norad = """
+            SELECT * FROM `ucs_SATDB_raw`
+            WHERE `norad_number`=%s;
+        """
+
+        delete_by_norad = """
+            DELETE FROM ucs_SATDB_raw
+            WHERE `norad_number`=%s;
+        """
+
+        insert_query = """
+        INSERT INTO ucs_SATDB_raw VALUES
+            (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s, %s, %s, %s, NULL)
+        """
+        data_to_insert = []
+        updated_entries = 0
+        try:
+            self.c.execute(fingerprint_query)
+            ucs_SATDB_raw_fingerprints = QueryTupleListToList(self.c.fetchall())
+
+            for data in data_batch:
+                norad_number = data[25]
+                fingerprint = data[-1]
+                if fingerprint not in ucs_SATDB_raw_fingerprints:
+                    self.c.execute(find_with_norad, (norad_number,))
+                    existing_rows = self.c.fetchall()
+                    if existing_rows:
+                        self.c.execute(delete_by_norad, (norad_number,))
+                        log.info(
+                            f"""
+                            Removing existing entries with norad number {norad_number}.
+                            Satellite with Norad Number {norad_number} will be updated.
+                            """
+                        )
+                        updated_entries += 1
+                    data_to_insert.append(data)
+            if len(data_to_insert) > 0:
+                for data in batch(data_to_insert, 1000):
+                    self.c.executemany(insert_query, data)
+                    self.conn.commit()
+                log.info(f"{len(data_to_insert)-updated_entries} new rows added to ucs_SATDB")
+                log.info(f"{updated_entries} existing rows updated in ucs_SATDB_raw")
+        except Exception as e:
+            log.error("MYSQL ERROR: {}".format(e))
 
 
     def addParsedIOD(self, entryList, submit_time, fast_import = False):
@@ -1029,9 +1249,12 @@ class Database:
         except Exception as e:
             error_messages.append("Could not determine observation format.")
             print(e)
+            return (0, error_messages)
         if success > 0:
-            self.commit_IOD_db_writes()
-        return (success, error_messages)
+            commit_message = self.commit_IOD_db_writes()
+            if commit_message:
+                return (success, error_messages)
+        return (0, error_messages)
 
     def addObserver(self,
             eth_addr,
@@ -2395,8 +2618,11 @@ class Database:
                     self.c_addParsedIOD.executemany(self.addParsedIOD_query,self._IODentryList)
                     self._IODentryList = []
                     self._IODPendingEntryFingerprintList = []
+                    return True
                 except Exception as e:
+                    self._IODentryList = []
                     log.error("MYSQL ERROR: {}".format(e))
+                    return False
                     # FIXME - (Work in progress) - try to get rid of duplicate entry in a executemany list
                     # This is sensitive to when a user includes a duplicate entry in the same email
 
@@ -2549,20 +2775,6 @@ class Database:
             return None
 
 
-    def selectTLEid(self, tle_id):
-        """ Query to return the specific tle_id requested
-
-        Returns TruSatellite() object
-        """
-        query_tmp = """SELECT * FROM TLE
-            WHERE tle_id=%(TLE_ID)s
-            LIMIT 1"""
-        query_parameters = {'TLE_ID': tle_id}
-        self.cdict.execute(query_tmp, query_parameters)
-        row = [self.cdict.fetchone()]    # Put single result into an array
-        return self.cdictQueryToTruSatelliteObj(row)[0]  # Unpack the array to the object, for just one result
-
-
     # FIXME - This is the latest of everything in the catalog - but some will be old from McCants stuff because they were dropped from classfd.tle
     def selectTLE_Astriagraph(self):
         """ Create a list of TLEs appropriate for Astriagraph to plot.
@@ -2602,7 +2814,7 @@ class Database:
         # TODO: Replace with real priority sort. https://consensys-cpl.atlassian.net/browse/MVP-389
         # In the meantime, return TLEs older than 30 days, oldest first
         query_tmp = self.selectLatestTLEPerObject + """
-            WHERE DATEDIFF(NOW(),TLE.epoch) > 30
+            AND DATEDIFF(NOW(),TLE.epoch) > 30
   		    AND DATEDIFF(NOW(),TLE.epoch) <= 365
             ORDER BY TLE.epoch DESC;"""
         self.c.execute(query_tmp)
@@ -2619,7 +2831,7 @@ class Database:
         # TODO: Replace with real confidence sort. https://consensys-cpl.atlassian.net/browse/MVP-390
         # In the meantime, return TLEs younger than 30 days, newest first
         query_tmp = self.selectLatestTLEPerObject + """
-            WHERE DATEDIFF(NOW(),TLE.epoch) < 30
+            AND DATEDIFF(NOW(),TLE.epoch) < 30
             ORDER BY TLE.epoch DESC;"""
         self.c.execute(query_tmp)
         result = ""
@@ -2715,18 +2927,39 @@ class Database:
             return None
 
     def selectUserStationNumbers_JSON(self, eth_addr):
-        query_tmp = """SELECT Json_Object(
-            'station_number', Station.station_num)
-            FROM Station
+        """
+            Return JSON Object of station and station stats
+        """
+        query_tmp = """WITH SOC as (
+            SELECT COUNT(ParsedIOD.object_number) OVER (PARTITION BY Station.station_num) as observation_count,
+            Station.station_num
+            FROM ParsedIOD
+            RIGHT JOIN Station ON Station.station_num = ParsedIOD.station_number
             JOIN Observer ON Observer.id = Station.user
-            WHERE Observer.eth_addr = %(ETH_ADDR)s
-            ORDER BY Station.station_num ASC;"""
+            WHERE Observer.eth_addr = %(ETH_ADDR)s)
+            SELECT Json_Object(
+            'station_id', Station.station_num,
+            'station_name', Station.name,
+            'latitude', Station.latitude,
+            'longitude', Station.longitude,
+            'elevation', Station.elevation_m,
+            'notes', Station.notes,
+            'observation_count', SOC.observation_count)
+            FROM SOC
+            JOIN Station ON Station.station_num = SOC.station_num
+            WHERE opt_out IS NULL
+            OR opt_out=0
+            GROUP BY SOC.station_num;"""
         query_parameters = {'ETH_ADDR': eth_addr}
         try:
+            observation_stations_json = {}
+            observation_stations_json["user_stations"] = []
             self.c.execute(query_tmp, query_parameters)
-            return stringArrayToJSONArray_JSON(self.c.fetchall())
+            observation_stations = stringArrayToJSONArray_JSON(self.c.fetchall())
+            observation_stations_json["user_stations"] = observation_stations
+            return observation_stations_json
         except:
-            return None
+            return observation_stations_json
 
 
     def selectProfileInfo_JSON(self, eth_addr):
@@ -2963,6 +3196,74 @@ class Database:
         convert_country_names(object_observed)
         return object_observed
 
+
+    def selectUserIODs(self, eth_addr):
+        """ For a given ETH address, return IODs they have submitted, as well as the parsed values.
+
+        This function is for the user to be able to download their contributed data.
+        It downloads data for all stations associated with the user.
+        
+        """
+        query = """
+          -- Our user's ID
+          WITH user AS (
+            SELECT id, name
+            FROM Observer
+            WHERE eth_addr = %(ETH_ADDR)s
+          )
+          -- Our user's stations
+          , user_stations AS (
+            SELECT U.id user_id, U.name user_name, S.station_num
+            FROM user U
+            LEFT JOIN Station S on (U.id = S.user)
+          )
+          -- The objects our user has viewed, and the field-order for the returned data
+          , user_objects AS (
+            SELECT P.iod_string,P.station_number,P.object_number,
+            P.international_designation,P.station_status_code,P.obs_time_string,
+            CONVERT(P.obs_time, DATETIME(3)) as obs_time,P.time_uncertainty,
+            P.time_standard_code, P.angle_format_code,P.epoch_code,P.epoch,P.ra,
+            P.declination, P.azimuth,P.elevation,P.positional_uncertainty,
+            P.optical_behavior_code,P.visual_magnitude,P.visual_magnitude_high,
+            P.visual_magnitude_low,P.magnitude_uncertainty,P.flash_period,
+            P.remarks,P.obs_id,P.iod_type,P.valid_position,P.message_id,
+            P.obsFingerPrint,P.submitted,P.import_timestamp
+            FROM user_stations US
+            LEFT JOIN ParsedIOD P on (US.station_num = P.station_number)
+            WHERE P.obs_id IS NOT NULL
+            ORDER BY P.obs_time ASC)
+          SELECT * from user_objects;
+        """
+        queryParams = {
+            'ETH_ADDR': eth_addr
+            }
+        self.c.execute(query, queryParams)
+
+        # CSV writer needs a file-like object to write to
+        output = StringIO()
+
+        # Create CSV header
+        fieldnames = ["iod_string","station_number","object_number",
+             "international_designation","station_status_code","obs_time_string",
+             "obs_time","time_uncertainty","time_standard_code",
+             "angle_format_code","epoch_code","epoch","ra","declination",
+             "azimuth","elevation","positional_uncertainty",
+             "optical_behavior_code","visual_magnitude","visual_magnitude_high",
+             "visual_magnitude_low","magnitude_uncertainty","flash_period",
+             "remarks","obs_id","iod_type","valid_position","message_id",
+             "obsFingerPrint","submitted","import_timestamp"]
+        IOD_csv = writer(output, dialect='excel')
+        IOD_csv.writerow(fieldnames)
+
+        rows = self.c.fetchall()
+        if rows:
+            IOD_csv.writerows(rows)
+            output.seek(0)
+            return output.read()
+        else:
+            return None
+
+
     # https://consensys-cpl.atlassian.net/browse/MVP-311
     # /profile endpoint for a logged-in user
     def selectUserProfile(self, eth_addr):
@@ -2984,31 +3285,6 @@ class Database:
             json_dict,
             sort_keys=False,
             indent=4)
-
-
-    # FIXME: DEPRECATED It doesn't look like this function is used at all in server.py or internally in database.py
-    def selectObjectsObserved_JSON(self, fetch_row_count=10, offset_row_count=0):
-        """ Return list of (global) observed objects, ordered from most recent
-        """
-        query_tmp = """SELECT Json_Object(
-            'object_origin', ucs_SATDB.country_owner,
-            'primary_purpose', ucs_SATDB.purpose,
-            'object_type', ucs_SATDB.purpose_detailed,
-            'secondary_purpose', 'Secondary purpose does not exist, the variable is also misspelled.',
-            'observation_quality', ParsedIOD.station_status_code,
-            'time_last_tracked',date_format(ParsedIOD.obs_time, '%M %d, %Y') )
-            FROM ParsedIOD
-            LEFT JOIN ucs_SATDB ON ParsedIOD.object_number=ucs_SATDB.norad_number
-            WHERE valid_position = 1
-            ORDER BY obs_time DESC
-            LIMIT %(OFFSET)s,%(FETCH)s;"""
-        query_parameters = {
-                'OFFSET': offset_row_count,
-                'FETCH': fetch_row_count}
-        self.c.execute(query_tmp, query_parameters)
-        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
-        convert_country_names(observations)
-        return json.dumps(observations)
 
 
     # /catalog/priorities
@@ -3268,11 +3544,14 @@ class Database:
         }
         self.c.execute(query, queryParams)
         try:
+            observation_json = {}
+            observation_json["user_sightings"] = []
             observations = stringArrayToJSONArray_JSON(self.c.fetchall())
             convert_country_names(observations)
-            return observations
+            observation_json["user_sightings"] = observations
+            return observation_json
         except:
-            return None
+            return observation_json
 
     # /object/influence
     # https://consensys-cpl.atlassian.net/browse/MVP-380
@@ -3353,7 +3632,7 @@ class Database:
                 'international_designator', intl_desg,
                 'name', name)
                 FROM celestrak_SATCAT
-                WHERE norad_num LIKE '%(PARTIAL)s%'
+                WHERE norad_num LIKE %(PARTIAL)s
                 OR intl_desg LIKE %(PARTIAL)s
                 ORDER by norad_num ASC
                 LIMIT 100;
@@ -3378,6 +3657,213 @@ class Database:
         except:
             return None
 
+    def selectLatestStationID(self):
+        """
+            Get the latest station ID while ignoreing the TRU0 to increment
+
+            Return
+            The latest T prefixed station ID
+        """
+        try:
+            query_tmp = """SELECT station_num
+                FROM Station
+                ORDER BY station_num DESC
+                LIMIT 1;"""
+            self.c.execute(query_tmp)
+        except Exception as e:
+            print(e)
+            return None
+        try:
+            return self.c.fetchone()[0]
+            #return stringArrayToJSONArray(self.c.fetchall())
+        except Exception as e:
+            print(e)
+            return None
+
+    def selectObserverIDFromAddress(self, addr):
+        """
+            Get the Observer ID of a user from their Address
+
+            Input
+            User Ethereum Address
+
+            Return
+            User Observer ID 
+        """
+        try:
+            query_parameters = {"ADDR": addr}
+            query_tmp = """SELECT id
+                FROM Observer
+                WHERE eth_addr=%(ADDR)s
+                LIMIT 1"""
+            self.c.execute(query_tmp, query_parameters)
+        except Exception as e:
+            print(e)
+            return None
+        try:
+            return self.c.fetchone()[0]
+        except Exception as e:
+            print(e)
+            return None
+
+    def addStation(self, station_num, user, latitude, longitude, elevation_m, name, notes):
+        """
+            Add station row for a user
+
+            Inputs
+            station_num: User station number
+            user: User ID
+            latitude: Station latitude
+            longitude: Station longitude
+            elevation_m: Station elevation above sea level
+            name: User chosen name for the station
+            notes: User notes for the station
+
+            Return
+            Success or failure. True, False, or None
+        """
+        try:
+            query_tmp = """
+                SELECT COUNT(station_num)
+                FROM Station
+                WHERE user=%(USER)s
+                AND opt_out IS NULL
+                OR user=%(USER)s
+                AND opt_out=0
+                LIMIT 1;
+            """
+            query_parameters={'USER': user}
+            self.c.execute(query_tmp, query_parameters)
+
+            station_count = self.c.fetchone()[0]
+            print(station_count)
+            if station_count >= 10:
+                return False
+
+            query_tmp = """
+                INSERT INTO Station(
+                station_num,
+                user,
+                latitude,
+                longitude,
+                elevation_m,
+                name,
+                notes)
+                VALUES(
+                %(STATION)s,
+                %(USER)s,
+                %(LAT)s,
+                %(LONG)s,
+                %(ELEVATION)s,
+                %(NAME)s,
+                %(NOTES)s);
+                """
+            query_parameters = {
+                'STATION': station_num,
+                'USER': user,
+                'LAT': latitude,
+                'LONG': longitude,
+                'ELEVATION': elevation_m,
+                'NAME': name,
+                'NOTES': notes
+                }
+            self.c.execute(query_tmp, query_parameters)
+        except Exception as e:
+            print(e)
+            return None
+        try:
+            self.conn.commit()
+            return True
+        except Exception as e:
+            print(e)
+            return None
+
+    def deleteStation(self, station_num, user_id):
+        """
+            Query if user chooses to delete their station. This does not delete and instead
+            sets the Station values to NULL and sets opt_out flag.
+
+            Inputs
+            station_num: User station numbser
+            use_id: User identificaiton
+
+            Return
+            If query was successful or not
+        """
+        try:
+            query_tmp = """
+                UPDATE Station SET
+                initial = NULL,
+                latitude = NULL,
+                longitude = NULL,
+                elevation_m = NULL,
+                name = NULL,
+                MPC = NULL,
+                details = NULL,
+                preferred_format = NULL,
+                source_url = NULL,
+                notes = NULL,
+                opt_out = 1
+                WHERE station_num = %(STATION)s
+                AND user = %(USER)s
+                LIMIT 1;"""
+            query_parameters = {"STATION": station_num, "USER": user_id}
+            self.c.execute(query_tmp, query_parameters)
+            self.conn.commit()
+            return True
+        except Exception as e:
+            print(e)
+            return None
+
+    def updateStationName(self, station_num, name, user_id):
+        """
+            Update name used for a user's station
+
+            Inputs
+            station_num: User station numbser
+            name: User chosen name for the station
+            use_id: User identificaiton
+
+            Return
+            If query was successful or not
+        """
+        try:
+            query_tmp = """UPDATE Station
+                SET name = %(NAME)s
+                WHERE station_num = %(STATION)s
+                AND user = %(USER)s"""
+            query_parameters = {"NAME": name, "STATION": station_num, "USER": user_id}
+            self.c.execute(query_tmp, query_parameters)
+            self.conn.commit()
+            return True
+        except Exception as e:
+            print(e)
+            return None
+
+    def updateStationNotes(self, station_num, notes, user_id):
+        """
+            Update notes on a user's station
+
+            Inputs
+            station_num: User station numbser
+            notes: User notes for the station
+            use_id: User identificaiton
+
+            Return
+            If query was successful or not
+        """
+        try:
+            query_tmp = """UPDATE Station
+                SET notes = %(NOTES)s
+                WHERE station_num = %(STATION)s
+                AND user = %(USER)s"""
+            query_parameters = {"NOTES": notes, "STATION": station_num, "USER": user_id}
+            self.c.execute(query_tmp, query_parameters)
+            self.conn.commit()
+            return True
+        except Exception as e:
+            print(e)
+            return None
 
 
     def clean(self):

@@ -170,42 +170,6 @@ def main():
                             const=1,                             
                             type=str,                             
                             metavar="FILE")
-    conf_parser.add_argument("-dbname", "--database", 
-                            help="database to USE",
-                            dest='dbname',
-                            default='opensatcat_dev',                           
-                            nargs='?',
-                            const=1,                             
-                            type=str,                             
-                            metavar="NAME")
-    conf_parser.add_argument("-H", "--hostname", 
-                            help="database hostname",
-                            dest='dbhostname',
-                            default='db.consensys.space',
-                            nargs='?',
-                            const=1,
-                            type=str,                             
-                            metavar="HOSTNAME")
-    conf_parser.add_argument("-u", "--user", 
-                            help="database user name",
-                            dest='dbusername',
-                            nargs='?',
-                            type=str,                             
-                            metavar="USER")
-    conf_parser.add_argument("-p", "--password", 
-                            help="database user password",
-                            dest='dbpassword',
-                            nargs='?',
-                            type=str,                             
-                            metavar="PASSWD")
-    conf_parser.add_argument("-t", "--dbtype", 
-                            help="database type [INFILE, sqlserver, sqlite] default: INFILE",
-                            dest='dbtype',
-                            nargs='?',
-                            choices=['INFILE', 'sqlserver', 'sqlite'],
-                            default='INFILE',
-                            type=str,                             
-                            metavar="TYPE")
     conf_parser.add_argument("-m", "--message", 
                             help="Message ID to start at",
                             dest='message_resume',
@@ -228,11 +192,6 @@ def main():
     args = conf_parser.parse_args()
     # Process commandline options and parse configuration
     mbox_filename = args.mbox_filename
-    dbname = args.dbname
-    dbhostname = args.dbhostname
-    dbusername = args.dbusername
-    dbpassword = args.dbpassword
-    dbtype = args.dbtype
     fast = args.fast
     init = args.init
     message_resume = args.message_resume
@@ -262,33 +221,10 @@ def main():
         for arg in vars(args):
             log.debug("%s : %s",arg, getattr(args, arg))
 
-    if (dbtype == "sqlserver"):
-        # Temporary database credentials hack
-        try:
-            with open('../../login.txt', 'r') as f:
-                lines = f.readlines()
-                dbname = lines[0].strip()
-                dbtype = lines[1].strip()
-                dbhostname = lines[2].strip()
-                dbusername = lines[3].strip()
-                dbpassword = lines[4].strip()
-        except: 
-            log.error("DB Login credentials not available.")
-
-        if dbusername == None:
-            try: 
-                dbusername = input("Username: ") 
-            except Exception as error: 
-                log.warning('ERROR: password must be specified {}'.format(error))
-        if dbpassword == None:
-            try: 
-                dbpassword = getpass() 
-            except Exception as error: 
-                log.warning('ERROR: password must be specified {}'.format(error))
-
     # Set up database connection or files
-    db = database.Database(dbname,dbtype,dbhostname,dbusername,dbpassword)
-    if (dbtype != "INFILE" and init):
+    CONFIG = os.path.abspath("../../trusat-config.yaml")
+    db = database.Database(CONFIG)
+    if (db._dbtype != "INFILE" and init):
         try:
             db.createObsTables()
         except:
@@ -392,7 +328,7 @@ def main():
 
             if (db_obs_count):
                 last_msgID = msgID
-                if(dbtype != "INFILE"):
+                if(db._dbtype != "INFILE"):
                     db.commit_IOD_db_writes()
 
     print()

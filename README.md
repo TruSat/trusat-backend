@@ -6,15 +6,19 @@ This repo contains the code for deploying, populating and interacting with a Tru
 
 The easiest way to test/exercise this code is by creating a login.txt file (see below) and then launching `server.py`, and then using the snapshot tests to exercise the API and its underlying database.
 
-### Create login.txt file
+### Update trusat-config.yaml file
 
 This should be a text file containing the parameters of the `Database` contructor - with one parameter on each line. At the time of writing that means:
 
-    dbname     - name of the database
-    dbtype     - database type: "INFILE", "sqlserver" or "sqlite3" (without quotes)
-    dbhostname - hostname for sqlserver
-    dbusername - username for sqlserver
-    dbpassword - password for sqlserver
+    # Trusat Database Connection Configuration
+    Database:
+     name: "space"
+     type:
+     hostname: "127.0.0.1"
+     username: "root"
+     password:
+
+Place the updated file in the parent directory of ./trusat-orbit to avoid commiting your sensitive data to GIT.
 
 ## Coding Style
 Follow [PEP 8](https://www.python.org/dev/peps/pep-0008/) for any Python code and the style guide recommended for any other language.
@@ -75,6 +79,10 @@ From the same directory that you did the export, import the data into your local
  - Checkout the appropriate branch of ['trusat-backend'](https://github.com/consensys-space/trusat-backend).
  - Generate RSA Keys using `bash RSAKeyGen.sh` and follow the instructions provided.
  - Generate TLS Certificates.
+ - Export all website origins expected with a comma separated list without spaces. The environmental variable to set is `WEBSITE_ORIGINS` with an example of `http://localhost:3000,https://trusat.org`
+ - Generate Gunmail api key
+ - Set Gunmail Environmental Variables `GUNMAIL_API_KEY` and `GUNMAIL_EMAIL_ADDRESS`
+	- OR -
  - Generate Google API Key and store in `credentials.json`.
  - Initialize Google API Keys by running `google_email.init_email_sending()` with credentials. IMPORTANT: This will require a browser on hand
 
