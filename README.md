@@ -4,7 +4,7 @@
 
 This repo contains the code for deploying, populating and interacting with a TruSat database and its standard REST API.
 
-The easiest way to test/exercise this code is by creating a login.txt file (see below) and then launching `server.py`, and then using the snapshot tests to exercise the API and its underlying database.
+The easiest way to test/exercise this code is by creating a trusat-config.yaml file (see below), setting the environmental variables, launching `wsgi.py`, and then using the snapshot tests to exercise the API and its underlying database.
 
 ### Update trusat-config.yaml file
 
@@ -19,6 +19,40 @@ This should be a text file containing the parameters of the `Database` contructo
      password:
 
 Place the updated file in the parent directory of ./trusat-orbit to avoid commiting your sensitive data to GIT.
+
+### Environmental variables
+
+#### MAILGUN_API_KEY
+
+API key associated with a mailgun account. Without this, users cannot recover or create an account.
+
+#### MAILGUN_EMAIL_ADDRESS
+
+Email address that the mailgun API will use to send emails.
+
+Example:
+`example@example.com`
+
+#### WEBSITE_ORIGINS
+
+Desired origins for the website REST API to accept from. This is currently required.
+
+Example:
+`https://trusat.org,https://www.trusat.org`
+
+#### SECRET_KEY
+
+Secret bytes that will be used for [flask security features](https://flask.palletsprojects.com/en/1.1.x/quickstart/#sessions). This can be generated using the following code:
+
+```
+import os
+import base64
+random_number = os.urandom(256)
+random_number_base64 = base64.b64encode(random_number)
+```
+
+Example:
+`'ucCWKF7iqBqLNVoa6dS5Bc+mYYTecgcPg3Uv9nPP043hcdLPaE/UhBqqAChdytGifzeKzFl2bT4aN0B5xqEtEvB4CnkJIorgmnVhlrH3m663Fq7Uish32rH57AIeAtlZGo7L0OhYbNRPKewvlK0YfzUQt/I1Iaf/Duxa7SZ19c3cVgkzC9g4fKrhbE2TUXRnjpdFQY2I30SRwt3RYmRQRO2hSvstpIHtn5k3hFu71aQmS2ILFoyijksWyAC0eh4fgxJPmvfaGfexxiyHgAkv9bdWVzcdNeitld/glGJk7G4NquccJFozPqY3UqMg+ZLJzz36abe3gT5Yv/WAxNZlCQ=='`
 
 ## Coding Style
 Follow [PEP 8](https://www.python.org/dev/peps/pep-0008/) for any Python code and the style guide recommended for any other language.
@@ -41,7 +75,7 @@ Modified from [pyorbital](https://github.com/pytroll/pyorbital/blob/master/RELEA
 
 ## Configuring a Database
 
-Configuration of the database endpoint is done in the code that constructs the `Database` object in `databse.py`. Typically this is configured in `server.py`.
+Configuration of the database endpoint is done in the code that constructs the `Database` object in `databse.py`. Typically this is configured in `flask_server.py`.
 
 You can use this code against our development and production databases at `db.consensys.space` (running in Amazon Relational Database Service (RDS), but in some cases, it may be preferable to develop against a local database.
 
@@ -65,7 +99,7 @@ To export all (~200MB) data from the RDS database:
 
 Replace `neil.mcclaren` with your `db.consensys.space` user. You will be prompted for a password.
 
-If your user dos not have LOCK permissions then you may need to add a `--skip-lock-tables` flag, e.g. `mysqldump -h db.consensys.space -u neil.mcclaren --skip-lock-tables -p opensatcat > opensatcat_dump.sql`)
+If your user does not have LOCK permissions then you may need to add a `--skip-lock-tables` flag, e.g. `mysqldump -h db.consensys.space -u neil.mcclaren --skip-lock-tables -p opensatcat > opensatcat_dump.sql`)
 
 ### Import data to local database
 
@@ -77,20 +111,21 @@ From the same directory that you did the export, import the data into your local
 
 !TODO: there are too many steps here. What's best practice for automating this setup stuff? How does AWS do it and can we copy that process for local development environments to ensure consistency?
  - Checkout the appropriate branch of ['trusat-backend'](https://github.com/consensys-space/trusat-backend).
- - Generate RSA Keys using `bash RSAKeyGen.sh` and follow the instructions provided.
+ - In the same directory, checkout the master branch of ['trusat-orbits'](https://github.com/consensys-space/trusat-orbits).
+ - In the same directory, generate `trusat-config.yaml`.
+ - Generate RSA Keys using `bash RSAKeyGen.sh` and follow the instructions that print to the terminal.
  - Generate TLS Certificates.
- - Export all website origins expected with a comma separated list without spaces. The environmental variable to set is `WEBSITE_ORIGINS` with an example of `http://localhost:3000,https://trusat.org`
- - Generate Gunmail api key
- - Set Gunmail Environmental Variables `GUNMAIL_API_KEY` and `GUNMAIL_EMAIL_ADDRESS`
-	- OR -
- - Generate Google API Key and store in `credentials.json`.
- - Initialize Google API Keys by running `google_email.init_email_sending()` with credentials. IMPORTANT: This will require a browser on hand
+ - Export all website origins expected with a comma separated list without spaces. The environmental variable to set is `WEBSITE_ORIGINS` with an example of `http://localhost:5000,https://trusat.org`.
+ - Generate Gunmail api key.
+ - Set Gunmail Environmental Variables `GUNMAIL_API_KEY` and `GUNMAIL_EMAIL_ADDRESS`.
+ - Generate `SECRET_KEY` for Flask.
+ - Run `wsgi.py` or put `wsgi.py` behind Nginx (recommended).
 
 ### Install python
 
 Ensure you are using python3 using `python --version`
 
-If your python3 executable is something other than `python` (e.g. mine is called `python3.7`), you might have to run ``python3.7 --version`. The commands below assume that your executable is caleld `python3.7`. Python 3.7 is required to run backend with `ThreadingHTTPServer`.
+If your python3 executable is something other than `python` (e.g. mine is called `python3.7`), you might have to run ``python3.7 --version`. The commands below assume that your executable is caleld `python3.7`.
 
 ### Install pip
 
@@ -113,19 +148,13 @@ This is recommended for python if you do or will ever use python for any other p
 
 ### Run the code
 
-After doing all of the above, and creating a valid `login.txt` file (see further above), simply run:
+After doing all of the above, and creating a valid `trusat-config.yaml` file (see further above), simply run:
 
-`TRUSAT_DISABLE_HTTPS=T python3.7 server.py`
-
-### Secure your HTTPS connections
-
-If you want to omit `TRUSAT_DISABLE_HTTPS=T` above and test with a proper TLS-secured connection, you will need to generate the appropriate keys.
-
-!TODO Instructions for generating `privkey.pem` and `fullchain.pem`.
+`python3.7 wsgi.py`
 
 ### Manual tests
 
-Use a tool like Postman to GET `http://localhost:8080/catalog/priorities`. If you have configured the production database in `login.txt`, you can compare your results to `https://api.consensys.space:8080/catalog/priorities`.
+Use a tool like Postman to GET `http://localhost:5000/catalog/priorities`. If you have configured the production database in `trusat-config.yaml`, you can compare your results to `https://api.consensys.space:5000/catalog/priorities`.
 
 ### Automated tests
 
