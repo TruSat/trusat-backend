@@ -1,3 +1,5 @@
+![TruSat banner](https://trusat-assets.s3.amazonaws.com/readme-banner.jpg)
+
 # trusat-backend
 
 ## Introduction
