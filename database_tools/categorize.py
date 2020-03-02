@@ -94,12 +94,12 @@ def main():
     tot_files = 0
 
     for table in tables:
-        # get main category
-        # header = table.find('tr', class_='header')
-        header = table.find('tr')
-        main_cat = header.next.next
-        # find all links within main category
-        links = header.find_next_siblings()
+	# get main category
+	header = table.find('thead')
+	main_cat = header.next.next.next
+	# find all links within main category
+	links = table.find("tbody").find_all(recursive=False)
+
         for link in links:
             _tmp_link = link.next.next
             if type(_tmp_link) != element.Tag:
