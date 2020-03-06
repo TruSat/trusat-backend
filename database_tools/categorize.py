@@ -94,6 +94,7 @@ def main():
     tot_files = 0
 
     for idx, table in enumerate(tables):
+        # table = tables[1]
         # get main category, but
         # don't change the main_cat for the 4th table
         # since it is a continuation of the 3rd table
@@ -102,19 +103,15 @@ def main():
             pass
         else:
             main_cat = header.next.next.next
-            
-        links = table.find("tbody").find_all(recursive=False)
 
+        links = table.find("tbody").find_all("a", recursive=True)
         for link in links:
-            _tmp_link = link.next.next
-            if type(_tmp_link) != element.Tag:
-                continue
-            if 'href' in _tmp_link.attrs:
-                name = _tmp_link['href']
+            if 'href' in link.attrs:
+                name = link['href']
                 if name[-4:] == '.txt':
                     # start processing file in new thread
-                    sub_cat = _tmp_link.get_text()
-                    _url = URL + name
+                    sub_cat = link.get_text()
+                    _url = os.path.join(URL,name)
                     Thread(target=process_file, args=(_url, name, sub_cat, main_cat)).start()
                     tot_files += 1
 
