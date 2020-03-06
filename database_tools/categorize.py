@@ -93,12 +93,17 @@ def main():
 
     tot_files = 0
 
-    for table in tables:
-	# get main category
-	header = table.find('thead')
-	main_cat = header.next.next.next
-	# find all links within main category
-	links = table.find("tbody").find_all(recursive=False)
+    for idx, table in enumerate(tables):
+        # get main category, but
+        # don't change the main_cat for the 4th table
+        # since it is a continuation of the 3rd table
+        header = table.find('thead')
+        if idx == 3:
+            pass
+        else:
+            main_cat = header.next.next.next
+            
+        links = table.find("tbody").find_all(recursive=False)
 
         for link in links:
             _tmp_link = link.next.next
