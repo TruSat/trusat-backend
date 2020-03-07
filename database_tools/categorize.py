@@ -94,7 +94,6 @@ def main():
     tot_files = 0
 
     for idx, table in enumerate(tables):
-        # table = tables[1]
         # get main category, but
         # don't change the main_cat for the 4th table
         # since it is a continuation of the 3rd table
