@@ -115,6 +115,7 @@ From the same directory that you did the export, import the data into your local
  - Checkout the appropriate branch of ['trusat-backend'](https://github.com/consensys-space/trusat-backend).
  - In the same directory, checkout the master branch of ['trusat-orbits'](https://github.com/consensys-space/trusat-orbits).
  - In the same directory, generate `trusat-config.yaml`.
+ - Run `pip install -r requirements.txt` for trusat-backend and trusat-orbits.
  - Generate RSA Keys using `bash RSAKeyGen.sh` and follow the instructions that print to the terminal.
  - Generate TLS Certificates.
  - Export all website origins expected with a comma separated list without spaces. The environmental variable to set is `WEBSITE_ORIGINS` with an example of `http://localhost:5000,https://trusat.org`.
@@ -171,3 +172,262 @@ Run:
  - Run `pytest` with a `-s` or `--durations 50` flag to add timing information to the output
 
  - Run `pytest --snapshot-update` to update the snapshots if either the expected behavior or the underlying data changes.
+
+## Local Test Environment Setup
+This requires python3 and yarn/npm (replace any yarn command with npm if applicable)
+```
+python3 -m pip install --user virtualenv
+git clone https://github.com/consensys-space/trusat-orbit
+git clone https://github.com/consensys-space/trusat-backend
+cd trusat-backend
+git clone https://github.com/consensys-space/trusat-frontend
+
+cd trusat-frontend
+yarn install
+export REACT_APP_API_ROOT="http://localhost:5000
+yarn build
+cd ..
+
+python3 -m virtualenv trusat-backend-env
+source trusat-backend-env/bin/activate
+
+pip install wheel gunicorn
+pip install -r requirements.txt
+pip install -r ../trusat-orbit/requirements.txt
+```
+
+### Set up configurations for the server
+Set up the following environmental variables to enable all features
+```
+export MAILGUN_API_KEY=''
+export MAILGUN_EMAIL_ADDRESS=''
+export WEBSITE_ORIGINS='http://localhost'
+export SECRET_KEY=''
+```
+
+Add trusat-config.yaml to the parent directory with all the database connection information
+```
+# Trusat Database Connection Configuration
+Database:
+  name: "space"
+  type: "sqlserver"
+  hostname: "127.0.0.1"
+  username: "root"
+  password:
+```
+
+### Start the server with the following command
+```
+python wsgi.py
+```
+
+### Test that the server responds with a proper response
+```
+if curl http://localhost:5000/heartbeat > HTML_Output
+then echo "Request was successful"
+else echo "Server did not set up correctly"
+fi
+```
+
+(Make sure db accepts inbound of the IP (public and or internal)
+
+## Recommended Installation
+[Very helpful article](https://www.digitalocean.com/community/tutorials/how-to-serve-flask-applications-with-gunicorn-and-nginx-on-ubuntu-18-04) on how to run trusat-backend with Nginx and gunicorn. Or feel free to follow the steps below
+
+### Install nginx and python3
+```
+sudo apt update
+sudo apt install nginx
+sudo apt install python3-pip python3-dev build-essential libssl-dev libffi-dev python3-setuptools
+```
+
+### Install virtual environment to run the python code
+```
+python3 -m pip install --user virtualenv
+```
+
+### Clone python code
+```
+git clone https://github.com/consensys-space/trusat-orbit
+git clone https://github.com/consensys-space/trusat-backend
+git clone https://github.com/consensys-space/trusat-frontend
+cd trusat-backend
+```
+
+### Start setting up python virtual environment
+```
+python3 -m virtualenv trusat-backend-env
+source trusat-backend-env/bin/activate
+
+pip install wheel gunicorn
+pip install -r requirements.txt
+pip install -r ../trusat-orbit/requirements.txt
+```
+
+### Allow port 5000 access
+```
+sudo ufw allow 5000
+```
+### Set up configurations for the server
+```
+export MAILGUN_API_KEY=''
+export MAILGUN_EMAIL_ADDRESS=''
+export WEBSITE_ORIGINS='http://localhost'
+export SECRET_KEY=''
+```
+```
+# Trusat Database Connection Configuration
+Database:
+  name: "space"
+  type: "sqlserver"
+  hostname: "127.0.0.1"
+  username: "root"
+  password:
+```
+
+(Make sure db accepts inbound of the IP (public and or internal)
+
+### Start the server with the following command
+```
+python wsgi.py
+```
+
+### Test that the server responds with a proper response
+```
+if curl http://localhost:5000/heartbeat > HTML_Output
+then echo "Request was successful"
+else echo "Server did not set up correctly"
+fi
+```
+
+### Kill the server and test gunicorn with the server
+```
+gunicorn --bind 0.0.0.0:5000 wsgi:app
+```
+
+### Test that the server responds with a proper response
+```
+if curl http://localhost:5000/hearbeat > HTML_Output
+then echo "Request successful"
+else echo "Server did not set up correctly"
+fi
+```
+
+### Kill the server and leave the python environment
+```
+deactivate
+```
+
+### Create service to start up gunicorn with wsgi.py
+Use the following command and modify the file information to work with your system.
+```
+sudo vim /etc/systemd/system/trusat-backend.service
+```
+
+Example trusat-backend.service:
+```
+[Unit]
+Description=Gunicorn instance to serve trusat-backend
+After=network.target
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/trusat-backend
+Environment="PATH=/home/ubuntu/trusat-backend/trusat-backend-env/bin"
+ExecStart=/home/ubuntu/trusat-backend/trusat-backend-env/bin/gunicorn --workers 4 --bind unix:trusat-backend.sock -m 007 wsgi:app
+Environment="SECRET_KEY="
+Environment="MAILGUN_API_KEY="
+Environment="MAILGUN_EMAIL_ADDRESS="
+Environment="WEBSITE_ORIGINS="
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Start service
+```
+sudo systemctl start trusat-backend
+sudo systemctl enable trusat-backend
+sudo systemctl status trusat-backend
+```
+
+Look for similar output:
+```
+ubuntu@ip-172-30-0-116:~/trusat-backend$ sudo systemctl status trusat-backend
+● trusat-backend.service - Gunicorn instance to serve trusat-backend
+   Loaded: loaded (/etc/systemd/system/trusat-backend.service; enabled; vendor preset: enabled)
+   Active: active (running) since Tue 2020-03-03 21:28:04 UTC; 13s ago
+ Main PID: 24058 (gunicorn)
+    Tasks: 5 (limit: 1152)
+   CGroup: /system.slice/trusat-backend.service
+           ├─24058 /home/ubuntu/trusat-backend/trusat-backend-env/bin/python /home/ubuntu/trusat-backend/trusat-backend-env/bin/gunicorn --workers 4 --bind unix:trusat-backend.sock -m 007 wsgi:app
+           ├─24079 /home/ubuntu/trusat-backend/trusat-backend-env/bin/python /home/ubuntu/trusat-backend/trusat-backend-env/bin/gunicorn --workers 4 --bind unix:trusat-backend.sock -m 007 wsgi:app
+           ├─24080 /home/ubuntu/trusat-backend/trusat-backend-env/bin/python /home/ubuntu/trusat-backend/trusat-backend-env/bin/gunicorn --workers 4 --bind unix:trusat-backend.sock -m 007 wsgi:app
+           ├─24081 /home/ubuntu/trusat-backend/trusat-backend-env/bin/python /home/ubuntu/trusat-backend/trusat-backend-env/bin/gunicorn --workers 4 --bind unix:trusat-backend.sock -m 007 wsgi:app
+           └─24082 /home/ubuntu/trusat-backend/trusat-backend-env/bin/python /home/ubuntu/trusat-backend/trusat-backend-env/bin/gunicorn --workers 4 --bind unix:trusat-backend.sock -m 007 wsgi:app
+
+Mar 03 21:28:04 ip-172-30-0-116 systemd[1]: Started Gunicorn instance to serve trusat-backend.
+Mar 03 21:28:04 ip-172-30-0-116 gunicorn[24058]: [2020-03-03 21:28:04 +0000] [24058] [INFO] Starting gunicorn 20.0.4
+Mar 03 21:28:04 ip-172-30-0-116 gunicorn[24058]: [2020-03-03 21:28:04 +0000] [24058] [INFO] Listening at: unix:trusat-backend.sock (24058)
+Mar 03 21:28:04 ip-172-30-0-116 gunicorn[24058]: [2020-03-03 21:28:04 +0000] [24058] [INFO] Using worker: sync
+Mar 03 21:28:04 ip-172-30-0-116 gunicorn[24058]: [2020-03-03 21:28:04 +0000] [24079] [INFO] Booting worker with pid: 24079
+Mar 03 21:28:04 ip-172-30-0-116 gunicorn[24058]: [2020-03-03 21:28:04 +0000] [24080] [INFO] Booting worker with pid: 24080
+Mar 03 21:28:04 ip-172-30-0-116 gunicorn[24058]: [2020-03-03 21:28:04 +0000] [24081] [INFO] Booting worker with pid: 24081
+Mar 03 21:28:04 ip-172-30-0-116 gunicorn[24058]: [2020-03-03 21:28:04 +0000] [24082] [INFO] Booting worker with pid: 24082
+```
+
+### Create Nginx file 
+```
+sudo vim /etc/nginx/sites-available/trusat-backend
+```
+
+### Note, server_name needs to be the name you own
+```
+server {
+    listen 80;
+    server_name trusat.org www.trusat.org;
+
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/home/ubuntu/trusat-backend/trusat-backend.sock;
+    }
+}
+```
+
+### Link trusat-backend
+```
+sudo ln -s /etc/nginx/sites-available/trusat-backend /etc/nginx/sites-enabled
+sudo nginx -t
+```
+
+The test should look similar to below
+```
+ubuntu@ip-172-30-0-116:~/trusat-backend$ sudo nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+```
+
+### Restart and configure the rest of nginx
+```
+sudo systemctl restart nginx
+sudo ufw delete allow 5000
+sudo ufw allow 'Nginx Full'
+```
+
+### Change localhost with the domain name from above
+```
+if curl http://localhost/hearbeat > HTML_Output
+then echo "Request successful"
+else echo "Server did not set up correctly"
+fi
+```
+
+### Create certificate
+Don't forget to create a DNS record
+```
+sudo add-apt-repository ppa:certbot/certbot
+sudo apt install python-certbot-nginx
+sudo certbot --nginx -d trusat.org -d www.trusat.org
+sudo ufw delete allow 'Nginx HTTP'
+```
