@@ -184,7 +184,7 @@ git clone https://github.com/consensys-space/trusat-frontend
 
 cd trusat-frontend
 yarn install
-export REACT_APP_API_ROOT="http://localhost:5000
+export REACT_APP_API_ROOT="http://localhost:5000"
 yarn build
 cd ..
 
@@ -195,6 +195,23 @@ pip install wheel gunicorn
 pip install -r requirements.txt
 pip install -r ../trusat-orbit/requirements.txt
 ```
+
+### Download and start MariaDB
+For [macOS](https://mariadb.com/kb/en/installing-mariadb-on-macos-using-homebrew/):
+```
+brew install mariadb
+mysql.server start
+brew services start mariadb
+```
+
+For [Ubuntu]():
+```
+sudo apt update
+sudo apt install mariadb-server
+sudo systemctl status mariadb
+```
+# TODO:
+################### CREATE DATABASE
 
 ### Set up configurations for the server
 Set up the following environmental variables to enable all features
@@ -214,6 +231,12 @@ Database:
   hostname: "127.0.0.1"
   username: "root"
   password:
+```
+
+### Initialize database tables
+```
+python create_tables.py
+python database_tools/categorize.py
 ```
 
 ### Start the server with the following command
