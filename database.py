@@ -687,8 +687,8 @@ class Database:
         else:
             log.info("Creating Observer table...")
             """ Observer """
-            createquery = """CREATE TABLE IF NOT EXISTS Observer (
-                id          INTEGER PRIMARY KEY''' + self.increment + ''', /* Internal ID  */
+            createquery = '''CREATE TABLE IF NOT EXISTS Observer (
+                id          INTEGER PRIMARY KEY ''' + self.increment + ''', /* Internal ID  */
                 eth_addr    CHAR(42),       /* Ethereum address for user */
                 verified    TEXT,           /* DEPRECATED */
                 reputation  INTEGER,        /* User rank value */
@@ -704,7 +704,7 @@ class Database:
                 KEY `Observer_id_idx` (`id`) USING BTREE,
                 KEY `Observer_eth_addr_idx` (`eth_addr`) USING BTREE,
                 KEY `Observer_reputation_idx` (`reputation`) USING BTREE
-                )""" + self.charset_string
+                )''' + self.charset_string
             self.c.execute(createquery)
 
         self.conn.commit()
@@ -719,7 +719,7 @@ class Database:
             """ TLE """
             # TODO: add mean_motion_radians_per_minute from the TLE class to here
             createquery = '''CREATE TABLE IF NOT EXISTS TLE (
-                tle_id                      INTEGER PRIMARY KEY''' + self.increment + ''', /* Internal unique record ID */
+                tle_id                      INTEGER PRIMARY KEY ''' + self.increment + ''', /* Internal unique record ID */
                 line0                       TINYTEXT,   /* line0/name from TLE */
                 line1                       TINYTEXT,   /* line1 of TLE */
                 line2                       TINYTEXT,   /* line2 of TLE record */
@@ -755,8 +755,8 @@ class Database:
                 import_timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,   /* Timestamp of record creation */
                 KEY `TLE_epoch_idx` (`epoch`) USING BTREE,
                 KEY `TLE_sat_name_idx` (`sat_name`(24)) USING BTREE,
-                UNIQUE KEY `TLE_tle_fingerprint_idx` (`tle_fingerprint`(33)) USING BTREE,
-                KEY `TLE_tle_file_fingerprint_idx` (`tle_file_fingerprint`(33)) USING BTREE,
+                UNIQUE KEY `TLE_tle_fingerprint_idx` (`tle_fingerprint`(32)) USING BTREE,
+                KEY `TLE_tle_file_fingerprint_idx` (`tle_file_fingerprint`(32)) USING BTREE,
                 KEY `TLE_norad_idx` (`satellite_number`) USING BTREE
             )''' + self.charset_string
 
@@ -772,11 +772,11 @@ class Database:
             log.info("Creating TLEFILE table...")
 
             createquery = '''CREATE TABLE IF NOT EXISTS TLEFILE (
-                file_id                 INTEGER PRIMARY KEY''' + self.increment + ''', /* Unique internal record ID */
+                file_id                 INTEGER PRIMARY KEY ''' + self.increment + ''', /* Unique internal record ID */
                 file_fingerprint        CHAR(32) NOT NULL, /* MD5 finger print of file */
                 source_filename         TINYTEXT,          /* Name of source file */
                 import_timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, /* Timestamp of record creation */
-                UNIQUE KEY `TLEFILE_file_fingerprint_33_idx` (`file_fingerprint`(33)) USING BTREE
+                UNIQUE KEY `TLEFILE_file_fingerprint_33_idx` (`file_fingerprint`(32)) USING BTREE
             )''' + self.charset_string
 
             try:
