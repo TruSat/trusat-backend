@@ -38,9 +38,13 @@ from flask_wtf.csrf import CSRFProtect
 MAILGUN_API_KEY = os.getenv('MAILGUN_API_KEY', False)
 MAILGUN_EMAIL_ADDRESS = os.getenv('MAILGUN_EMAIL_ADDRESS', False)
 WEBSITE_ORIGINS = os.getenv('WEBSITE_ORIGINS', False)
-WEBSITE_ORIGINS = WEBSITE_ORIGINS.split(',')
+if WEBSITE_ORIGINS is not False:
+    WEBSITE_ORIGINS = WEBSITE_ORIGINS.split(',')
 SECRET_KEY = os.getenv('SECRET_KEY', False)
-SECRET_KEY = base64.b64decode(bytes(SECRET_KEY, 'utf-8'))
+if SECRET_KEY is not False:
+    SECRET_KEY = base64.b64decode(bytes(SECRET_KEY, 'utf-8'))
+else:
+    SECRET_KEY = b'ucCWKF7iqBqLNVoa6dS5Bc+mYYTecgcPg3Uv9nPP043hcdLPaE/UhBqqAChdytGifzeKzFl2bT4aN0B5xqEtEvB4CnkJIorgmnVhlrH3m663Fq7Uish32rH57AIeAtlZGo7L0OhYbNRPKewvlK0YfzUQt/I1Iaf/Duxa7SZ19c3cVgkzC9g4fKrhbE2TUXRnjpdFQY2I30SRwt3RYmRQRO2hSvstpIHtn5k3hFu71aQmS2ILFoyijksWyAC0eh4fgxJPmvfaGfexxiyHgAkv9bdWVzcdNeitld/glGJk7G4NquccJFozPqY3UqMg+ZLJzz36abe3gT5Yv/WAxNZlCQ=='
 
 
 config = {
@@ -54,7 +58,10 @@ config = {
 app = Flask(__name__, static_folder="trusat-frontend/build/static", template_folder="trusat-frontend/build")
 app.config.from_mapping(config)
 cache = Cache(app)
-cors = CORS(app, support_credentials=True, origins=WEBSITE_ORIGINS)
+if WEBSITE_ORIGINS is not False:
+    cors = CORS(app, support_credentials=True, origins=WEBSITE_ORIGINS)
+else:
+    cors = CORS(app, support_credentials=True)
 #csrf = CSRFProtect(app)
 
 
