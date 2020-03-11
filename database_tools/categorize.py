@@ -2,11 +2,18 @@ import time
 import requests
 import urllib
 import os
+import sys
 import mysql.connector
 from mysql.connector import errorcode
 from bs4 import BeautifulSoup
 from bs4 import element
 from threading import Thread
+
+# The following 4 lines are necessary until our modules are public
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+sys.path.insert(1,os.path.dirname(currentdir)) 
+import database
 
 # --- CONSTANTS ---
 
@@ -62,7 +69,7 @@ def main():
 
     try:
         db = database.Database(CONFIG)
-        cursor = db.cursor()
+        cursor = db.c
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
             print('Something is wrong with your user name or password')
@@ -73,13 +80,13 @@ def main():
 
     # load DB and initialize table
     try:
-        cursor.execute(f'USE {dbname}')
+        cursor.execute(f'USE {db._dbname}')
     except mysql.connector.Error as err:
-        print(f'Database {dbname} does not exist.')
+        print(f'Database {db._dbname} does not exist.')
         if err.errno == errorcode.ER_BAD_DB_ERROR:
             create_database(cursor)
-            print(f'Database {dbname} created successfully.')
-            cnx.database = dbname
+            print(f'Database {db._dbname} created successfully.')
+            cnx.database = db._dbname
         else:
             print(err)
             os._exit(1)
@@ -167,12 +174,13 @@ def main():
     # Commit the remaining batch < 1000
     if (len(entry_list) > 0):
         cursor.executemany(add_entry_query, entry_list)
-    cnx.commit()
+    db.conn.commit()
     print('done')
 
     cursor.close()
-    cnx.close()
+    db.conn.close()
     print('All satellites successfully saved to database!')
 
 if __name__ == '__main__':
     main()
+    
