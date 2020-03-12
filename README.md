@@ -210,8 +210,13 @@ sudo apt update
 sudo apt install mariadb-server
 sudo systemctl status mariadb
 ```
-# TODO:
-################### CREATE DATABASE
+### Use your SQL credentials to create the database
+NOTE: If `mysql -u root` doesn't work, you may need to use sudo. It is recommended to create a user that is separate from root.
+```
+mysql -u root
+
+CREATE DATABASE space DEFAULT CHARACTER SET 'utf8';
+```
 
 ### Set up configurations for the server
 Set up the following environmental variables to enable all features
@@ -273,8 +278,8 @@ python3 -m pip install --user virtualenv
 ```
 git clone https://github.com/consensys-space/trusat-orbit
 git clone https://github.com/consensys-space/trusat-backend
-git clone https://github.com/consensys-space/trusat-frontend
 cd trusat-backend
+git clone https://github.com/consensys-space/trusat-frontend
 ```
 
 ### Start setting up python virtual environment
@@ -291,13 +296,39 @@ pip install -r ../trusat-orbit/requirements.txt
 ```
 sudo ufw allow 5000
 ```
+
+### Download and start MariaDB
+For [macOS](https://mariadb.com/kb/en/installing-mariadb-on-macos-using-homebrew/):
+```
+brew install mariadb
+mysql.server start
+brew services start mariadb
+```
+
+For [Ubuntu]():
+```
+sudo apt update
+sudo apt install mariadb-server
+sudo systemctl status mariadb
+```
+### Use your SQL credentials to create the database
+NOTE: If `mysql -u root` doesn't work, you may need to use sudo. It is recommended to create a user that is separate from root.
+```
+mysql -u root
+
+CREATE DATABASE space DEFAULT CHARACTER SET 'utf8';
+```
+
 ### Set up configurations for the server
+Set up the following environmental variables to enable all features
 ```
 export MAILGUN_API_KEY=''
 export MAILGUN_EMAIL_ADDRESS=''
 export WEBSITE_ORIGINS='http://localhost'
 export SECRET_KEY=''
 ```
+
+Add trusat-config.yaml to the parent directory with all the database connection information
 ```
 # Trusat Database Connection Configuration
 Database:
@@ -307,8 +338,13 @@ Database:
   username: "root"
   password:
 ```
-
 (Make sure db accepts inbound of the IP (public and or internal)
+
+### Initialize database tables
+```
+python create_tables.py
+python database_tools/categorize.py
+```
 
 ### Start the server with the following command
 ```
@@ -377,7 +413,7 @@ sudo systemctl status trusat-backend
 
 Look for similar output:
 ```
-ubuntu@ip-172-30-0-116:~/trusat-backend$ sudo systemctl status trusat-backend
+ubuntu:~/trusat-backend$ sudo systemctl status trusat-backend
 ● trusat-backend.service - Gunicorn instance to serve trusat-backend
    Loaded: loaded (/etc/systemd/system/trusat-backend.service; enabled; vendor preset: enabled)
    Active: active (running) since Tue 2020-03-03 21:28:04 UTC; 13s ago
@@ -390,14 +426,14 @@ ubuntu@ip-172-30-0-116:~/trusat-backend$ sudo systemctl status trusat-backend
            ├─24081 /home/ubuntu/trusat-backend/trusat-backend-env/bin/python /home/ubuntu/trusat-backend/trusat-backend-env/bin/gunicorn --workers 4 --bind unix:trusat-backend.sock -m 007 wsgi:app
            └─24082 /home/ubuntu/trusat-backend/trusat-backend-env/bin/python /home/ubuntu/trusat-backend/trusat-backend-env/bin/gunicorn --workers 4 --bind unix:trusat-backend.sock -m 007 wsgi:app
 
-Mar 03 21:28:04 ip-172-30-0-116 systemd[1]: Started Gunicorn instance to serve trusat-backend.
-Mar 03 21:28:04 ip-172-30-0-116 gunicorn[24058]: [2020-03-03 21:28:04 +0000] [24058] [INFO] Starting gunicorn 20.0.4
-Mar 03 21:28:04 ip-172-30-0-116 gunicorn[24058]: [2020-03-03 21:28:04 +0000] [24058] [INFO] Listening at: unix:trusat-backend.sock (24058)
-Mar 03 21:28:04 ip-172-30-0-116 gunicorn[24058]: [2020-03-03 21:28:04 +0000] [24058] [INFO] Using worker: sync
-Mar 03 21:28:04 ip-172-30-0-116 gunicorn[24058]: [2020-03-03 21:28:04 +0000] [24079] [INFO] Booting worker with pid: 24079
-Mar 03 21:28:04 ip-172-30-0-116 gunicorn[24058]: [2020-03-03 21:28:04 +0000] [24080] [INFO] Booting worker with pid: 24080
-Mar 03 21:28:04 ip-172-30-0-116 gunicorn[24058]: [2020-03-03 21:28:04 +0000] [24081] [INFO] Booting worker with pid: 24081
-Mar 03 21:28:04 ip-172-30-0-116 gunicorn[24058]: [2020-03-03 21:28:04 +0000] [24082] [INFO] Booting worker with pid: 24082
+Mar 03 21:28:04 systemd[1]: Started Gunicorn instance to serve trusat-backend.
+Mar 03 21:28:04 gunicorn[24058]: [2020-03-03 21:28:04 +0000] [24058] [INFO] Starting gunicorn 20.0.4
+Mar 03 21:28:04 gunicorn[24058]: [2020-03-03 21:28:04 +0000] [24058] [INFO] Listening at: unix:trusat-backend.sock (24058)
+Mar 03 21:28:04 gunicorn[24058]: [2020-03-03 21:28:04 +0000] [24058] [INFO] Using worker: sync
+Mar 03 21:28:04 gunicorn[24058]: [2020-03-03 21:28:04 +0000] [24079] [INFO] Booting worker with pid: 24079
+Mar 03 21:28:04 gunicorn[24058]: [2020-03-03 21:28:04 +0000] [24080] [INFO] Booting worker with pid: 24080
+Mar 03 21:28:04 gunicorn[24058]: [2020-03-03 21:28:04 +0000] [24081] [INFO] Booting worker with pid: 24081
+Mar 03 21:28:04 gunicorn[24058]: [2020-03-03 21:28:04 +0000] [24082] [INFO] Booting worker with pid: 24082
 ```
 
 ### Create Nginx file 
@@ -426,7 +462,7 @@ sudo nginx -t
 
 The test should look similar to below
 ```
-ubuntu@ip-172-30-0-116:~/trusat-backend$ sudo nginx -t
+ubuntu:~/trusat-backend$ sudo nginx -t
 nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
 nginx: configuration file /etc/nginx/nginx.conf test is successful
 ```
