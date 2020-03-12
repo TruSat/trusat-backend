@@ -707,6 +707,21 @@ class Database:
                 )''' + self.charset_string
             self.c.execute(createquery)
 
+
+        if self.checkTableExists("Observer_email"):
+            log.info("Observer_email table found.")
+        else:
+            log.info("Creating Observer_email table...")
+            """ Observer_email """
+            createquery = '''CREATE TABLE Observer_email (
+                user_id     INT(11) NOT NULL,       /* Internal ID for Observer */
+                email       TEXT DEFAULT NULL,      /* Email Associated with Observer */
+                primary     INT(11) DEFAULT NULL,   /* Order to use Emails */
+                notes       TEXT DEFAULT NULL,      /* Internal Notes */
+                KEY `Observer_email_User_num_idx` (`user_id`) USING BTREE
+                )''' + self.charset_string
+            self.c.execute(createquery)
+
         self.conn.commit()
 
 
