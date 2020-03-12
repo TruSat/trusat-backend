@@ -4,8 +4,8 @@
 
 
 1. [Intro](##Introduction)
-  1. [trusat-config.yaml](###Update-trusat-config.yaml-file)
-  2. [Environmental Variables](###Environmental-variables)
+    1. [trusat-config.yaml](###Update-trusat-config.yaml-file)
+    2. [Environmental Variables](###Environmental-variables)
 2. [Code Style](##Coding-Style)
 3. [Maintaining the Repo](##Maintaining-Repo)
 4. [Versioning](##Releasing-Versions)
