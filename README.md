@@ -2,6 +2,19 @@
 
 # trusat-backend
 
+
+1. [Intro](##Introduction)
+  1. [trusat-config.yaml](###Update-trusat-config.yaml-file)
+  2. [Environmental Variables](###Environmental-variables)
+2. [Code Style](##Coding-Style)
+3. [Maintaining the Repo](##Maintaining-Repo)
+4. [Versioning](##Releasing-Versions)
+5. [Configuring a Database](##Configuring-a-Database)
+6. [Installing and Running the API Server](##Installing-and-running-the-API-server)
+7. [Creating a Local Test Environment](##Local-Test-Environment-Setup)
+8. [Recommended Server Setup](##Recommended-Installation)
+
+
 ## Introduction
 
 This repo contains the code for deploying, populating and interacting with a TruSat database and its standard REST API.
