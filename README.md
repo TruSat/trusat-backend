@@ -6,13 +6,48 @@
 1. [Intro](##Introduction)
     1. [trusat-config.yaml](###Update-trusat-config.yaml-file)
     2. [Environmental Variables](###Environmental-variables)
+        1. [MAILGUN_API_KEY](####MAILGUN_API_KEY)
+        2. [MAILGUN_EMAIL_ADDRESS](####MAILGUN_EMAIL_ADDRESS)
+        3. [WEBSITE_ORIGINS](####WEBSITE_ORIGINS)
+        4. [SECRET_KEY](####SECRET_KEY)
 2. [Code Style](##Coding-Style)
 3. [Maintaining the Repo](##Maintaining-Repo)
 4. [Versioning](##Releasing-Versions)
 5. [Configuring a Database](##Configuring-a-Database)
-6. [Installing and Running the API Server](##Installing-and-running-the-API-server)
+    1. [Installing a Local Database](###Installing-a-local-database)
+    2. [Export data from AWS](###Export-data-from-AWS)
+    3. [Import data to Local Database](###Import-data-to-local-database)
+6. [Automated tests](##Automated-tests)
 7. [Creating a Local Test Environment](##Local-Test-Environment-Setup)
+    1. [Download and Start MariaDB](###Download-and-start-MariaDB)
+    2. [Use your SQL credentials to create the database](###Use-your-SQL-credentials-to-create-the-database)
+    3. [Set up configurations for the server](###Set-up-configurations-for-the-server)
+    4. [Initialize database tables](###Initialize-database-tables)
+    5. [Start the server with the following command](###Start-the-server-with-the-following-command)
+    6. [Test that the server responds with a proper response](###Test-that-the-server-responds-with-a-proper-response)
 8. [Recommended Server Setup](##Recommended-Installation)
+    1. [Install nginx and python3](###Install-nginx-and-python3)
+    2. [Install virtual environment to run the python code](###Install-virtual-environment-to-run-the-python-code)
+    3. [Clone python code](###Clone-python-code)
+    4. [Start setting up python virtual environment](###Start-setting-up-python-virtual-environment)
+    5. [Allow port 5000 access](###Allow-port-5000-access)
+    6. [Download and start MariaDB](###Download-and-start-MariaDB)
+    7. [Use your SQL credentials to create the database](###Use-your-SQL-credentials-to-create-the-database)
+    8. [Set up configurations for the server](###Set-up-configurations-for-the-server)
+    9. [Initialize database tables](###Initialize-database-tables)
+    10. [Start the server with the following command](###Start-the-server-with-the-following-command)
+    11. [Test that the server responds with a proper response](###Test-that-the-server-responds-with-a-proper-response)
+    12. [Kill the server and test gunicorn with the server](###Kill-the-server-and-test-gunicorn-with-the-server)
+    13. [Test that the server responds with a proper response](###Test-that-the-server-responds-with-a-proper-response)
+    14. [Kill the server and leave the python environment](###Kill-the-server-and-leave-the-python-environment)
+    15. [Create service to start up gunicorn with wsgi.py](###Create-service-to-start-up-gunicorn-with-wsgi.py)
+    16. [Start service](###Start-service)
+    17. [Create Nginx file](###Create-Nginx-file)
+    18. [Note, server_name needs to be the name you own](###Note,-server_name-needs-to-be-the-name-you-own)
+    19. [Link trusat-backend](###Link-trusat-backend)
+    20. [Restart and configure the rest of nginx](###Restart-and-configure-the-rest-of-nginx)
+    21. [Change localhost with the domain name from above](###Change-localhost-with-the-domain-name-from-above)
+    22. [Create certificate](###Create-certificate)
 
 
 ## Introduction
@@ -122,57 +157,7 @@ From the same directory that you did the export, import the data into your local
 
 `mysql -u root -p opensatcat_local < opensatcat_dump.sql`
 
-## Installing and running the API server
-
-!TODO: there are too many steps here. What's best practice for automating this setup stuff? How does AWS do it and can we copy that process for local development environments to ensure consistency?
- - Checkout the appropriate branch of ['trusat-backend'](https://github.com/consensys-space/trusat-backend).
- - In the same directory, checkout the master branch of ['trusat-orbits'](https://github.com/consensys-space/trusat-orbits).
- - In the same directory, generate `trusat-config.yaml`.
- - Run `pip install -r requirements.txt` for trusat-backend and trusat-orbits.
- - Generate RSA Keys using `bash RSAKeyGen.sh` and follow the instructions that print to the terminal.
- - Generate TLS Certificates.
- - Export all website origins expected with a comma separated list without spaces. The environmental variable to set is `WEBSITE_ORIGINS` with an example of `http://localhost:5000,https://trusat.org`.
- - Generate Gunmail api key.
- - Set Gunmail Environmental Variables `GUNMAIL_API_KEY` and `GUNMAIL_EMAIL_ADDRESS`.
- - Generate `SECRET_KEY` for Flask.
- - Run `wsgi.py` or put `wsgi.py` behind Nginx (recommended).
-
-### Install python
-
-Ensure you are using python3 using `python --version`
-
-If your python3 executable is something other than `python` (e.g. mine is called `python3.7`), you might have to run ``python3.7 --version`. The commands below assume that your executable is caleld `python3.7`.
-
-### Install pip
-
-`python3.7 -m ensurepip --default-pip`
-`python3.7 -m pip install --upgrade pip setuptools wheel`
-
-### (Optional) Create a virtual environment 
-
-A virtual environment is somewhere to install your CSpace python package dependencies, that isolates them from package updates made for other python projects on the same machine.
-
-This is recommended for python if you do or will ever use python for any other projects. See [here](https://packaging.python.org/tutorials/installing-packages/#creating-virtual-environments)
-
-### Install non-CSpace dependencies
-
-`pip3.7 install -r requirements.txt`
-
-### Configure CSpace dependencies
-
- - checkout the appropriate branch of [`trusat-orbit`](https://github.com/consensys-space/trusat-orbit) to path `../trusat-orbit` (i.e. its parent directory should match this repo's parent directory). Install any dependencies defined within that repo.
-
-### Run the code
-
-After doing all of the above, and creating a valid `trusat-config.yaml` file (see further above), simply run:
-
-`python3.7 wsgi.py`
-
-### Manual tests
-
-Use a tool like Postman to GET `http://localhost:5000/catalog/priorities`. If you have configured the production database in `trusat-config.yaml`, you can compare your results to `https://api.consensys.space:5000/catalog/priorities`.
-
-### Automated tests
+## Automated tests
 
 These are a work in progress.
 
@@ -449,7 +434,7 @@ Mar 03 21:28:04 gunicorn[24058]: [2020-03-03 21:28:04 +0000] [24081] [INFO] Boot
 Mar 03 21:28:04 gunicorn[24058]: [2020-03-03 21:28:04 +0000] [24082] [INFO] Booting worker with pid: 24082
 ```
 
-### Create Nginx file 
+### Create Nginx file
 ```
 sudo vim /etc/nginx/sites-available/trusat-backend
 ```
