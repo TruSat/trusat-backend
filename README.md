@@ -313,8 +313,22 @@ sudo systemctl status mariadb
 NOTE: If `mysql -u root` doesn't work, you may need to use sudo. It is recommended to create a user that is separate from root.
 ```
 mysql -u root
+```
 
+Create the database
+```
 CREATE DATABASE space DEFAULT CHARACTER SET 'utf8';
+```
+When done, use the `exit` command. If you prefer a separate account, use the section below before exiting
+### (Optional) Create an account to use
+```
+CREATE USER 'newuser'@'localhost' IDENTIFIED BY 'user_password';
+Select PASSWORD('user_password');
+```
+Use the string that is printed, starting with `*`, and paste it into the right side of the following command
+```
+SET PASSWORD FOR 'newuser'@'localhost' = '';
+GRANT ALL ON *.* to newuser@localhost IDENTIFIED BY 'user_password';
 ```
 
 ### Set up configurations for the server
