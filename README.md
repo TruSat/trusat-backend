@@ -232,8 +232,8 @@ Database:
   name: "space"
   type: "sqlserver"
   hostname: "127.0.0.1"
-  username: "root"
-  password:
+  username: "newuser"
+  password: "user_password"
 ```
 
 ### Initialize database tables
