@@ -2,11 +2,18 @@ import time
 import requests
 import urllib
 import os
+import sys
 import mysql.connector
 from mysql.connector import errorcode
 from bs4 import BeautifulSoup
 from bs4 import element
 from threading import Thread
+
+# The following 4 lines are necessary until our modules are public
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+sys.path.insert(1,os.path.dirname(currentdir)) 
+import database
 
 # --- CONSTANTS ---
 
@@ -62,7 +69,7 @@ def main():
 
     try:
         db = database.Database(CONFIG)
-        cursor = db.cursor()
+        cursor = db.c
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
             print('Something is wrong with your user name or password')
@@ -73,13 +80,13 @@ def main():
 
     # load DB and initialize table
     try:
-        cursor.execute(f'USE {dbname}')
+        cursor.execute(f'USE {db._dbname}')
     except mysql.connector.Error as err:
-        print(f'Database {dbname} does not exist.')
+        print(f'Database {db._dbname} does not exist.')
         if err.errno == errorcode.ER_BAD_DB_ERROR:
             create_database(cursor)
-            print(f'Database {dbname} created successfully.')
-            cnx.database = dbname
+            print(f'Database {db._dbname} created successfully.')
+            cnx.database = db._dbname
         else:
             print(err)
             os._exit(1)
@@ -93,23 +100,24 @@ def main():
 
     tot_files = 0
 
-    for table in tables:
-        # get main category
-        # header = table.find('tr', class_='header')
-        header = table.find('tr')
-        main_cat = header.next.next
-        # find all links within main category
-        links = header.find_next_siblings()
+    for idx, table in enumerate(tables):
+        # get main category, but
+        # don't change the main_cat for the 4th table
+        # since it is a continuation of the 3rd table
+        header = table.find('thead')
+        if idx == 3:
+            pass
+        else:
+            main_cat = header.next.next.next
+
+        links = table.find("tbody").find_all("a", recursive=True)
         for link in links:
-            _tmp_link = link.next.next
-            if type(_tmp_link) != element.Tag:
-                continue
-            if 'href' in _tmp_link.attrs:
-                name = _tmp_link['href']
+            if 'href' in link.attrs:
+                name = link['href']
                 if name[-4:] == '.txt':
                     # start processing file in new thread
-                    sub_cat = _tmp_link.get_text()
-                    _url = URL + name
+                    sub_cat = link.get_text()
+                    _url = os.path.join(URL,name)
                     Thread(target=process_file, args=(_url, name, sub_cat, main_cat)).start()
                     tot_files += 1
 
@@ -166,12 +174,13 @@ def main():
     # Commit the remaining batch < 1000
     if (len(entry_list) > 0):
         cursor.executemany(add_entry_query, entry_list)
-    cnx.commit()
+    db.conn.commit()
     print('done')
 
     cursor.close()
-    cnx.close()
+    db.conn.close()
     print('All satellites successfully saved to database!')
 
 if __name__ == '__main__':
     main()
+    

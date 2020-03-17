@@ -255,7 +255,7 @@ def catalog_trusat_all_txt():
         @after_this_request
         def add_header(response):
             return catalog_cache(response)
-        return two_line_elements
+        return two_line_elements, 200, {'Content-Type': 'text/plain; charset=utf-8'}
     else:
         return ''
 
@@ -271,7 +271,7 @@ def catalog_trusat_priorities_txt():
         @after_this_request
         def add_header(response):
             return catalog_cache(response)
-        return two_line_elements
+        return two_line_elements, 200, {'Content-Type': 'text/plain; charset=utf-8'}
     else:
         return ''
 
@@ -287,7 +287,7 @@ def catalog_trusat_high_confidence_txt():
         @after_this_request
         def add_header(response):
             return catalog_cache(response)
-        return two_line_elements
+        return two_line_elements, 200, {'Content-Type': 'text/plain; charset=utf-8'}
     else:
         return ''
 
