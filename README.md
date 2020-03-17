@@ -296,19 +296,13 @@ sudo ufw allow 5000
 ```
 
 ### Download and start MariaDB
-For [macOS](https://mariadb.com/kb/en/installing-mariadb-on-macos-using-homebrew/):
-```
-brew install mariadb
-mysql.server start
-brew services start mariadb
-```
-
-For [Ubuntu]():
+Download, start, and check MariaDB
 ```
 sudo apt update
 sudo apt install mariadb-server
 sudo systemctl status mariadb
 ```
+
 ### Use your SQL credentials to create the database
 NOTE: If `mysql -u root` doesn't work, you may need to use sudo. It is recommended to create a user that is separate from root.
 ```
@@ -320,12 +314,13 @@ Create the database
 CREATE DATABASE space DEFAULT CHARACTER SET 'utf8';
 ```
 When done, use the `exit` command. If you prefer a separate account, use the section below before exiting
+
 ### (Optional) Create an account to use
 ```
 CREATE USER 'newuser'@'localhost' IDENTIFIED BY 'user_password';
 Select PASSWORD('user_password');
 ```
-Use the string that is printed, starting with `*`, and paste it into the right side of the following command
+Use the string that is printed, starting with `*`, and paste it into the right side of the following command. Decide on the access this user will have or use the last command
 ```
 SET PASSWORD FOR 'newuser'@'localhost' = '';
 GRANT ALL ON *.* to newuser@localhost IDENTIFIED BY 'user_password';
@@ -347,10 +342,10 @@ Database:
   name: "space"
   type: "sqlserver"
   hostname: "127.0.0.1"
-  username: "root"
-  password:
+  username: "newuser"
+  password: "user_password"
 ```
-(Make sure db accepts inbound of the IP (public and or internal)
+(Make sure db accepts inbound of the IP (public and/or internal)
 
 ### Initialize database tables
 ```
