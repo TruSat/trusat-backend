@@ -251,6 +251,504 @@ def catalog_all(offset):
     else:
         return {}
 
+
+
+
+
+
+
+
+
+
+@app.route('/catalog/visual/<int:offset>', methods=['GET'])
+def catalog_visual(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/argos/<int:offset>', methods=['GET'])
+def catalog_argos(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/active/<int:offset>', methods=['GET'])
+def catalog_active(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/analyst/<int:offset>', methods=['GET'])
+def catalog_analyst(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/2012-044/<int:offset>', methods=['GET'])
+def catalog_2012_044(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/cosmos-2251-debris/<int:offset>', methods=['GET'])
+def catalog_cosmos__2251_debris(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/cubesat/<int:offset>', methods=['GET'])
+def catalog_cubesat(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/resource/<int:offset>', methods=['GET'])
+def catalog_resource(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/education/<int:offset>', methods=['GET'])
+def catalog_education(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/1999-025/<int:offset>', methods=['GET'])
+def catalog_1999_025(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/gps-ops/<int:offset>', methods=['GET'])
+def catalog_gps_ops(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/galileo/<int:offset>', methods=['GET'])
+def catalog_galileo(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/geodetic/<int:offset>', methods=['GET'])
+def catalog_geodetic(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/geo/<int:offset>', methods=['GET'])
+def catalog_geo(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/iridium-33-debris/<int:offset>', methods=['GET'])
+def catalog_iridium_33_debris(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/2019-006/<int:offset>', methods=['GET'])
+def catalog_2019_006(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/intelsat/<int:offset>', methods=['GET'])
+def catalog_intelsat(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/iridium/<int:offset>', methods=['GET'])
+def catalog_iridium(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/tle-new/<int:offset>', methods=['GET'])
+def catalog_tle_new(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/military/<int:offset>', methods=['GET'])
+def catalog_military(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/noaa/<int:offset>', methods=['GET'])
+def catalog_noaa(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/nnss/<int:offset>', methods=['GET'])
+def catalog_nnss(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/orbcomm/<int:offset>', methods=['GET'])
+def catalog_orbcomm(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/planet/<int:offset>', methods=['GET'])
+def catalog_planet(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/musson/<int:offset>', methods=['GET'])
+def catalog_musson(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/sbas/<int:offset>', methods=['GET'])
+def catalog_sbas(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/sarsat/<int:offset>', methods=['GET'])
+def catalog_sarsat(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/science/<int:offset>', methods=['GET'])
+def catalog_science(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/stations/<int:offset>', methods=['GET'])
+def catalog_stations(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/starlink/<int:offset>', methods=['GET'])
+def catalog_starlink(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/tdrss/<int:offset>', methods=['GET'])
+def catalog_tdrss(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+@app.route('/catalog/weather/<int:offset>', methods=['GET'])
+def catalog_weather(offset):
+    try:
+        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get all', status_code=500)
+    if json_object is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return json_object
+    else:
+        return {}
+
+
+
+
+
+
+
+
+
+
 @app.route('/tle/trusat_all.txt', methods=['GET'])
 def catalog_trusat_all_txt():
     try:
