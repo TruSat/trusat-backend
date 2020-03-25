@@ -362,7 +362,7 @@ class Database:
 								C.obj_no, C.sub_category, C.description as CT_description, C.obj_categories
 							  FROM latest_obs_with_users LU
                               LEFT JOIN ucs_SATDB U ON (LU.object_number = U.norad_number)
-                              LEFT JOIN celestrak_SATCAT SatCat ON (LU.object_number = SatCat.sat_cat_id)
+                              LEFT JOIN celestrak_SATCAT SatCat ON (LU.object_number = SatCat.norad_num)
                               LEFT JOIN (
                               		SELECT obj_no, sub_category, description, GROUP_CONCAT(sub_category SEPARATOR ', ') as obj_categories
                               		FROM categories
@@ -3470,7 +3470,7 @@ class Database:
               FROM latest_obs_with_users as IODs
               LEFT JOIN Observer Obs on (IODs.obs_user = Obs.id)
               LEFT JOIN ucs_SATDB U ON (IODs.object_number = U.norad_number)
-              LEFT JOIN celestrak_SATCAT SatCat ON (IODs.object_number = SatCat.sat_cat_id)
+              LEFT JOIN celestrak_SATCAT SatCat ON (IODs.object_number = SatCat.norad_num)
 
             )
             select Json_Object(
@@ -3606,7 +3606,7 @@ class Database:
             'observation_weight', TLE_process.obs_weight,
             'user_address', Obs.eth_addr)
             FROM P_influence P
-            LEFT JOIN celestrak_SATCAT ON P.object_number = celestrak_SATCAT.sat_cat_id
+            LEFT JOIN celestrak_SATCAT ON P.object_number = celestrak_SATCAT.norad_num
             JOIN (SELECT
                     Station.station_num as station_num,
                     Station.user as station_user,
