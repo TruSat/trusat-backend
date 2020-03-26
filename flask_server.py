@@ -260,232 +260,232 @@ def catalog_all(offset):
 
 @app.route('/catalog/list', methods=['GET'])
 def catalog_list():
-    celestrakCategories = { 'data': [
+    celestrakCategories = { "data": [
             {
-            groupHeader: { title: "Featured", path: "featured" },
-            groupCategories: [
-                { title: "100 Brightest", path: "visual" },
-                { title: "Starlink", path: "starlink" },
+            "groupHeader": { "title": "Featured", "path": "featured" },
+            "groupCategories": [
+                { "title": "100 Brightest", "path": "visual" },
+                { "title": "Starlink", "path": "starlink" },
                 {
-                title: "OneWeb",
-                path: "one-web"
+                "title": "OneWeb",
+                "path": "one-web"
                 },
                 {
-                title: "Active Sats",
-                path: "active"
+                "title": "Active Sats",
+                "path": "active"
                 },
                 {
-                title: "Analyst sats",
-                path: "analyst"
+                "title": "Analyst sats",
+                "path": "analyst"
                 }
             ]
             },
             {
-            groupHeader: {
-                title: "Weather & Earth Resources",
-                path: "weather-earth"
+            "groupHeader": {
+                "title": "Weather & Earth Resources",
+                "path": "weather-earth"
             },
-            groupCategories: [
-                { title: "Weather", path: "weather" },
-                { title: "NOAA", path: "noaa" },
+            "groupCategories": [
+                { "title": "Weather", "path": "weather" },
+                { "title": "NOAA", "path": "noaa" },
                 {
-                title: "GOES",
-                path: "goes"
+                "title": "GOES",
+                "path": "goes"
                 },
                 {
-                title: "Earth Resources",
-                path: "resource"
+                "title": "Earth Resources",
+                "path": "resource"
                 },
                 {
-                title: "Search & Rescue (SARSAT)",
-                path: "sarsat"
+                "title": "Search & Rescue (SARSAT)",
+                "path": "sarsat"
                 },
                 {
-                title: "Disaster Monitoring",
-                path: "disaster-monitoring"
+                "title": "Disaster Monitoring",
+                "path": "disaster-monitoring"
                 },
                 {
-                title: "Tracking and Data Relay",
-                path: "tracking-and-data-relay"
+                "title": "Tracking and Data Relay",
+                "path": "tracking-and-data-relay"
                 },
                 {
-                title: "Tracking and Data Relay Satellite System (TDRSS)",
-                path: "tdrss"
+                "title": "Tracking and Data Relay Satellite System (TDRSS)",
+                "path": "tdrss"
                 },
                 {
-                title: "ARGOS Data Collection",
-                path: "argos"
+                "title": "ARGOS Data Collection",
+                "path": "argos"
                 },
                 {
-                title: "System",
-                path: "system-weather-and-earth-resources"
+                "title": "System",
+                "path": "system-weather-and-earth-resources"
                 },
                 {
-                title: "Planet",
-                path: "planet"
+                "title": "Planet",
+                "path": "planet"
                 },
                 {
-                title: "Spire",
-                path: "spire"
+                "title": "Spire",
+                "path": "spire"
                 }
             ]
             },
             {
-            groupHeader: { title: "Communications", path: "communications" },
-            groupCategories: [
-                { title: "Geosynchronous", path: "geo" },
-                { title: "GEO Protected Zone", path: "geo-protected-zone" },
+            "groupHeader": { "title": "Communications", "path": "communications" },
+            "groupCategories": [
+                { "title": "Geosynchronous", "path": "geo" },
+                { "title": "GEO Protected Zone", "path": "geo-protected-zone" },
                 {
-                title: "GEO Protected Zone Plus",
-                path: "geo-protected-zone-plus"
+                "title": "GEO Protected Zone Plus",
+                "path": "geo-protected-zone-plus"
                 },
                 {
-                title: "Intelsat",
-                path: "intelsat"
+                "title": "Intelsat",
+                "path": "intelsat"
                 },
                 {
-                title: "SES",
-                path: "ses"
+                "title": "SES",
+                "path": "ses"
                 },
                 {
-                title: "Iridium",
-                path: "iridium"
+                "title": "Iridium",
+                "path": "iridium"
                 },
                 {
-                title: "Iridium Next",
-                path: "iridium-next"
+                "title": "Iridium Next",
+                "path": "iridium-next"
                 },
                 {
-                title: "Orbcomm",
-                path: "orbcomm"
+                "title": "Orbcomm",
+                "path": "orbcomm"
                 },
                 {
-                title: "Globalstar",
-                path: "globalstar"
+                "title": "Globalstar",
+                "path": "globalstar"
                 },
                 {
-                title: "Amateur Radio",
-                path: "amateur-radio"
+                "title": "Amateur Radio",
+                "path": "amateur-radio"
                 },
                 {
-                title: "Experimental",
-                path: "experimental"
+                "title": "Experimental",
+                "path": "experimental"
                 },
                 {
-                title: "Other Comm",
-                path: "other-comm"
+                "title": "Other Comm",
+                "path": "other-comm"
                 },
                 {
-                title: "SatNOGS",
-                path: "satnogs"
+                "title": "SatNOGS",
+                "path": "satnogs"
                 },
                 {
-                title: "Gorizant",
-                path: "gorizant"
+                "title": "Gorizant",
+                "path": "gorizant"
                 },
                 {
-                title: "Raduga",
-                path: "raduga"
+                "title": "Raduga",
+                "path": "raduga"
                 },
                 {
-                title: "Molniya",
-                path: "molniya"
+                "title": "Molniya",
+                "path": "molniya"
                 }
             ]
             },
             {
-            groupHeader: { title: "Navigation", path: "navigation" },
-            groupCategories: [
-                { title: "GPS Operational", path: "gps-ops" },
-                { title: "GLONASS Operational", path: "glonass-operational" },
+            "groupHeader": { "title": "Navigation", "path": "navigation" },
+            "groupCategories": [
+                { "title": "GPS Operational", "path": "gps-ops" },
+                { "title": "GLONASS Operational", "path": "glonass-operational" },
                 {
-                title: "Galileo",
-                path: "galileo"
+                "title": "Galileo",
+                "path": "galileo"
                 },
                 {
-                title: "Beidou",
-                path: "beidou"
+                "title": "Beidou",
+                "path": "beidou"
                 },
                 {
-                title: "Satellite-Based Augmentation",
-                path: "satellite-based-augmentation"
+                "title": "Satellite-Based Augmentation",
+                "path": "satellite-based-augmentation"
                 },
                 {
-                title: "System",
-                path: "system-navigation"
+                "title": "System",
+                "path": "system-navigation"
                 },
                 {
-                title: "Satellite-Based Augmentation System (WAAS/EGNOS/MSAS)",
-                path: "sbas"
+                "title": "Satellite-Based Augmentation System (WAAS/EGNOS/MSAS)",
+                "path": "sbas"
                 },
                 {
-                title: "Navy Navigation Satellite Systems (NNSS)",
-                path: "nnss"
+                "title": "Navy Navigation Satellite Systems (NNSS)",
+                "path": "nnss"
                 },
                 {
-                title: "System (NNSS)",
-                path: "nnss-system"
+                "title": "System (NNSS)",
+                "path": "nnss-system"
                 },
                 {
-                title: "Russian LEO Navigation",
-                path: "musson"
+                "title": "Russian LEO Navigation",
+                "path": "musson"
                 }
             ]
             },
             {
-            groupHeader: { title: "Debris", path: "debris" },
-            groupCategories: [
-                { title: "Indian ASAT Test", path: "indian-asat-test" },
-                { title: "FENGYUN 1C", path: "1999-025" },
+            "groupHeader": { "title": "Debris", "path": "debris" },
+            "groupCategories": [
+                { "title": "Indian ASAT Test", "path": "indian-asat-test" },
+                { "title": "FENGYUN 1C", "path": "1999-025" },
                 {
-                title: "IRIDIUM 33",
-                path: "iridium-33"
+                "title": "IRIDIUM 33",
+                "path": "iridium-33"
                 },
                 {
-                title: "COSMOS 2251",
-                path: "cosmos-2251"
+                "title": "COSMOS 2251",
+                "path": "cosmos-2251"
                 },
                 {
-                title: "BREEZE-M R/B Breakup (2012-044C)",
-                path: "2012-044"
+                "title": "BREEZE-M R/B Breakup (2012-044C)",
+                "path": "2012-044"
                 }
             ]
             },
             {
-            groupHeader: { title: "Scientific", path: "scientific" },
-            groupCategories: [
-                { title: "Space & Earth Science", path: "science" },
-                { title: "Geodetic", path: "geodetic" },
+            "groupHeader": { "title": "Scientific", "path": "scientific" },
+            "groupCategories": [
+                { "title": "Space & Earth Science", "path": "science" },
+                { "title": "Geodetic", "path": "geodetic" },
                 {
-                title: "Engineering",
-                path: "engineering"
+                "title": "Engineering",
+                "path": "engineering"
                 },
                 {
-                title: "Education",
-                path: "education"
+                "title": "Education",
+                "path": "education"
                 }
             ]
             },
             {
-            groupHeader: { title: "Misc.", path: "misc" },
-            groupCategories: [
-                { title: "Miscellaneous Military", path: "military" },
-                { title: "Radar Calibration", path: "radar-calibration" },
+            "groupHeader": { "title": "Misc.", "path": "misc" },
+            "groupCategories": [
+                { "title": "Miscellaneous Military", "path": "military" },
+                { "title": "Radar Calibration", "path": "radar-calibration" },
                 {
-                title: "CubeSats",
-                path: "cubesat"
+                "title": "CubeSats",
+                "path": "cubesat"
                 },
                 {
-                title: "Last 30 Days' Launches",
-                path: "tle-new"
+                "title": "Last 30 Days' Launches",
+                "path": "tle-new"
                 },
                 {
-                title: "Space Stations",
-                path: "stations"
+                "title": "Space Stations",
+                "path": "stations"
                 },
                 {
-                title: "Other",
-                path: "other"
+                "title": "Other",
+                "path": "other"
                 }
             ]
             }
