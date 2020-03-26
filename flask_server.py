@@ -488,6 +488,10 @@ def catalog_list():
                 "path": "other"
                 }
             ]
+            },
+            {
+                "groupHeader": { "title": "All", "path": "all"},
+                "groupCategories": []
             }
         ]
         }
