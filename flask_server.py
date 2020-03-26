@@ -260,8 +260,7 @@ def catalog_all(offset):
 
 @app.route('/catalog/list', methods=['GET'])
 def catalog_list():
-    celestrakCategories = {
-        data: [
+    celestrakCategories = { 'data': [
             {
             groupHeader: { title: "Featured", path: "featured" },
             groupCategories: [
@@ -492,7 +491,7 @@ def catalog_list():
             }
         ]
         }
-        return celestrakCategories
+    return celestrakCategories
 
 @app.route('/catalog/visual/<int:offset>', methods=['GET'])
 def catalog_visual(offset):
