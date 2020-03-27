@@ -3436,7 +3436,30 @@ class Database:
         convert_country_names(observations)
         return json.dumps(observations)
 
+    #/catalog/Featured
     def selectCatalog_Featured_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE datediff(now(),obs_time) <= 365 AND categories.sub_category = "starlink"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/Featured
+    def selectCatalog_Starlink_JSON(self, fetch_row_count=100, offset_row_count=0):
         quality = 99
         query = (
           self.selectCatalogQueryPrefix +
