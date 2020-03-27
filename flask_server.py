@@ -67,7 +67,7 @@ else:
 
 
 # An ordered title and path for al catalogs the backend has implemented
-celestrakCategories = { "data": [
+g.celestrakCategories = { "data": [
     {
     "groupHeader": { "title": "Featured", "path": "featured" },
     "groupCategories": [
@@ -306,7 +306,7 @@ celestrakCategories = { "data": [
 
 
 # All catalogs with the associated query
-all_catalogs = {
+g.all_catalogs = {
     "priorities": g.get('db').selectCatalog_Priorities_JSON,
     "undisclosed": g.get('db').selectCatalog_Undisclosed_JSON,
     "latest": g.get('db').selectCatalog_Latest_JSON,
@@ -488,13 +488,13 @@ def error_route():
 
 @app.route('/catalog/list', methods=['GET'])
 def catalog_list():
-    return celestrakCategories
+    return g.get('celestrakCategories')
 
 
 @app.route('/catalog/<str:catalog>/<int:offset>', methods=['GET'])
 def catalog_weather(catalog, offset):
     try:
-        json_object = all_catalogs[catalog](fetch_row_count=200, offset_row_count=offset)
+        json_object = g.get('all_catalogs')[catalog](fetch_row_count=200, offset_row_count=offset)
     except Exception as e:
         print(e)
         raise InvalidUsage('Could not get all', status_code=500)
