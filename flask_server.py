@@ -66,6 +66,320 @@ else:
 
 
 
+# An ordered title and path for al catalogs the backend has implemented
+celestrakCategories = { "data": [
+    {
+    "groupHeader": { "title": "Featured", "path": "featured" },
+    "groupCategories": [
+        { "title": "100 Brightest", "path": "visual" },
+        { "title": "Starlink", "path": "starlink" },
+        {
+        "title": "OneWeb",
+        "path": "one-web"
+        },
+        {
+        "title": "Active Sats",
+        "path": "active"
+        },
+        {
+        "title": "Analyst sats",
+        "path": "analyst"
+        }
+    ]
+    },
+    {
+    "groupHeader": {
+        "title": "Weather & Earth Resources",
+        "path": "weather-earth"
+    },
+    "groupCategories": [
+        { "title": "Weather", "path": "weather" },
+        { "title": "NOAA", "path": "noaa" },
+        {
+        "title": "GOES",
+        "path": "goes"
+        },
+        {
+        "title": "Earth Resources",
+        "path": "resource"
+        },
+        {
+        "title": "Search & Rescue (SARSAT)",
+        "path": "sarsat"
+        },
+        {
+        "title": "Disaster Monitoring",
+        "path": "disaster-monitoring"
+        },
+        {
+        "title": "Tracking and Data Relay",
+        "path": "tracking-and-data-relay"
+        },
+        {
+        "title": "Tracking and Data Relay Satellite System (TDRSS)",
+        "path": "tdrss"
+        },
+        {
+        "title": "ARGOS Data Collection",
+        "path": "argos"
+        },
+        {
+        "title": "System",
+        "path": "system-weather-and-earth-resources"
+        },
+        {
+        "title": "Planet",
+        "path": "planet"
+        },
+        {
+        "title": "Spire",
+        "path": "spire"
+        }
+    ]
+    },
+    {
+    "groupHeader": { "title": "Communications", "path": "communications" },
+    "groupCategories": [
+        { "title": "Geosynchronous", "path": "geo" },
+        { "title": "GEO Protected Zone", "path": "geo-protected-zone" },
+        {
+        "title": "GEO Protected Zone Plus",
+        "path": "geo-protected-zone-plus"
+        },
+        {
+        "title": "Intelsat",
+        "path": "intelsat"
+        },
+        {
+        "title": "SES",
+        "path": "ses"
+        },
+        {
+        "title": "Iridium",
+        "path": "iridium"
+        },
+        {
+        "title": "Iridium Next",
+        "path": "iridium-next"
+        },
+        {
+        "title": "Orbcomm",
+        "path": "orbcomm"
+        },
+        {
+        "title": "Globalstar",
+        "path": "globalstar"
+        },
+        {
+        "title": "Amateur Radio",
+        "path": "amateur-radio"
+        },
+        {
+        "title": "Experimental",
+        "path": "experimental"
+        },
+        {
+        "title": "Other Comm",
+        "path": "other-comm"
+        },
+        {
+        "title": "SatNOGS",
+        "path": "satnogs"
+        },
+        {
+        "title": "Gorizant",
+        "path": "gorizant"
+        },
+        {
+        "title": "Raduga",
+        "path": "raduga"
+        },
+        {
+        "title": "Molniya",
+        "path": "molniya"
+        }
+    ]
+    },
+    {
+    "groupHeader": { "title": "Navigation", "path": "navigation" },
+    "groupCategories": [
+        { "title": "GPS Operational", "path": "gps-ops" },
+        { "title": "GLONASS Operational", "path": "glonass-operational" },
+        {
+        "title": "Galileo",
+        "path": "galileo"
+        },
+        {
+        "title": "Beidou",
+        "path": "beidou"
+        },
+        {
+        "title": "Satellite-Based Augmentation",
+        "path": "satellite-based-augmentation"
+        },
+        {
+        "title": "System",
+        "path": "system-navigation"
+        },
+        {
+        "title": "Satellite-Based Augmentation System (WAAS/EGNOS/MSAS)",
+        "path": "sbas"
+        },
+        {
+        "title": "Navy Navigation Satellite Systems (NNSS)",
+        "path": "nnss"
+        },
+        {
+        "title": "System (NNSS)",
+        "path": "nnss-system"
+        },
+        {
+        "title": "Russian LEO Navigation",
+        "path": "musson"
+        }
+    ]
+    },
+    {
+    "groupHeader": { "title": "Debris", "path": "debris" },
+    "groupCategories": [
+        { "title": "Indian ASAT Test", "path": "indian-asat-test" },
+        { "title": "FENGYUN 1C", "path": "1999-025" },
+        {
+        "title": "IRIDIUM 33",
+        "path": "iridium-33"
+        },
+        {
+        "title": "COSMOS 2251",
+        "path": "cosmos-2251"
+        },
+        {
+        "title": "BREEZE-M R/B Breakup (2012-044C)",
+        "path": "2012-044"
+        }
+    ]
+    },
+    {
+    "groupHeader": { "title": "Scientific", "path": "scientific" },
+    "groupCategories": [
+        { "title": "Space & Earth Science", "path": "science" },
+        { "title": "Geodetic", "path": "geodetic" },
+        {
+        "title": "Engineering",
+        "path": "engineering"
+        },
+        {
+        "title": "Education",
+        "path": "education"
+        }
+    ]
+    },
+    {
+    "groupHeader": { "title": "Misc.", "path": "misc" },
+    "groupCategories": [
+        { "title": "Miscellaneous Military", "path": "military" },
+        { "title": "Radar Calibration", "path": "radar-calibration" },
+        {
+        "title": "CubeSats",
+        "path": "cubesat"
+        },
+        {
+        "title": "Last 30 Days' Launches",
+        "path": "tle-new"
+        },
+        {
+        "title": "Space Stations",
+        "path": "stations"
+        },
+        {
+        "title": "Other",
+        "path": "other"
+        }
+    ]
+    },
+    {
+        "groupHeader": { "title": "All", "path": "all"},
+        "groupCategories": []
+    }
+    ]
+    }
+
+
+
+# All catalogs with the associated query
+all_catalogs = {
+    "priorities": g.get('db').selectCatalog_Priorities_JSON,
+    "undisclosed": g.get('db').selectCatalog_Undisclosed_JSON,
+    "latest": g.get('db').selectCatalog_Latest_JSON,
+    "featured": g.get('db').selectCatalog_All_JSON,
+    "visual": g.get('db').selectCatalog_All_JSON,
+    "starlink": g.get('db').selectCatalog_All_JSON,
+    "one-web": g.get('db').selectCatalog_All_JSON,
+    "active": g.get('db').selectCatalog_All_JSON,
+    "analyst": g.get('db').selectCatalog_All_JSON,
+    "weather-earth": g.get('db').selectCatalog_All_JSON,
+    "weather": g.get('db').selectCatalog_All_JSON,
+    "noaa": g.get('db').selectCatalog_All_JSON,
+    "goes": g.get('db').selectCatalog_All_JSON,
+    "resource": g.get('db').selectCatalog_All_JSON,
+    "sarsat": g.get('db').selectCatalog_All_JSON,
+    "disaster-monitoring": g.get('db').selectCatalog_All_JSON,
+    "tracking-and-data-relay": g.get('db').selectCatalog_All_JSON,
+    "tdrss": g.get('db').selectCatalog_All_JSON,
+    "argos": g.get('db').selectCatalog_All_JSON,
+    "system-weather-and-earth-resources": g.get('db').selectCatalog_All_JSON,
+    "planet": g.get('db').selectCatalog_All_JSON,
+    "spire": g.get('db').selectCatalog_All_JSON,
+    "communications": g.get('db').selectCatalog_All_JSON,
+    "geo": g.get('db').selectCatalog_All_JSON,
+    "geo-protected-zone": g.get('db').selectCatalog_All_JSON,
+    "geo-protected-zone-plus": g.get('db').selectCatalog_All_JSON,
+    "intelsat": g.get('db').selectCatalog_All_JSON,
+    "ses": g.get('db').selectCatalog_All_JSON,
+    "iridium": g.get('db').selectCatalog_All_JSON,
+    "iridium-next": g.get('db').selectCatalog_All_JSON,
+    "orbcomm": g.get('db').selectCatalog_All_JSON,
+    "globalstar": g.get('db').selectCatalog_All_JSON,
+    "amateur-radio": g.get('db').selectCatalog_All_JSON,
+    "experimental": g.get('db').selectCatalog_All_JSON,
+    "other-comm": g.get('db').selectCatalog_All_JSON,
+    "satnogs": g.get('db').selectCatalog_All_JSON,
+    "gorizant": g.get('db').selectCatalog_All_JSON,
+    "raduga": g.get('db').selectCatalog_All_JSON,
+    "molniya": g.get('db').selectCatalog_All_JSON,
+    "navigation": g.get('db').selectCatalog_All_JSON,
+    "gps-ops": g.get('db').selectCatalog_All_JSON,
+    "glonass-operational": g.get('db').selectCatalog_All_JSON,
+    "galileo": g.get('db').selectCatalog_All_JSON,
+    "beidou": g.get('db').selectCatalog_All_JSON,
+    "satellite-based-augmentation": g.get('db').selectCatalog_All_JSON,
+    "system-navigation": g.get('db').selectCatalog_All_JSON,
+    "sbas": g.get('db').selectCatalog_All_JSON,
+    "nnss": g.get('db').selectCatalog_All_JSON,
+    "nnss-system": g.get('db').selectCatalog_All_JSON,
+    "musson": g.get('db').selectCatalog_All_JSON,
+    "debris": g.get('db').selectCatalog_Debris_JSON,
+    "indian-asat-test": g.get('db').selectCatalog_All_JSON,
+    "1999-025": g.get('db').selectCatalog_All_JSON,
+    "iridium-33": g.get('db').selectCatalog_All_JSON,
+    "cosmos-2251": g.get('db').selectCatalog_All_JSON,
+    "2012-044": g.get('db').selectCatalog_All_JSON,
+    "scientific": g.get('db').selectCatalog_All_JSON,
+    "science": g.get('db').selectCatalog_All_JSON,
+    "geodetic": g.get('db').selectCatalog_All_JSON,
+    "engineering": g.get('db').selectCatalog_All_JSON,
+    "education": g.get('db').selectCatalog_All_JSON,
+    "misc": g.get('db').selectCatalog_All_JSON,
+    "military": g.get('db').selectCatalog_All_JSON,
+    "radar-calibration": g.get('db').selectCatalog_All_JSON,
+    "cubesat": g.get('db').selectCatalog_All_JSON,
+    "tle-new": g.get('db').selectCatalog_All_JSON,
+    "stations": g.get('db').selectCatalog_All_JSON,
+    "other": g.get('db').selectCatalog_All_JSON,
+    "all": g.get('db').selectCatalog_All_JSON
+}
+
+
+
 
 #TODO: take object instead of address to encode with a specified time
 # Checks for valid inputs
@@ -172,888 +486,13 @@ def error_route():
     raise InvalidUsage('This is an expected error', status_code=400)
 
 
-@app.route('/catalog/priorities/<int:offset>', methods=['GET'])
-def catalog_priorities(offset):
-    try:
-        json_object = g.get('db').selectCatalog_Priorities_JSON(fetch_row_count=200, offset_row_count=offset)
-    except Exception as e:
-        print(e)
-        raise InvalidUsage('Could not get priorities', status_code=500)
-    if json_object is not False:
-        @after_this_request
-        def add_header(response):
-            return catalog_cache(response)
-        return json_object
-    else:
-        return {}
-
-
-@app.route('/catalog/undisclosed/<int:offset>', methods=['GET'])
-def catalog_undisclosed(offset):
-    try:
-        json_object = g.get('db').selectCatalog_Undisclosed_JSON(fetch_row_count=200, offset_row_count=offset)
-    except Exception as e:
-        print(e)
-        raise InvalidUsage('Could not get undisclosed', status_code=500)
-    if json_object is not False:
-        @after_this_request
-        def add_header(response):
-            return catalog_cache(response)
-        return json_object
-    else:
-        return {}
-
-
-@app.route('/catalog/debris/<int:offset>', methods=['GET'])
-def catalog_debris(offset):
-    try:
-        json_object = g.get('db').selectCatalog_Debris_JSON(fetch_row_count=200, offset_row_count=offset)
-    except Exception as e:
-        print(e)
-        raise InvalidUsage('Could not get debris', status_code=500)
-    if json_object is not False:
-        @after_this_request
-        def add_header(response):
-            return catalog_cache(response)
-        return json_object
-    else:
-        return {}
-
-
-@app.route('/catalog/latest/<int:offset>', methods=['GET'])
-def catalog_latest(offset):
-    try:
-        json_object = g.get('db').selectCatalog_Latest_JSON(fetch_row_count=200, offset_row_count=offset)
-    except Exception as e:
-        print(e)
-        raise InvalidUsage('Could not get latest', status_code=500)
-    if json_object is not False:
-        @after_this_request
-        def add_header(response):
-            return catalog_cache(response)
-        return json_object
-    else:
-        return {}
-
-
-@app.route('/catalog/all/<int:offset>', methods=['GET'])
-def catalog_all(offset):
-    try:
-        json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-    except Exception as e:
-        print(e)
-        raise InvalidUsage('Could not get all', status_code=500)
-    if json_object is not False:
-        @after_this_request
-        def add_header(response):
-            return catalog_cache(response)
-        return json_object
-    else:
-        return {}
-
-
-
-
-
-
-
-
 @app.route('/catalog/list', methods=['GET'])
 def catalog_list():
-    celestrakCategories = { "data": [
-            {
-            "groupHeader": { "title": "Featured", "path": "featured" },
-            "groupCategories": [
-                { "title": "100 Brightest", "path": "visual" },
-                { "title": "Starlink", "path": "starlink" },
-                {
-                "title": "OneWeb",
-                "path": "one-web"
-                },
-                {
-                "title": "Active Sats",
-                "path": "active"
-                },
-                {
-                "title": "Analyst sats",
-                "path": "analyst"
-                }
-            ]
-            },
-            {
-            "groupHeader": {
-                "title": "Weather & Earth Resources",
-                "path": "weather-earth"
-            },
-            "groupCategories": [
-                { "title": "Weather", "path": "weather" },
-                { "title": "NOAA", "path": "noaa" },
-                {
-                "title": "GOES",
-                "path": "goes"
-                },
-                {
-                "title": "Earth Resources",
-                "path": "resource"
-                },
-                {
-                "title": "Search & Rescue (SARSAT)",
-                "path": "sarsat"
-                },
-                {
-                "title": "Disaster Monitoring",
-                "path": "disaster-monitoring"
-                },
-                {
-                "title": "Tracking and Data Relay",
-                "path": "tracking-and-data-relay"
-                },
-                {
-                "title": "Tracking and Data Relay Satellite System (TDRSS)",
-                "path": "tdrss"
-                },
-                {
-                "title": "ARGOS Data Collection",
-                "path": "argos"
-                },
-                {
-                "title": "System",
-                "path": "system-weather-and-earth-resources"
-                },
-                {
-                "title": "Planet",
-                "path": "planet"
-                },
-                {
-                "title": "Spire",
-                "path": "spire"
-                }
-            ]
-            },
-            {
-            "groupHeader": { "title": "Communications", "path": "communications" },
-            "groupCategories": [
-                { "title": "Geosynchronous", "path": "geo" },
-                { "title": "GEO Protected Zone", "path": "geo-protected-zone" },
-                {
-                "title": "GEO Protected Zone Plus",
-                "path": "geo-protected-zone-plus"
-                },
-                {
-                "title": "Intelsat",
-                "path": "intelsat"
-                },
-                {
-                "title": "SES",
-                "path": "ses"
-                },
-                {
-                "title": "Iridium",
-                "path": "iridium"
-                },
-                {
-                "title": "Iridium Next",
-                "path": "iridium-next"
-                },
-                {
-                "title": "Orbcomm",
-                "path": "orbcomm"
-                },
-                {
-                "title": "Globalstar",
-                "path": "globalstar"
-                },
-                {
-                "title": "Amateur Radio",
-                "path": "amateur-radio"
-                },
-                {
-                "title": "Experimental",
-                "path": "experimental"
-                },
-                {
-                "title": "Other Comm",
-                "path": "other-comm"
-                },
-                {
-                "title": "SatNOGS",
-                "path": "satnogs"
-                },
-                {
-                "title": "Gorizant",
-                "path": "gorizant"
-                },
-                {
-                "title": "Raduga",
-                "path": "raduga"
-                },
-                {
-                "title": "Molniya",
-                "path": "molniya"
-                }
-            ]
-            },
-            {
-            "groupHeader": { "title": "Navigation", "path": "navigation" },
-            "groupCategories": [
-                { "title": "GPS Operational", "path": "gps-ops" },
-                { "title": "GLONASS Operational", "path": "glonass-operational" },
-                {
-                "title": "Galileo",
-                "path": "galileo"
-                },
-                {
-                "title": "Beidou",
-                "path": "beidou"
-                },
-                {
-                "title": "Satellite-Based Augmentation",
-                "path": "satellite-based-augmentation"
-                },
-                {
-                "title": "System",
-                "path": "system-navigation"
-                },
-                {
-                "title": "Satellite-Based Augmentation System (WAAS/EGNOS/MSAS)",
-                "path": "sbas"
-                },
-                {
-                "title": "Navy Navigation Satellite Systems (NNSS)",
-                "path": "nnss"
-                },
-                {
-                "title": "System (NNSS)",
-                "path": "nnss-system"
-                },
-                {
-                "title": "Russian LEO Navigation",
-                "path": "musson"
-                }
-            ]
-            },
-            {
-            "groupHeader": { "title": "Debris", "path": "debris" },
-            "groupCategories": [
-                { "title": "Indian ASAT Test", "path": "indian-asat-test" },
-                { "title": "FENGYUN 1C", "path": "1999-025" },
-                {
-                "title": "IRIDIUM 33",
-                "path": "iridium-33"
-                },
-                {
-                "title": "COSMOS 2251",
-                "path": "cosmos-2251"
-                },
-                {
-                "title": "BREEZE-M R/B Breakup (2012-044C)",
-                "path": "2012-044"
-                }
-            ]
-            },
-            {
-            "groupHeader": { "title": "Scientific", "path": "scientific" },
-            "groupCategories": [
-                { "title": "Space & Earth Science", "path": "science" },
-                { "title": "Geodetic", "path": "geodetic" },
-                {
-                "title": "Engineering",
-                "path": "engineering"
-                },
-                {
-                "title": "Education",
-                "path": "education"
-                }
-            ]
-            },
-            {
-            "groupHeader": { "title": "Misc.", "path": "misc" },
-            "groupCategories": [
-                { "title": "Miscellaneous Military", "path": "military" },
-                { "title": "Radar Calibration", "path": "radar-calibration" },
-                {
-                "title": "CubeSats",
-                "path": "cubesat"
-                },
-                {
-                "title": "Last 30 Days' Launches",
-                "path": "tle-new"
-                },
-                {
-                "title": "Space Stations",
-                "path": "stations"
-                },
-                {
-                "title": "Other",
-                "path": "other"
-                }
-            ]
-            },
-            {
-                "groupHeader": { "title": "All", "path": "all"},
-                "groupCategories": []
-            }
-        ]
-        }
     return celestrakCategories
-
-# @app.route('/catalog/visual/<int:offset>', methods=['GET'])
-# def catalog_visual(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/argos/<int:offset>', methods=['GET'])
-# def catalog_argos(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/active/<int:offset>', methods=['GET'])
-# def catalog_active(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/analyst/<int:offset>', methods=['GET'])
-# def catalog_analyst(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/2012-044/<int:offset>', methods=['GET'])
-# def catalog_2012_044(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/cosmos-2251-debris/<int:offset>', methods=['GET'])
-# def catalog_cosmos__2251_debris(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/cubesat/<int:offset>', methods=['GET'])
-# def catalog_cubesat(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/resource/<int:offset>', methods=['GET'])
-# def catalog_resource(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/education/<int:offset>', methods=['GET'])
-# def catalog_education(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/1999-025/<int:offset>', methods=['GET'])
-# def catalog_1999_025(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/gps-ops/<int:offset>', methods=['GET'])
-# def catalog_gps_ops(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/galileo/<int:offset>', methods=['GET'])
-# def catalog_galileo(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/geodetic/<int:offset>', methods=['GET'])
-# def catalog_geodetic(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/geo/<int:offset>', methods=['GET'])
-# def catalog_geo(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/iridium-33-debris/<int:offset>', methods=['GET'])
-# def catalog_iridium_33_debris(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/2019-006/<int:offset>', methods=['GET'])
-# def catalog_2019_006(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/intelsat/<int:offset>', methods=['GET'])
-# def catalog_intelsat(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/iridium/<int:offset>', methods=['GET'])
-# def catalog_iridium(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/tle-new/<int:offset>', methods=['GET'])
-# def catalog_tle_new(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/military/<int:offset>', methods=['GET'])
-# def catalog_military(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/noaa/<int:offset>', methods=['GET'])
-# def catalog_noaa(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/nnss/<int:offset>', methods=['GET'])
-# def catalog_nnss(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/orbcomm/<int:offset>', methods=['GET'])
-# def catalog_orbcomm(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/planet/<int:offset>', methods=['GET'])
-# def catalog_planet(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/musson/<int:offset>', methods=['GET'])
-# def catalog_musson(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/sbas/<int:offset>', methods=['GET'])
-# def catalog_sbas(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/sarsat/<int:offset>', methods=['GET'])
-# def catalog_sarsat(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/science/<int:offset>', methods=['GET'])
-# def catalog_science(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/stations/<int:offset>', methods=['GET'])
-# def catalog_stations(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/starlink/<int:offset>', methods=['GET'])
-# def catalog_starlink(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/tdrss/<int:offset>', methods=['GET'])
-# def catalog_tdrss(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-# @app.route('/catalog/weather/<int:offset>', methods=['GET'])
-# def catalog_weather(offset):
-#     try:
-#         json_object = g.get('db').selectCatalog_All_JSON(fetch_row_count=200, offset_row_count=offset)
-#     except Exception as e:
-#         print(e)
-#         raise InvalidUsage('Could not get all', status_code=500)
-#     if json_object is not False:
-#         @after_this_request
-#         def add_header(response):
-#             return catalog_cache(response)
-#         return json_object
-#     else:
-#         return {}
-
-
-
 
 
 @app.route('/catalog/<str:catalog>/<int:offset>', methods=['GET'])
 def catalog_weather(catalog, offset):
-    all_catalogs = {
-        "priorities": g.get('db').selectCatalog_Priorities_JSON,
-        "undisclosed": g.get('db').selectCatalog_Undisclosed_JSON,
-        "latest": g.get('db').selectCatalog_Latest_JSON,
-        "featured": g.get('db').selectCatalog_All_JSON,
-        "visual": g.get('db').selectCatalog_All_JSON,
-        "starlink": g.get('db').selectCatalog_All_JSON,
-        "one-web": g.get('db').selectCatalog_All_JSON,
-        "active": g.get('db').selectCatalog_All_JSON,
-        "analyst": g.get('db').selectCatalog_All_JSON,
-        "weather-earth": g.get('db').selectCatalog_All_JSON,
-        "weather": g.get('db').selectCatalog_All_JSON,
-        "noaa": g.get('db').selectCatalog_All_JSON,
-        "goes": g.get('db').selectCatalog_All_JSON,
-        "resource": g.get('db').selectCatalog_All_JSON,
-        "sarsat": g.get('db').selectCatalog_All_JSON,
-        "disaster-monitoring": g.get('db').selectCatalog_All_JSON,
-        "tracking-and-data-relay": g.get('db').selectCatalog_All_JSON,
-        "tdrss": g.get('db').selectCatalog_All_JSON,
-        "argos": g.get('db').selectCatalog_All_JSON,
-        "system-weather-and-earth-resources": g.get('db').selectCatalog_All_JSON,
-        "planet": g.get('db').selectCatalog_All_JSON,
-        "spire": g.get('db').selectCatalog_All_JSON,
-        "communications": g.get('db').selectCatalog_All_JSON,
-        "geo": g.get('db').selectCatalog_All_JSON,
-        "geo-protected-zone": g.get('db').selectCatalog_All_JSON,
-        "geo-protected-zone-plus": g.get('db').selectCatalog_All_JSON,
-        "intelsat": g.get('db').selectCatalog_All_JSON,
-        "ses": g.get('db').selectCatalog_All_JSON,
-        "iridium": g.get('db').selectCatalog_All_JSON,
-        "iridium-next": g.get('db').selectCatalog_All_JSON,
-        "orbcomm": g.get('db').selectCatalog_All_JSON,
-        "globalstar": g.get('db').selectCatalog_All_JSON,
-        "amateur-radio": g.get('db').selectCatalog_All_JSON,
-        "experimental": g.get('db').selectCatalog_All_JSON,
-        "other-comm": g.get('db').selectCatalog_All_JSON,
-        "satnogs": g.get('db').selectCatalog_All_JSON,
-        "gorizant": g.get('db').selectCatalog_All_JSON,
-        "raduga": g.get('db').selectCatalog_All_JSON,
-        "molniya": g.get('db').selectCatalog_All_JSON,
-        "navigation": g.get('db').selectCatalog_All_JSON,
-        "gps-ops": g.get('db').selectCatalog_All_JSON,
-        "glonass-operational": g.get('db').selectCatalog_All_JSON,
-        "galileo": g.get('db').selectCatalog_All_JSON,
-        "beidou": g.get('db').selectCatalog_All_JSON,
-        "satellite-based-augmentation": g.get('db').selectCatalog_All_JSON,
-        "system-navigation": g.get('db').selectCatalog_All_JSON,
-        "sbas": g.get('db').selectCatalog_All_JSON,
-        "nnss": g.get('db').selectCatalog_All_JSON,
-        "nnss-system": g.get('db').selectCatalog_All_JSON,
-        "musson": g.get('db').selectCatalog_All_JSON,
-        "debris": g.get('db').selectCatalog_Debris_JSON,
-        "indian-asat-test": g.get('db').selectCatalog_All_JSON,
-        "1999-025": g.get('db').selectCatalog_All_JSON,
-        "iridium-33": g.get('db').selectCatalog_All_JSON,
-        "cosmos-2251": g.get('db').selectCatalog_All_JSON,
-        "2012-044": g.get('db').selectCatalog_All_JSON,
-        "scientific": g.get('db').selectCatalog_All_JSON,
-        "science": g.get('db').selectCatalog_All_JSON,
-        "geodetic": g.get('db').selectCatalog_All_JSON,
-        "engineering": g.get('db').selectCatalog_All_JSON,
-        "education": g.get('db').selectCatalog_All_JSON,
-        "misc": g.get('db').selectCatalog_All_JSON,
-        "military": g.get('db').selectCatalog_All_JSON,
-        "radar-calibration": g.get('db').selectCatalog_All_JSON,
-        "cubesat": g.get('db').selectCatalog_All_JSON,
-        "tle-new": g.get('db').selectCatalog_All_JSON,
-        "stations": g.get('db').selectCatalog_All_JSON,
-        "other": g.get('db').selectCatalog_All_JSON,
-        "all": g.get('db').selectCatalog_All_JSON
-    }
     try:
         json_object = all_catalogs[catalog](fetch_row_count=200, offset_row_count=offset)
     except Exception as e:
@@ -1066,11 +505,6 @@ def catalog_weather(catalog, offset):
         return json_object
     else:
         return {}
-
-
-
-
-
 
 
 @app.route('/tle/trusat_all.txt', methods=['GET'])
