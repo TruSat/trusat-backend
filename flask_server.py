@@ -422,7 +422,7 @@ def catalog_weather(catalog, offset):
         "latest": g.get('db').selectCatalog_Latest_JSON,
         "featured": g.get('db').selectCatalog_Featured_JSON,
         "visual": g.get('db').selectCatalog_All_JSON,
-        "starlink": g.get('db').selectCatalog_All_JSON,
+        "starlink": g.get('db').selectCatalog_Starlink_JSON,
         "one-web": g.get('db').selectCatalog_All_JSON,
         "active": g.get('db').selectCatalog_All_JSON,
         "analyst": g.get('db').selectCatalog_All_JSON,
