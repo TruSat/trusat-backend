@@ -3444,7 +3444,8 @@ class Database:
           "SELECT" + self.selectCatalogJsonObject + """
           FROM catalog
           JOIN categories on (catalog.object_number = categories.obj_no)
-		  WHERE datediff(now(),obs_time) <= 365 AND categories.sub_category = "starlink"
+		  WHERE categories.sub_category = "Starlink" OR
+          categories.sub_category = "OneWeb"
           ORDER BY obs_time DESC
           LIMIT %(OFFSET)s,%(FETCH)s;""")
         queryParams = {
@@ -3458,7 +3459,29 @@ class Database:
         convert_country_names(observations)
         return json.dumps(observations)
 
-    #/catalog/Featured
+    #/catalog/one-web
+    def selectCatalog_OneWeb_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "OneWeb"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/starlink
     def selectCatalog_Starlink_JSON(self, fetch_row_count=100, offset_row_count=0):
         quality = 99
         query = (
@@ -3466,7 +3489,7 @@ class Database:
           "SELECT" + self.selectCatalogJsonObject + """
           FROM catalog
           JOIN categories on (catalog.object_number = categories.obj_no)
-		  WHERE datediff(now(),obs_time) <= 365 AND categories.sub_category = "starlink"
+		  WHERE categories.sub_category = "Starlink"
           ORDER BY obs_time DESC
           LIMIT %(OFFSET)s,%(FETCH)s;""")
         queryParams = {
@@ -3479,6 +3502,954 @@ class Database:
         observations = stringArrayToJSONArray_JSON(self.c.fetchall())
         convert_country_names(observations)
         return json.dumps(observations)
+
+    #/catalog/active
+    def selectCatalog_Active_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Active Geosynchronous"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/analyst
+    def selectCatalog_Analyst_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Analyst Satellites"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/weather-earth
+    def selectCatalog_WeatherEarth_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Weather"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/weather
+    def selectCatalog_Weather_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Weather"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/noaa
+    def selectCatalog_NOAA_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "NOAA"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/goes
+    def selectCatalog_GOES_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "GOES"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/resource
+    def selectCatalog_EarthResource_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Earth Resources"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/sarsat
+    def selectCatalog_SarSat_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Search & Rescue (SARSAT)"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/disaster-monitoring
+    def selectCatalog_DisasterMonitoring_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Disaster Monitoring"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/tracking-and-data-relay
+    def selectCatalog_TrackingAndDataRelay_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Tracking and Data Relay Satellite System (TDRSS)"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/argos
+    def selectCatalog_ARGOS_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "ARGOS Data Collection System"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/planet
+    def selectCatalog_Planet_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Planet"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/spire
+    def selectCatalog_Spire_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Spire"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/communications
+    def selectCatalog_Communications_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Active Geosynchronous"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/geo
+    def selectCatalog_GeoSync_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Active Geosynchronous"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/geo-protected-zone
+    def selectCatalog_GeoProtectedZone_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Geo Protected Zone"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/geo-protected-zone-plus
+    def selectCatalog_GeoProtectedZonePlus_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Geo Protected Zone Plus"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/ses
+    def selectCatalog_SES_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "SES"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/intelsat
+    def selectCatalog_Intelsat_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Intelsat"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/iridium
+    def selectCatalog_Iridium_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Iridium"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/iridium-next
+    def selectCatalog_IridiumNext_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Iridium NEXT"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/orbcomm
+    def selectCatalog_Orbcomm_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Orbcomm"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/globalstar
+    def selectCatalog_Globalstar_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Globalstar"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/amateur-radio
+    def selectCatalog_AmateurRadio_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Amateur Radio"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/experimental
+    def selectCatalog_Experimental_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Experimental"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/other-comm
+    def selectCatalog_OtherComm_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Other Comm"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/satnogs
+    def selectCatalog_SatNOGS_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "satNOGS"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/Gotizont
+    def selectCatalog_Gorizont_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Gorizont"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/raduga
+    def selectCatalog_Raduga_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Raduga"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/molniya
+    def selectCatalog_Molniya_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Molniya"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/navigation
+    def selectCatalog_Navigation_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Navigation"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/gps-ops
+    def selectCatalog_GPSOperational_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "GPS Operational"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/glonass-operational
+    def selectCatalog_GLONASSOperational_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "GLONASS Operational"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/galileo
+    def selectCatalog_Galileo_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Galileo"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/beidou
+    def selectCatalog_Beidou_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Beidou"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/satellite-based-augmentation
+    def selectCatalog_SatelliteBasedAugmentation_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Satellite-Based Augmentation System (WAAS/EGNOS/MSAS)"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/system-navigation
+    def selectCatalog_SystemNavigation_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Navy Navigation Satellite System (NNSS)"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/musson
+    def selectCatalog_RussianLEONavigation_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Russian LEO Navigation"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/indian-asat-test
+    def selectCatalog_IndianASATTest_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "Indian ASAT Test Debris"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/1999-025
+    def selectCatalog_1999_025_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "1999-025"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/iridium-33
+    def selectCatalog_Iridium_33_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "IRIDIUM 33 Debris"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/cosmos-2251
+    def selectCatalog_Cosmos_2251_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "COSMOS 2251 Debris"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    #/catalog/iridium-33
+    def selectCatalog_Iridium_33_JSON(self, fetch_row_count=100, offset_row_count=0):
+        quality = 99
+        query = (
+          self.selectCatalogQueryPrefix +
+          "SELECT" + self.selectCatalogJsonObject + """
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = "IRIDIUM 33 Debris"
+          ORDER BY obs_time DESC
+          LIMIT %(OFFSET)s,%(FETCH)s;""")
+        queryParams = {
+          'OFFSET': offset_row_count,
+          'FETCH': fetch_row_count,
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+
+        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
+        convert_country_names(observations)
+        return json.dumps(observations)
+
+    
 
     # /object/info/
     # https://consensys-cpl.atlassian.net/browse/MVP-379
