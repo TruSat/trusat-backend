@@ -3439,7 +3439,7 @@ class Database:
 
 
 
-    def selectCatalog_Category_JSON(self, fetch_row_count=100, offset_row_count=0, category=category):
+    def selectCatalog_Category_JSON(self, fetch_row_count=100, offset_row_count=0, category='all'):
         quality = 99
 
         categories_list = {
@@ -3448,11 +3448,11 @@ class Database:
                 ' categories.sub_category = "OneWeb" OR' +\
                 ' categories.sub_category = "Active Satellites" OR' +\
                 ' categories.sub_category = "Analyst Satellites"',
-            "visual": "100 (or so) Brightest",
-            "starlink": "Starlink",
-            "one-web": "OneWeb",
-            "active": "Active Satellites",
-            "analyst": "Analyst Satellites",
+            "visual": '"100 (or so) Brightest"',
+            "starlink": '"Starlink"',
+            "one-web": '"OneWeb"',
+            "active": '"Active Satellites"',
+            "analyst": '"Analyst Satellites"',
             "weather-earth": '"Weather" OR categories.sub_category = "NOAA" OR' +\
                 ' categories.sub_category = "GOES" OR' +\
                 ' categories.sub_category = "Earth Resources" OR' +\
@@ -3461,16 +3461,16 @@ class Database:
                 ' categories.sub_category = "Tracking and Data Relay Satellite System (TDRSS)" OR' +\
                 ' categories.sub_category = "ARGOS Data Collection System" OR' +\
                 ' categories.sub_category = "Planet" OR categories.sub_category = "Spire"',
-            "weather": "Weather",
-            "noaa": "NOAA",
-            "goes": "GOES",
-            "resource": "Earth Resources",
-            "sarsat": "Search & Rescue (SARSAT)",
-            "disaster-monitoring": "Disaster Monitoring",
-            "tracking-and-data-relay": "Tracking and Data Relay Satellite System (TDRSS)",
-            "argos": "ARGOS Data Collection System",
-            "planet": "Planet",
-            "spire": "Spire",
+            "weather": '"Weather"',
+            "noaa": '"NOAA"',
+            "goes": '"GOES"',
+            "resource": '"Earth Resources"',
+            "sarsat": '"Search & Rescue (SARSAT)"',
+            "disaster-monitoring": '"Disaster Monitoring"',
+            "tracking-and-data-relay": '"Tracking and Data Relay Satellite System (TDRSS)"',
+            "argos": '"ARGOS Data Collection System"',
+            "planet": '"Planet"',
+            "spire": '"Spire"',
             "communications": '"Active Geosynchronous" OR' +\
                 ' categories.sub_category = "GEO Protected Zone" OR' +\
                 ' categories.sub_category = "GEO Protected Zone Plus" OR' +\
@@ -3487,22 +3487,22 @@ class Database:
                 ' categories.sub_category = "Gorizont" OR' +\
                 ' categories.sub_category = "Raduga" OR' +\
                 ' categories.sub_category = "Molniya"',
-            "geo": "Active Geosynchronous",
-            "geo-protected-zone": "GEO Protected Zone",
-            "geo-protected-zone-plus": "GEO Protected Zone Plus",
-            "intelsat": "Intelsat",
-            "ses": "SES",
-            "iridium": "Iridium",
-            "iridium-next": "Iridium NEXT",
-            "orbcomm": "Orbcomm",
-            "globalstar": "Globalstar",
-            "amateur-radio": "Amateur Radio",
-            "experimental": "Experimental",
-            "other-comm": "Other Comm",
-            "satnogs": "SatNOGS",
-            "gorizant": "Gorizont",
-            "raduga": "Raduga",
-            "molniya": "Molniya",
+            "geo": '"Active Geosynchronous"',
+            "geo-protected-zone": '"GEO Protected Zone"',
+            "geo-protected-zone-plus": '"GEO Protected Zone Plus"',
+            "intelsat": '"Intelsat"',
+            "ses": '"SES"',
+            "iridium": '"Iridium"',
+            "iridium-next": '"Iridium NEXT"',
+            "orbcomm": '"Orbcomm"',
+            "globalstar": '"Globalstar"',
+            "amateur-radio": '"Amateur Radio"',
+            "experimental": '"Experimental"',
+            "other-comm": '"Other Comm"',
+            "satnogs": '"SatNOGS"',
+            "gorizant": '"Gorizont"',
+            "raduga": '"Raduga"',
+            "molniya": '"Molniya"',
             "navigation": '"GPS Operational" OR' +\
                 ' categories.sub_category = "GLONASS Operational" OR' +\
                 ' categories.sub_category = "Galileo" OR' +\
@@ -3510,13 +3510,13 @@ class Database:
                 ' categories.sub_category = "Satellite-Based Augmentation System (WAAS/EGNOS/MSAS)" OR' +\
                 ' categories.sub_category = "Navy Navigation Satellite System (NNSS)" OR' +\
                 ' categories.sub_category = "Russian LEO Navigation"',
-            "gps-ops": "GPS Operational",
-            "glonass-operational": "GLONASS Operational",
-            "galileo": "Galileo",
-            "beidou": "Beidou",
-            "satellite-based-augmentation": "Satellite-Based Augmentation System (WAAS/EGNOS/MSAS)",
-            "system-navigation": "Navy Navigation Satellite System (NNSS)",
-            "musson": "Russian LEO Navigation",
+            "gps-ops": '"GPS Operational"',
+            "glonass-operational": '"GLONASS Operational"',
+            "galileo": '"Galileo"',
+            "beidou": '"Beidou"',
+            "satellite-based-augmentation": '"Satellite-Based Augmentation System (WAAS/EGNOS/MSAS)"',
+            "system-navigation": '"Navy Navigation Satellite System (NNSS)"',
+            "musson": '"Russian LEO Navigation"',
             "debris": '"Indian ASAT Test Debris" OR' +\
                 ' categories.sub_category = "IRIDIUM 33 Debris" OR' +\
                 ' categories.sub_category = "COSMOS 2251 Debris" OR' +\
@@ -3524,26 +3524,30 @@ class Database:
                 ' categories.sub_category = "Geodetic" OR' +\
                 ' categories.sub_category = "Engineering" OR' +\
                 ' categories.sub_category = "Education"',
-            "indian-asat-test": "Indian ASAT Test Debris",
+            "indian-asat-test": '"Indian ASAT Test Debris"',
             # "1999-025": g.get('db').selectCatalog_1999_025_JSON,
-            "iridium-33": "IRIDIUM 33 Debris",
-            "cosmos-2251": "COSMOS 2251 Debris",
+            "iridium-33": '"IRIDIUM 33 Debris"',
+            "cosmos-2251": '"COSMOS 2251 Debris"',
             # "2012-044": g.get('db').selectCatalog_All_JSON,
-            "science": "Space & Earth Science",
-            "geodetic": "Geodetic",
-            "engineering": "Engineering",
-            "education": "Education",
+            "scientific": '"Space & Earth Science" OR' +\
+                ' categories.sub_category = "Geodetic" OR' +\
+                ' categories.sub_category = "Engineering" OR' +\
+                ' categories.sub_category = "Education"',
+            "science": '"Space & Earth Science"',
+            "geodetic": '"Geodetic"',
+            "engineering": '"Engineering"',
+            "education": '"Education"',
             "misc": '"Miscellaneous Military" OR' +\
                 ' categories.sub_category = "Radar Calibration" OR' +\
                 ' categories.sub_category = "CubeSats" OR' +\
                 ' categories.sub_category = "Space Stations" OR' +\
                 ' categories.sub_category = "Other"',
-            "military": "Miscellaneous Military",
-            "radar-calibration": "Radar Calibration",
-            "cubesat": "CubeSats",
+            "military": '"Miscellaneous Military"',
+            "radar-calibration": '"Radar Calibration"',
+            "cubesat": '"CubeSats"',
             # "tle-new": g.get('db').selectCatalog_All_JSON,
-            "stations": "Space Stations",
-            "other": "Other"
+            "stations": '"Space Stations"',
+            "other": '"Other"'
         }
 
         query = (
@@ -3551,14 +3555,13 @@ class Database:
           "SELECT" + self.selectCatalogJsonObject + """
           FROM catalog
           JOIN categories on (catalog.object_number = categories.obj_no)
-		  WHERE categories.sub_category = %(CATEGORY)s
+		  WHERE categories.sub_category = """ + categories_list[category] + """
           ORDER BY obs_time DESC
           LIMIT %(OFFSET)s,%(FETCH)s;""")
         queryParams = {
           'OFFSET': offset_row_count,
           'FETCH': fetch_row_count,
-          'QUALITY': quality,
-          'CATEGORY': categories_list[category]
+          'QUALITY': quality
           }
         self.c.execute(query, params=queryParams)
 
