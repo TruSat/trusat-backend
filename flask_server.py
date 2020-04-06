@@ -216,10 +216,6 @@ celestrakCategories = { "data": [
         "path": "system-navigation"
         },
         {
-        "title": "Navy Navigation Satellite Systems (NNSS)",
-        "path": "nnss"
-        },
-        {
         "title": "Russian LEO Navigation",
         "path": "musson"
         }
@@ -229,7 +225,6 @@ celestrakCategories = { "data": [
     "groupHeader": { "title": "Debris", "path": "debris" },
     "groupCategories": [
         { "title": "Indian ASAT Test", "path": "indian-asat-test" },
-        { "title": "FENGYUN 1C", "path": "1999-025" },
         {
         "title": "IRIDIUM 33",
         "path": "iridium-33"
@@ -237,10 +232,6 @@ celestrakCategories = { "data": [
         {
         "title": "COSMOS 2251",
         "path": "cosmos-2251"
-        },
-        {
-        "title": "BREEZE-M R/B Breakup (2012-044C)",
-        "path": "2012-044"
         }
     ]
     },
@@ -267,10 +258,6 @@ celestrakCategories = { "data": [
         {
         "title": "CubeSats",
         "path": "cubesat"
-        },
-        {
-        "title": "Last 30 Days' Launches",
-        "path": "tle-new"
         },
         {
         "title": "Space Stations",
