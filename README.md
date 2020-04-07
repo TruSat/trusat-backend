@@ -175,10 +175,10 @@ Run:
 This requires python3 and yarn/npm (replace any yarn command with npm if applicable)
 ```
 python3 -m pip install --user virtualenv
-git clone https://github.com/consensys-space/trusat-orbit
-git clone https://github.com/consensys-space/trusat-backend
+git clone https://github.com/TruSat/trusat-orbit
+git clone https://github.com/TruSat/trusat-backend
 cd trusat-backend
-git clone https://github.com/consensys-space/trusat-frontend
+git clone https://github.com/TruSat/trusat-frontend
 
 cd trusat-frontend
 yarn install
@@ -274,10 +274,10 @@ python3 -m pip install --user virtualenv
 
 ### Clone python code
 ```
-git clone https://github.com/consensys-space/trusat-orbit
-git clone https://github.com/consensys-space/trusat-backend
+git clone https://github.com/TruSat/trusat-orbit
+git clone https://github.com/TruSat/trusat-backend
 cd trusat-backend
-git clone https://github.com/consensys-space/trusat-frontend
+git clone https://github.com/TruSat/trusat-frontend
 ```
 
 ### Start setting up python virtual environment
