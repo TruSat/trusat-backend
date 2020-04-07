@@ -2973,8 +2973,8 @@ class Database:
             JOIN categories on (TLE.satellite_number = categories.obj_no)
 			WHERE (SatCat.ops_status_code <> 'D' OR SatCat.ops_status_code IS NULL)
             AND (categories.sub_category = """ + categories_list[category] + """ )
-            AND DATEDIFF(NOW(),TLE.epoch) < 30
-            ORDER BY TLE.epoch DESC;
+            AND DATEDIFF(NOW(),TLE.epoch) <= 365
+            ORDER BY TLE.satellite_number;
             """
 
         self.c.execute(query_tmp)
