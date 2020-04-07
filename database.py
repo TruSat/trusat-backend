@@ -2855,6 +2855,135 @@ class Database:
                 result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
         return result
 
+    def selectTLE_categories(self, category):
+        categories_list = {
+            "trusat_featured.txt": '"100 (or so) Brightest" OR' +\
+                ' categories.sub_category = "Starlink" OR' +\
+                ' categories.sub_category = "OneWeb" OR' +\
+                ' categories.sub_category = "Active Satellites" OR' +\
+                ' categories.sub_category = "Analyst Satellites"',
+            "trusat_visual.txt": '"100 (or so) Brightest"',
+            "trusat_starlink.txt": '"Starlink"',
+            "trusat_one-web.txt": '"OneWeb"',
+            "trusat_active.txt": '"Active Satellites"',
+            "trusat_analyst.txt": '"Analyst Satellites"',
+            "trusat_weather-earth.txt": '"Weather" OR categories.sub_category = "NOAA" OR' +\
+                ' categories.sub_category = "GOES" OR' +\
+                ' categories.sub_category = "Earth Resources" OR' +\
+                ' categories.sub_category = "Search and Rescue (SARSAT)" OR' +\
+                ' categories.sub_category = "Disaster Monitoring" OR' +\
+                ' categories.sub_category = "Tracking and Data Relay Satellite System (TDRSS)" OR' +\
+                ' categories.sub_category = "ARGOS Data Collection System" OR' +\
+                ' categories.sub_category = "Planet" OR categories.sub_category = "Spire"',
+            "trusat_weather.txt": '"Weather"',
+            "trusat_noaa.txt": '"NOAA"',
+            "trusat_goes.txt": '"GOES"',
+            "trusat_resource.txt": '"Earth Resources"',
+            "trusat_sarsat.txt": '"Search & Rescue (SARSAT)"',
+            "trusat_disaster-monitoring.txt": '"Disaster Monitoring"',
+            "trusat_tracking-and-data-relay.txt": '"Tracking and Data Relay Satellite System (TDRSS)"',
+            "trusat_argos.txt": '"ARGOS Data Collection System"',
+            "trusat_planet.txt": '"Planet"',
+            "trusat_spire.txt": '"Spire"',
+            "trusat_communications.txt": '"Active Geosynchronous" OR' +\
+                ' categories.sub_category = "GEO Protected Zone" OR' +\
+                ' categories.sub_category = "GEO Protected Zone Plus" OR' +\
+                ' categories.sub_category = "Intelsat" OR' +\
+                ' categories.sub_category = "SES" OR' +\
+                ' categories.sub_category = "Iridium" OR' +\
+                ' categories.sub_category = "Iridium NEXT" OR' +\
+                ' categories.sub_category = "Orbcomm" OR' +\
+                ' categories.sub_category = "Globalstar" OR' +\
+                ' categories.sub_category = "Amateur Radio" OR' +\
+                ' categories.sub_category = "Experimental" OR' +\
+                ' categories.sub_category = "Other Comm" OR' +\
+                ' categories.sub_category = "SatNOGS" OR' +\
+                ' categories.sub_category = "Gorizont" OR' +\
+                ' categories.sub_category = "Raduga" OR' +\
+                ' categories.sub_category = "Molniya"',
+            "trusat_geo.txt": '"Active Geosynchronous"',
+            "trusat_geo-protected-zone.txt": '"GEO Protected Zone"',
+            "trusat_geo-protected-zone-plus.txt": '"GEO Protected Zone Plus"',
+            "trusat_intelsat.txt": '"Intelsat"',
+            "trusat_ses.txt": '"SES"',
+            "trusat_iridium.txt": '"Iridium"',
+            "trusat_iridium-next.txt": '"Iridium NEXT"',
+            "trusat_orbcomm.txt": '"Orbcomm"',
+            "trusat_globalstar.txt": '"Globalstar"',
+            "trusat_amateur-radio.txt": '"Amateur Radio"',
+            "trusat_experimental.txt": '"Experimental"',
+            "trusat_other-comm.txt": '"Other Comm"',
+            "trusat_satnogs.txt": '"SatNOGS"',
+            "trusat_gorizant.txt": '"Gorizont"',
+            "trusat_raduga.txt": '"Raduga"',
+            "trusat_molniya.txt": '"Molniya"',
+            "trusat_navigation.txt": '"GPS Operational" OR' +\
+                ' categories.sub_category = "GLONASS Operational" OR' +\
+                ' categories.sub_category = "Galileo" OR' +\
+                ' categories.sub_category = "Beidou" OR' +\
+                ' categories.sub_category = "Satellite-Based Augmentation System (WAAS/EGNOS/MSAS)" OR' +\
+                ' categories.sub_category = "Navy Navigation Satellite System (NNSS)" OR' +\
+                ' categories.sub_category = "Russian LEO Navigation"',
+            "trusat_gps-ops.txt": '"GPS Operational"',
+            "trusat_glonass-operational.txt": '"GLONASS Operational"',
+            "trusat_galileo.txt": '"Galileo"',
+            "trusat_beidou.txt": '"Beidou"',
+            "trusat_satellite-based-augmentation.txt": '"Satellite-Based Augmentation System (WAAS/EGNOS/MSAS)"',
+            "trusat_system-navigation.txt": '"Navy Navigation Satellite System (NNSS)"',
+            "trusat_musson.txt": '"Russian LEO Navigation"',
+            "trusat_debris.txt": '"Indian ASAT Test Debris" OR' +\
+                ' categories.sub_category = "IRIDIUM 33 Debris" OR' +\
+                ' categories.sub_category = "COSMOS 2251 Debris" OR' +\
+                ' categories.sub_category = "Space & Earth Science" OR' +\
+                ' categories.sub_category = "Geodetic" OR' +\
+                ' categories.sub_category = "Engineering" OR' +\
+                ' categories.sub_category = "Education"',
+            "trusat_indian-asat-test.txt": '"Indian ASAT Test Debris"',
+            # "1999-025": g.get('db').selectCatalog_1999_025_JSON,
+            "trusat_iridium-33.txt": '"IRIDIUM 33 Debris"',
+            "trusat_cosmos-2251.txt": '"COSMOS 2251 Debris"',
+            # "2012-044": g.get('db').selectCatalog_All_JSON,
+            "trusat_scientific.txt": '"Space & Earth Science" OR' +\
+                ' categories.sub_category = "Geodetic" OR' +\
+                ' categories.sub_category = "Engineering" OR' +\
+                ' categories.sub_category = "Education"',
+            "trusat_science.txt": '"Space & Earth Science"',
+            "trusat_geodetic.txt": '"Geodetic"',
+            "trusat_engineering.txt": '"Engineering"',
+            "trusat_education.txt": '"Education"',
+            "trusat_misc.txt": '"Miscellaneous Military" OR' +\
+                ' categories.sub_category = "Radar Calibration" OR' +\
+                ' categories.sub_category = "CubeSats" OR' +\
+                ' categories.sub_category = "Space Stations" OR' +\
+                ' categories.sub_category = "Other"',
+            "trusat_military.txt": '"Miscellaneous Military"',
+            "trusat_radar-calibration.txt": '"Radar Calibration"',
+            "trusat_cubesat.txt": '"CubeSats"',
+            # "tle-new": g.get('db').selectCatalog_All_JSON,
+            "trusat_stations.txt": '"Space Stations"',
+            "trusat_other.txt": '"Other"'
+        }
+        query_tmp = """
+            SELECT TLE.line0, TLE.line1, TLE.line2,  TLE.satellite_number, TLE.epoch FROM
+              (SELECT max(epoch) AS epoch, satellite_number
+              FROM TLE
+              GROUP BY satellite_number) AS latest_tles
+            LEFT JOIN TLE ON (TLE.satellite_number = latest_tles.satellite_number AND TLE.epoch = latest_tles.epoch)
+            LEFT JOIN celestrak_SATCAT SatCat ON (TLE.satellite_number = SatCat.norad_num)
+            JOIN categories on (catalog.object_number = categories.obj_no)
+			WHERE (SatCat.ops_status_code <> 'D' OR SatCat.ops_status_code IS NULL)
+            AND (categories.sub_category = """ + categories_list[category] + """ )
+            AND DATEDIFF(NOW(),TLE.epoch) < 30
+            ORDER BY TLE.epoch DESC;
+            """
+
+        self.c.execute(query_tmp)
+        result = ""
+        for (line0, line1, line2, _, _) in self.c.fetchall():
+            if line0 is not None and line1 is not None and line2 is not None:
+                result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
+        return result
+
     # https://consensys-cpl.atlassian.net/browse/MVP-385
     def selectTLE_single(self, norad_num):
         """ Provide the most recent TLE for a given NORAD number """

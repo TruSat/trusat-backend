@@ -520,6 +520,22 @@ def catalog_trusat_high_confidence_txt():
         return ''
 
 
+@app.route('/tle/<category>', methods=['GET'])
+def catalog_trusat_category_tle(category):
+    try:
+        two_line_elements = g.get('db').selectTLE_categories(category)
+    except Exception as e:
+        print(e)
+        raise InvalidUsage('Could not get TLEs', status_code=500)
+    if two_line_elements is not False:
+        @after_this_request
+        def add_header(response):
+            return catalog_cache(response)
+        return two_line_elements, 200, {'Content-Type': 'text/plain; charset=utf-8'}
+    else:
+        return ''
+
+
 @app.route('/astriagraph', methods=['GET'])
 def catalog_astriagraph():
     try:
