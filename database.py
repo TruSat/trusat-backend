@@ -2970,7 +2970,7 @@ class Database:
               GROUP BY satellite_number) AS latest_tles
             LEFT JOIN TLE ON (TLE.satellite_number = latest_tles.satellite_number AND TLE.epoch = latest_tles.epoch)
             LEFT JOIN celestrak_SATCAT SatCat ON (TLE.satellite_number = SatCat.norad_num)
-            JOIN categories on (catalog.object_number = categories.obj_no)
+            JOIN categories on (TLE.satellite_number = categories.obj_no)
 			WHERE (SatCat.ops_status_code <> 'D' OR SatCat.ops_status_code IS NULL)
             AND (categories.sub_category = """ + categories_list[category] + """ )
             AND DATEDIFF(NOW(),TLE.epoch) < 30
