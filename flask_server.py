@@ -383,11 +383,13 @@ def error_route():
     raise InvalidUsage('This is an expected error', status_code=400)
 
 
+# Return the categories to choose from
 @app.route('/catalog/list', methods=['GET'])
 def catalog_list():
     return celestrakCategories
 
 
+# Pair catalogs type with query to pull the correct queries
 @app.route('/catalog/<catalog>/<int:offset>', methods=['GET'])
 def catalog_weather(catalog, offset):
     # All catalogs with the associated query
