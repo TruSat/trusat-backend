@@ -2974,6 +2974,7 @@ class Database:
 			WHERE (SatCat.ops_status_code <> 'D' OR SatCat.ops_status_code IS NULL)
             AND (categories.sub_category = """ + categories_list[category] + """ )
             AND DATEDIFF(NOW(),TLE.epoch) <= 365
+            GROUP BY TLE.satellite_number
             ORDER BY TLE.satellite_number;
             """
 
@@ -3690,6 +3691,7 @@ class Database:
           FROM catalog
           JOIN categories on (catalog.object_number = categories.obj_no)
 		  WHERE categories.sub_category = """ + categories_list[category] + """
+          GROUP BY catalog.object_number
           ORDER BY obs_time DESC
           LIMIT %(OFFSET)s,%(FETCH)s;""")
         queryParams = {
