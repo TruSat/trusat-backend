@@ -472,58 +472,17 @@ def catalog_weather(catalog, offset):
         return {}
 
 
-@app.route('/tle/trusat_all.txt', methods=['GET'])
-def catalog_trusat_all_txt():
-    try:
-        two_line_elements = g.get('db').selectTLE_all()
-    except Exception as e:
-        print(e)
-        raise InvalidUsage('Could not get TLEs', status_code=500)
-    if two_line_elements is not False:
-        @after_this_request
-        def add_header(response):
-            return catalog_cache(response)
-        return two_line_elements, 200, {'Content-Type': 'text/plain; charset=utf-8'}
-    else:
-        return ''
-
-
-@app.route('/tle/trusat_priorities.txt', methods=['GET'])
-def catalog_trusat_priorities_txt():
-    try:
-        two_line_elements = g.get('db').selectTLE_priorities()
-    except Exception as e:
-        print(e)
-        raise InvalidUsage('Could not get TLEs', status_code=500)
-    if two_line_elements is not False:
-        @after_this_request
-        def add_header(response):
-            return catalog_cache(response)
-        return two_line_elements, 200, {'Content-Type': 'text/plain; charset=utf-8'}
-    else:
-        return ''
-
-
-@app.route('/tle/trusat_high_confidence.txt', methods=['GET'])
-def catalog_trusat_high_confidence_txt():
-    try:
-        two_line_elements = g.get('db').selectTLE_high_confidence()
-    except Exception as e:
-        print(e)
-        raise InvalidUsage('Could not get TLEs', status_code=500)
-    if two_line_elements is not False:
-        @after_this_request
-        def add_header(response):
-            return catalog_cache(response)
-        return two_line_elements, 200, {'Content-Type': 'text/plain; charset=utf-8'}
-    else:
-        return ''
-
-
 @app.route('/tle/<category>', methods=['GET'])
 def catalog_trusat_category_tle(category):
     try:
-        two_line_elements = g.get('db').selectTLE_categories(category)
+        if category is 'trusat_high_confidence.txt':
+            two_line_elements = g.get('db').selectTLE_high_confidence()
+        elif category is 'trusat_priorities.txt':
+            two_line_elements = g.get('db').selectTLE_priorities()
+        elif category is 'trusat_all.txt':
+            two_line_elements = g.get('db').selectTLE_all()
+        else:
+            two_line_elements = g.get('db').selectTLE_categories(category)
     except Exception as e:
         print(e)
         raise InvalidUsage('Could not get TLEs', status_code=500)
