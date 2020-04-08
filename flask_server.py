@@ -475,11 +475,11 @@ def catalog_weather(catalog, offset):
 @app.route('/tle/<category>', methods=['GET'])
 def catalog_trusat_category_tle(category):
     try:
-        if category is 'trusat_high_confidence.txt':
+        if category == 'trusat_high_confidence.txt':
             two_line_elements = g.get('db').selectTLE_high_confidence()
-        elif category is 'trusat_priorities.txt':
+        elif category == 'trusat_priorities.txt':
             two_line_elements = g.get('db').selectTLE_priorities()
-        elif category is 'trusat_all.txt':
+        elif category == 'trusat_all.txt':
             two_line_elements = g.get('db').selectTLE_all()
         else:
             two_line_elements = g.get('db').selectTLE_categories(category)
