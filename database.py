@@ -4023,8 +4023,8 @@ class Database:
 
             station_count = self.c.fetchone()[0]
             print(station_count)
-            if station_count >= 10:
-                return False
+            # if station_count >= 10:
+            #     return False
 
             query_tmp = """
                 INSERT INTO Station(
