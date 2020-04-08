@@ -689,11 +689,13 @@ class Database:
             """ Observer """
             createquery = '''CREATE TABLE IF NOT EXISTS Observer (
                 id          INTEGER PRIMARY KEY ''' + self.increment + ''', /* Internal ID  */
+                name        TEXT DEFAULT NULL, /* User-provided account name */
                 eth_addr    CHAR(42),       /* Ethereum address for user */
                 verified    TEXT,           /* DEPRECATED */
                 reputation  INTEGER,        /* User rank value */
                 reference   TEXT,           /* Internal user ref notes for SeeSat archive */
                 nonce       INTEGER,
+                nonce_bytes BINARY(255) DEFAULT NULL,
                 jwt         TEXT,
                 password    TEXT,
                 jwt_secret  CHAR(78),
@@ -930,7 +932,7 @@ class Database:
 
         find_with_norad = """
             SELECT * FROM `celestrak_SATCAT`
-            WHERE `norad_numb`=%s;
+            WHERE `norad_num`=%s;
         """
 
         delete_by_norad = """
