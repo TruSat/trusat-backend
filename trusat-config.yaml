@@ -1,7 +1,7 @@
 # Trusat Database Connection Configuration
 Database:
-  name: "space"
-  type:
-  hostname: "127.0.0.1"
-  username: "root"
-  password:
+  name: "trusat_dev"
+  type: "sqlserver"
+  hostname: "trusat_dev_mysql"
+  username: "devuser"
+  password: "dev_password"
