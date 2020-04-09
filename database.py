@@ -3793,8 +3793,7 @@ class Database:
           """SELECT COUNT(object_number)
           FROM catalog
           JOIN categories on (catalog.object_number = categories.obj_no)
-		  WHERE categories.sub_category = """ + categories_list[category] + """
-          GROUP BY catalog.object_number;""")
+		  WHERE categories.sub_category = """ + categories_list[category] + ";")
         queryParams = {
           'QUALITY': quality
           }
