@@ -229,22 +229,23 @@ Add trusat-config.yaml to the parent directory with all the database connection 
 ```
 # Trusat Database Connection Configuration
 Database:
-  name: "space"
+  name: "trusat_dev"
   type: "sqlserver"
-  hostname: "127.0.0.1"
-  username: "newuser"
-  password: "user_password"
+  hostname: "trusat_dev_mysql"
+  username: "devuser"
+  password: "dev_password"
 ```
 
 ### Initialize database tables
 ```
-python create_tables.py
-python database_tools/categorize.py
+python3 create_tables.py
+python3 database_tools/categorize.py
+python3 database_tools/update_SATCAT_UCS_from_source.py
 ```
 
 ### Start the server with the following command
 ```
-python wsgi.py
+python3 wsgi.py
 ```
 
 ### Test that the server responds with a proper response
@@ -373,7 +374,7 @@ gunicorn --bind 0.0.0.0:5000 wsgi:app
 
 ### Test that the server responds with a proper response
 ```
-if curl http://localhost:5000/hearbeat > HTML_Output
+if curl http://localhost:5000/heartbeat > HTML_Output
 then echo "Request successful"
 else echo "Server did not set up correctly"
 fi
@@ -497,3 +498,30 @@ sudo apt install python-certbot-nginx
 sudo certbot --nginx -d trusat.org -d www.trusat.org
 sudo ufw delete allow 'Nginx HTTP'
 ```
+
+
+## Docker development environment for Database and Server
+
+The following 4 steps can be used to quickly create a self-contained local server/database environment with seed data accessible at http://localhost:5000/
+
+### 1. Create Docker network for Database and Server containers
+```
+docker network create trusat_dev_bridge
+```
+
+### 2. Launch MariaDB server instance (major version to match Production AWS environment)
+```
+docker run --network trusat_dev_bridge --name trusat_dev_mysql --publish 3306:3306 -e MYSQL_ROOT_PASSWORD="trusat_mysql_root_password" -d mariadb:10.3
+```
+
+### 3. Build docker server image
+```
+docker build --network trusat_dev_bridge -t trusat:dev - < Dockerfile-dev-environment
+```
+
+### 4. The following will run your built-image and leave you at a shell inside it
+```
+docker run --network trusat_dev_bridge -it --name trusat_dev --publish 5000:5000 trusat:dev
+```
+
+You can access the local server at http://localhost:5000/

@@ -5,15 +5,21 @@ FROM ubuntu:18.04
 
 #ENV MAILGUN_API_KEY 
 #ENV MAILGUN_EMAIL_ADDRESS
-ENV WEBSITE_ORIGINS 'http://localhost'
 #ENV SECRET_KEY
+ENV WEBSITE_ORIGINS 'http://localhost'
 ENV REACT_APP_API_ROOT "http://localhost:5000"
+
+ENV DB_HOSTNAME "trusat_dev_mysql"
+ENV DB_ROOT_PASSWORD "trusat_mysql_root_password"
+ENV DB_NAME "trusat_dev"
+ENV DB_USER "devuser"
+ENV DB_USER_PASSWORD "dev_password"
 
 RUN apt-get update && apt-get install -y \ 
     curl \
     gnupg \
     git \
-    mariadb-server \
+    mariadb-client \
     nginx \
     python3-pip python3-dev build-essential libssl-dev libffi-dev python3-setuptools
     
@@ -37,3 +43,20 @@ RUN python3 -m pip install wheel gunicorn
 RUN python3 -m pip install -r requirements.txt
 RUN python3 -m pip install -r database_tools/requirements.txt
 RUN python3 -m pip install -r ../trusat-orbit/requirements.txt
+
+RUN mysql --password=${DB_ROOT_PASSWORD} -h ${DB_HOSTNAME} -e  "CREATE DATABASE IF NOT EXISTS ${DB_NAME} DEFAULT CHARACTER SET 'utf8'; \
+    USE ${DB_NAME}; \
+    CREATE USER IF NOT EXISTS '${DB_USER}'@'%' IDENTIFIED BY '${DB_USER_PASSWORD}'; \
+    GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'%'; \
+    FLUSH PRIVILEGES;" 
+
+RUN cp trusat-config.yaml ../
+RUN python3 create_tables.py
+RUN python3 database_tools/categorize.py
+RUN python3 database_tools/update_SATCAT_UCS_from_source.py
+
+RUN zcat trusat_dev_db.sql.gz | mysql --password=${DB_ROOT_PASSWORD} -h ${DB_HOSTNAME} -f ${DB_NAME}
+RUN cp trusat-backend-nginx-dev.conf /etc/nginx/sites-enabled/trusat-backend
+EXPOSE 5000
+
+CMD bash -C '/trusat-backend/Docker-entrypoint.sh';'bash'
