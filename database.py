@@ -339,6 +339,27 @@ class Database:
 			WHERE (SatCat.ops_status_code <> 'D' OR SatCat.ops_status_code IS NULL)
             """
 
+        self.selectLatestTLEPerObjectCount = """
+            SELECT COUNT(TLE.line0) FROM
+              (SELECT max(epoch) AS epoch, satellite_number
+              FROM TLE
+              GROUP BY satellite_number) AS latest_tles
+            LEFT JOIN TLE ON (TLE.satellite_number = latest_tles.satellite_number AND TLE.epoch = latest_tles.epoch)
+            LEFT JOIN celestrak_SATCAT SatCat ON (TLE.satellite_number = SatCat.norad_num)
+			WHERE (SatCat.ops_status_code <> 'D' OR SatCat.ops_status_code IS NULL)
+        """
+
+        self.selectLatestTLEPerObjectCountCategories = """
+            SELECT COUNT(TLE.line0) FROM
+              (SELECT max(epoch) AS epoch, satellite_number
+              FROM TLE
+              GROUP BY satellite_number) AS latest_tles
+            LEFT JOIN TLE ON (TLE.satellite_number = latest_tles.satellite_number AND TLE.epoch = latest_tles.epoch)
+            LEFT JOIN celestrak_SATCAT SatCat ON (TLE.satellite_number = SatCat.norad_num)
+            JOIN categories ON (TLE.satellite_number = categories.obj_no)
+			WHERE (SatCat.ops_status_code <> 'D' OR SatCat.ops_status_code IS NULL)
+        """
+
         self.selectCatalogQueryPrefix = """
             WITH catalog as (
               WITH latest_obs_times as (SELECT object_number, max(obs_time) max_obs_time
@@ -3459,7 +3480,30 @@ class Database:
         self.c.execute(query, params=queryParams)
         observations = stringArrayToJSONArray_JSON(self.c.fetchall())
         convert_country_names(observations)
-        return json.dumps(observations)
+
+        query = (
+          self.selectCatalogQueryPrefix +
+          """SELECT COUNT(object_number)
+          FROM catalog
+          WHERE datediff(now(),obs_time) >= 30
+		  AND datediff(now(),obs_time) <= 365;""")
+        queryParams = {
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+        object_count = self.c.fetchone()[0]
+
+        query_tmp = self.selectLatestTLEPerObjectCount + """
+            AND DATEDIFF(NOW(),TLE.epoch) > 30
+  		    AND DATEDIFF(NOW(),TLE.epoch) <= 365;"""
+        self.c.execute(query_tmp)
+        tle_count = self.c.fetchone()[0]
+
+        json_catalog = {}
+        json_catalog["objects"] = observations
+        json_catalog["object_count"] = object_count
+        json_catalog["tle_count"] = tle_count
+        return json.dumps(json_catalog)
 
     # /catalog/undisclosed
     # https://consensys-cpl.atlassian.net/browse/MVP-324
@@ -3484,33 +3528,30 @@ class Database:
         self.c.execute(query, params=queryParams)
         observations = stringArrayToJSONArray_JSON(self.c.fetchall())
         convert_country_names(observations)
-        return json.dumps(observations)
 
-    # /catalog/debris
-    # https://consensys-cpl.atlassian.net/browse/MVP-325
-    def selectCatalog_Debris_JSON(self, fetch_row_count=100, offset_row_count=0):
-        """ Create list of Debris objects.
-            Returns all (or fetch_row_count) objects that have 'DEB' in their object name.
-            Ordered by the time they were last tracked (most recent first).
-            This heuristic may be too simple and we may miss some debris."""
-         # !TODO: return only objects for which we also know a (TruSat?) TLE, once we have a critical mass of such objects
-        quality = 99 # !TODO
         query = (
           self.selectCatalogQueryPrefix +
-          "SELECT" + self.selectCatalogJsonObject + """
+          """SELECT COUNT(object_number)
           FROM catalog
-          WHERE obj_name LIKE '%DEB%'
-          ORDER BY obs_time DESC
-          LIMIT %(OFFSET)s,%(FETCH)s;""")
+          WHERE orbit_status_code = 'NEA';""")
         queryParams = {
-          'OFFSET': offset_row_count,
-          'FETCH': fetch_row_count,
           'QUALITY': quality
           }
         self.c.execute(query, params=queryParams)
-        observations = stringArrayToJSONArray_JSON(self.c.fetchall())
-        convert_country_names(observations)
-        return json.dumps(observations)
+        object_count = self.c.fetchone()[0]
+
+        # query_tmp = self.selectLatestTLEPerObjectCount + """
+        #     AND DATEDIFF(NOW(),TLE.epoch) > 30
+  		#     AND DATEDIFF(NOW(),TLE.epoch) <= 365
+        #     ORDER BY TLE.epoch DESC;"""
+        # self.c.execute(query_tmp)
+        # tle_count = self.c.fetchone()[0]
+
+        json_catalog = {}
+        json_catalog["objects"] = observations
+        json_catalog["object_count"] = object_count
+        json_catalog["tle_count"] = 0
+        return json.dumps(json_catalog)
 
     # /catalog/latest
     # https://consensys-cpl.atlassian.net/browse/MVP-326
@@ -3536,7 +3577,29 @@ class Database:
         self.c.execute(query, params=queryParams)
         observations = stringArrayToJSONArray_JSON(self.c.fetchall())
         convert_country_names(observations)
-        return json.dumps(observations)
+
+        query = (
+          self.selectCatalogQueryPrefix +
+          """SELECT COUNT(object_number)
+          FROM catalog
+          WHERE obj_launch_date IS NOT NULL;""")
+        queryParams = {
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+        object_count = self.c.fetchone()[0]
+
+        # query_tmp = self.selectLatestTLEPerObjectCount + """
+        #     AND DATEDIFF(NOW(),TLE.epoch) > 30
+  		#     AND DATEDIFF(NOW(),TLE.epoch) <= 365;"""
+        # self.c.execute(query_tmp)
+        # tle_count = self.c.fetchone()[0]
+
+        json_catalog = {}
+        json_catalog["objects"] = observations
+        json_catalog["object_count"] = object_count
+        json_catalog["tle_count"] = 0
+        return json.dumps(json_catalog)
 
     # /catalog/all
     # https://consensys-cpl.atlassian.net/browse/MVP-327
@@ -3564,7 +3627,28 @@ class Database:
 
         observations = stringArrayToJSONArray_JSON(self.c.fetchall())
         convert_country_names(observations)
-        return json.dumps(observations)
+        
+        query = (
+          self.selectCatalogQueryPrefix +
+          """SELECT COUNT(object_number)
+          FROM catalog
+		  WHERE datediff(now(),obs_time) <= 365;""")
+        queryParams = {
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+        object_count = self.c.fetchone()[0]
+
+        query_tmp = self.selectLatestTLEPerObjectCount + """
+  		    AND DATEDIFF(NOW(),TLE.epoch) <= 365;"""
+        self.c.execute(query_tmp)
+        tle_count = self.c.fetchone()[0]
+
+        json_catalog = {}
+        json_catalog["objects"] = observations
+        json_catalog["object_count"] = object_count
+        json_catalog["tle_count"] = tle_count
+        return json.dumps(json_catalog)
 
 
     # /catalog/<category>
@@ -3689,7 +3773,7 @@ class Database:
           self.selectCatalogQueryPrefix +
           "SELECT" + self.selectCatalogJsonObject + """
           FROM catalog
-          JOIN categories on (catalog.object_number = categories.obj_no)
+          JOIN categories ON (catalog.object_number = categories.obj_no)
 		  WHERE categories.sub_category = """ + categories_list[category] + """
           GROUP BY catalog.object_number
           ORDER BY obs_time DESC
@@ -3703,7 +3787,30 @@ class Database:
 
         observations = stringArrayToJSONArray_JSON(self.c.fetchall())
         convert_country_names(observations)
-        return json.dumps(observations)
+
+        query = (
+          self.selectCatalogQueryPrefix +
+          """SELECT COUNT(object_number)
+          FROM catalog
+          JOIN categories on (catalog.object_number = categories.obj_no)
+		  WHERE categories.sub_category = """ + categories_list[category] + """
+          GROUP BY catalog.object_number;""")
+        queryParams = {
+          'QUALITY': quality
+          }
+        self.c.execute(query, params=queryParams)
+        object_count = self.c.fetchone()[0]
+
+        query_tmp = self.selectLatestTLEPerObjectCountCategories + """
+          AND categories.sub_category = """ + categories_list[category] + ";"
+        self.c.execute(query_tmp)
+        tle_count = self.c.fetchone()[0]
+
+        json_catalog = {}
+        json_catalog["objects"] = observations
+        json_catalog["object_count"] = object_count
+        json_catalog["tle_count"] = tle_count
+        return json.dumps(json_catalog)
 
 
     # /object/info/
