@@ -462,7 +462,7 @@ def catalog_weather(catalog, offset):
             json_object = all_catalogs[catalog](fetch_row_count=200, offset_row_count=offset, category = catalog)
     except Exception as e:
         print(e)
-        raise InvalidUsage('Could not get all', status_code=500)
+        raise InvalidUsage('Could not get category', status_code=500)
     if json_object is not False:
         @after_this_request
         def add_header(response):
