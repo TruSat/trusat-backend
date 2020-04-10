@@ -3487,10 +3487,7 @@ class Database:
           FROM catalog
           WHERE datediff(now(),obs_time) >= 30
 		  AND datediff(now(),obs_time) <= 365;""")
-        queryParams = {
-          'QUALITY': quality
-          }
-        self.c.execute(query, params=queryParams)
+        self.c.execute(query)
         object_count = self.c.fetchone()[0]
 
         query_tmp = self.selectLatestTLEPerObjectCount + """
@@ -3534,10 +3531,7 @@ class Database:
           """SELECT COUNT(object_number)
           FROM catalog
           WHERE orbit_status_code = 'NEA';""")
-        queryParams = {
-          'QUALITY': quality
-          }
-        self.c.execute(query, params=queryParams)
+        self.c.execute(query)
         object_count = self.c.fetchone()[0]
 
         # query_tmp = self.selectLatestTLEPerObjectCount + """
@@ -3583,10 +3577,7 @@ class Database:
           """SELECT COUNT(object_number)
           FROM catalog
           WHERE obj_launch_date IS NOT NULL;""")
-        queryParams = {
-          'QUALITY': quality
-          }
-        self.c.execute(query, params=queryParams)
+        self.c.execute(query)
         object_count = self.c.fetchone()[0]
 
         # query_tmp = self.selectLatestTLEPerObjectCount + """
@@ -3633,10 +3624,7 @@ class Database:
           """SELECT COUNT(object_number)
           FROM catalog
 		  WHERE datediff(now(),obs_time) <= 365;""")
-        queryParams = {
-          'QUALITY': quality
-          }
-        self.c.execute(query, params=queryParams)
+        self.c.execute(query)
         object_count = self.c.fetchone()[0]
 
         query_tmp = self.selectLatestTLEPerObjectCount + """
@@ -3790,14 +3778,11 @@ class Database:
 
         query = (
           self.selectCatalogQueryPrefix +
-          """SELECT COUNT(object_number)
+          """SELECT COUNT(DISTINCT(object_number))
           FROM catalog
           JOIN categories on (catalog.object_number = categories.obj_no)
 		  WHERE categories.sub_category = """ + categories_list[category] + ";")
-        queryParams = {
-          'QUALITY': quality
-          }
-        self.c.execute(query, params=queryParams)
+        self.c.execute(query)
         object_count = self.c.fetchone()[0]
 
         query_tmp = self.selectLatestTLEPerObjectCountCategories + """
