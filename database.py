@@ -2775,6 +2775,20 @@ class Database:
             return None
 
 
+    def selectTLEid(self, tle_id):
+        """ Query to return the specific tle_id requested
+
+        Returns TruSatellite() object
+        """
+        query_tmp = """SELECT * FROM TLE
+            WHERE tle_id=%(TLE_ID)s
+            LIMIT 1"""
+        query_parameters = {'TLE_ID': tle_id}
+        self.cdict.execute(query_tmp, query_parameters)
+        row = [self.cdict.fetchone()]    # Put single result into an array
+        return self.cdictQueryToTruSatelliteObj(row)[0]  # Unpack the array to the object, for just one result
+
+
     # FIXME - This is the latest of everything in the catalog - but some will be old from McCants stuff because they were dropped from classfd.tle
     def selectTLE_Astriagraph(self):
         """ Create a list of TLEs appropriate for Astriagraph to plot.
