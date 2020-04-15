@@ -90,7 +90,10 @@ def main():
         else:
             print(err)
             os._exit(1)
-    cursor.execute(TABLE_create_query)
+    try:
+        cursor.execute(TABLE_create_query)
+    except mysql.connector.ProgrammingError as err:
+        print(err)
 
     # scrape main page
     URL = 'https://celestrak.com/NORAD/elements/'
@@ -153,7 +156,7 @@ def main():
             'entries in total.\nSaving to database...', end='')
     
     # clear current records
-    clear_table = ("TRUNCATE TABLE categories")
+    clear_table = ("DELETE FROM categories;")
     cursor.execute(clear_table)
 
     # save to DB
