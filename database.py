@@ -2852,7 +2852,8 @@ class Database:
         query_tmp = self.selectLatestTLEPerObject + """
             AND DATEDIFF(NOW(),TLE.epoch) > 30
   		    AND DATEDIFF(NOW(),TLE.epoch) <= 365
-            ORDER BY TLE.epoch DESC;"""
+            ORDER BY TLE.epoch DESC
+            LIMIT 100;"""
         self.c.execute(query_tmp)
         result = ""
         for (line0, line1, line2, _, _) in self.c.fetchall():
@@ -2992,7 +2993,7 @@ class Database:
             LEFT JOIN TLE ON (TLE.satellite_number = latest_tles.satellite_number AND TLE.epoch = latest_tles.epoch)
             LEFT JOIN celestrak_SATCAT SatCat ON (TLE.satellite_number = SatCat.norad_num)
             JOIN categories on (TLE.satellite_number = categories.obj_no)
-			WHERE (SatCat.ops_status_code <> 'D' OR SatCat.ops_status_code IS NULL)
+            WHERE (SatCat.ops_status_code <> 'D' OR SatCat.ops_status_code IS NULL)
             AND (categories.sub_category = """ + categories_list[category] + """ )
             AND DATEDIFF(NOW(),TLE.epoch) <= 365
             GROUP BY TLE.satellite_number
@@ -3460,6 +3461,7 @@ class Database:
         """ Create list of 'Priority'' objects. For now, this just means those that have been tracked least recently.
             Returns all (or fetch_row_count) objects.
             Ordered by the time they were last tracked (least recent first)."""
+        fetch_row_count = 100
         quality = 99 # !TODO
         # !TODO: return only objects for which we also know a (TruSat?) TLE, once we have a critical mass of such objects
         # TODO: No priorities in database yet, just sort by reverse obs order for something interesting/different to look at
@@ -3498,8 +3500,8 @@ class Database:
 
         json_catalog = {}
         json_catalog["objects"] = observations
-        json_catalog["object_count"] = object_count
-        json_catalog["tle_count"] = tle_count
+        json_catalog["object_count"] = 100
+        json_catalog["tle_count"] = 100
         return json.dumps(json_catalog)
 
     # /catalog/undisclosed
@@ -3553,6 +3555,7 @@ class Database:
         """ Provide a list of the most recently launched objects that have been observed.
             Returns all (or fetch_row_count) objects with a launch date.
             Ordered by launch date, newest first. """
+        fetch_row_count = 100
         # !TODO: return only objects for which we also know a (TruSat?) TLE, once we have a critical mass of such objects
         quality = 99 # !TODO
         query = (
@@ -3588,7 +3591,7 @@ class Database:
 
         json_catalog = {}
         json_catalog["objects"] = observations
-        json_catalog["object_count"] = object_count
+        json_catalog["object_count"] = 100
         json_catalog["tle_count"] = 0
         return json.dumps(json_catalog)
 
