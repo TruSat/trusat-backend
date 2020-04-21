@@ -8,9 +8,7 @@ eth_account
 google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
-sgp4
 skyfield
-spacetrack
 cryptography
 python-dateutil
 coinaddr
@@ -19,12 +17,3 @@ pyyaml
 
 # Drop-in replacement for configparser which also reads config files
 ConfigArgParse
-
-# The following is for Mac OS X / Homebrew python 3
-mysql-connector-python-rf
-pycountry
-
-# Dependencies used by tests
-requests
-pytest
-snapshottest
