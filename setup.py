@@ -2,6 +2,9 @@
 
 from setuptools import setup
 
+with open('requirements-database.txt') as f:
+    requirements = f.read().splitlines()
+
 setup(
     name = 'trusat_backend',
     version = '1.1.0',
@@ -11,6 +14,7 @@ setup(
     long_description=open('README.md').read(),
     url = 'https://TruSat.org/',
     packages = ['trusat_backend'],
+    install_requires=requirements,
     classifiers = [
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
