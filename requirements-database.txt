@@ -1,5 +1,5 @@
 mysql.connector
-
+pyyaml
 # The following is for Mac OS X / Homebrew python 3
 mysql-connector-python-rf
 pycountry
