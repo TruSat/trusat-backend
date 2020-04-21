@@ -1,0 +1,4 @@
+# Dependencies used by tests
+requests
+pytest
+snapshottest

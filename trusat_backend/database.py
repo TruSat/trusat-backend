@@ -12,15 +12,14 @@ from yaml import load, Loader
 
 
 # The following 9 lines are necessary until the trusat-orbit repo is public
-import inspect
-import os
-import sys
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(currentdir)
-tle_path = os.path.join(parentdir, "trusat-orbit")
-sys.path.insert(1,tle_path)
-import tle_util
-import iod
+# import inspect
+# import os
+# import sys
+# currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+# parentdir = os.path.dirname(currentdir)
+# tle_path = os.path.join(parentdir, "trusat-orbit")
+# sys.path.insert(1,tle_path)
+from trusat import tle_util, iod
 
 import logging
 log = logging.getLogger(__name__)
