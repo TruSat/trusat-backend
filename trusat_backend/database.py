@@ -280,12 +280,16 @@ class Database:
             self.c_selectObserverPasswordFromAddress_query = self.conn.cursor(prepared=True)
             self.c_selectObserverAddressFromPassword_query = self.conn.cursor(prepared=True)
             self.selectObserverID_query = '''SELECT max(id) from Observer'''
-            try:
-                self.c_selectObserverID_query.execute(self.selectObserverID_query, [])
-                self._new_observerid = self.c_selectObserverID_query.fetchone()[0]
-            except Exception as e:
-                log.error("Could not get ObserverID: {}".format(e))
-                self._new_observerid = 0
+
+            # Put this in a check wrapper, so it doesn't error while we're trying to create the database
+            if self.checkTableExists("Observer"):
+                # FIXME: This seems like an odd way to get a new observer id. Should probably have an explicit call...
+                try:
+                    self.c_selectObserverID_query.execute(self.selectObserverID_query, [])
+                    self._new_observerid = self.c_selectObserverID_query.fetchone()[0]
+                except Exception as e:
+                    log.error("Could not get ObserverID: {}".format(e))
+                    self._new_observerid = 0
 
         else:
             log.info("Connecting to the SQLite Database...")

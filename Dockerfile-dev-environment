@@ -43,6 +43,7 @@ RUN python3 -m pip install https://github.com/brandon-rhodes/python-sgp4/archive
 RUN python3 setup.py develop
 
 WORKDIR /trusat-backend 
+RUN git checkout dev.chris.package
 RUN python3 -m pip install wheel gunicorn
 RUN python3 -m pip install -r requirements-database.txt
 RUN python3 -m pip install -r requirements-server.txt
