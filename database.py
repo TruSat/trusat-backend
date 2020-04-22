@@ -1270,13 +1270,29 @@ class Database:
         submission_time = datetime.now()
         it = 0
         try:
+            query = """
+                SELECT station_num, opt_out
+                FROM Station;
+                """
+            self.c.execute(query)
+            stations_and_opt_out = self.c.fetchall()
+            stations_opted_out = {}
+            for station in stations_and_opt_out:
+                if station[1] == 1:
+                    stations_opted_out[station[0]] = 1
             #one at a time, line up the items in parsed_iod so they can be checked against the original array of observations, otherwise the numbers returned back won't be aligned with the original lines
             for entry in parsed_iod:
                 it += 1
+                if entry.Station in stations_opted_out:
+                    error_messages.append("Observation on line {} is from a station that is opted out.".format(it))
+                    continue
+                try:
+                    #somethin
+                except Exception as e:
+                    print(e)
                 individual_entry = []
                 individual_entry.append(entry)
                 entry_value = self.addParsedIOD(individual_entry, submission_time)
-                print(entry_value[0])
                 success = entry_value[0]
                 while removed_iods[it] == True:
                     it += 1
