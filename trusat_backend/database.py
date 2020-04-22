@@ -1365,7 +1365,7 @@ class Database:
 
             entry.launch_piece_number,
             entry.analyst_object,
-            entry.strict,
+            entry.strict_import,
 
             entry.tle_fingerprint,
             entry.tle_file_fingerprint
@@ -1431,7 +1431,7 @@ class Database:
 
                 TruSatTLE.launch_piece_number,
                 TruSatTLE.analyst_object,
-                TruSatTLE.strict,
+                TruSatTLE.strict_import,
 
                 TruSatTLE.tle_fingerprint,
                 TruSatTLE.tle_file_fingerprint
