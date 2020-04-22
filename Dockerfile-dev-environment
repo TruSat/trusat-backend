@@ -29,19 +29,20 @@ RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources
 RUN apt-get update && apt-get install -y \
     yarn
 
-RUN git clone https://github.com/consensys-space/trusat-orbit
-RUN git clone https://github.com/consensys-space/trusat-backend
+RUN git clone https://github.com/TruSat/trusat-orbit
+RUN git clone https://github.com/TruSat/trusat-backend
 WORKDIR trusat-backend/
 # Next line, temporary for testing 
-RUN git checkout update-readme.rebase.fixes
-RUN git clone https://github.com/consensys-space/trusat-frontend
+RUN git checkout dev.chris.package
+RUN git clone https://github.com/TruSat/trusat-frontend
 
 WORKDIR trusat-frontend/
 RUN yarn install && yarn build
 WORKDIR /trusat-backend 
 RUN python3 -m pip install wheel gunicorn
-RUN python3 -m pip install -r requirements.txt
-RUN python3 -m pip install -r database_tools/requirements.txt
+RUN python3 -m pip install -r requirements-database.txt
+RUN python3 -m pip install -r requirements-server.txt
+RUN python3 -m pip install -r trusat_backend/database_tools/requirements.txt
 RUN python3 -m pip install -r ../trusat-orbit/requirements.txt
 
 RUN mysql --password=${DB_ROOT_PASSWORD} -h ${DB_HOSTNAME} -e  "CREATE DATABASE IF NOT EXISTS ${DB_NAME} DEFAULT CHARACTER SET 'utf8'; \
@@ -52,8 +53,8 @@ RUN mysql --password=${DB_ROOT_PASSWORD} -h ${DB_HOSTNAME} -e  "CREATE DATABASE 
 
 RUN cp trusat-config.yaml ../
 RUN python3 create_tables.py
-RUN python3 database_tools/categorize.py
-RUN python3 database_tools/update_SATCAT_UCS_from_source.py
+RUN python3 trusat_backend/database_tools/categorize.py
+RUN python3 trusat_backend/database_tools/update_SATCAT_UCS_from_source.py
 
 RUN zcat trusat_dev_db.sql.gz | mysql --password=${DB_ROOT_PASSWORD} -h ${DB_HOSTNAME} -f ${DB_NAME}
 RUN cp trusat-backend-nginx-dev.conf /etc/nginx/sites-enabled/trusat-backend

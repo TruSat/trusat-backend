@@ -1,5 +1,5 @@
 pyyaml
 pycountry
-mysql.connector; sys_platform  == 'linux'
+mysql-connector-python; sys_platform  == 'linux'
 # The following is for Mac OS X / Homebrew python 3
 mysql-connector-python-rf; sys_platform  == 'darwin'
