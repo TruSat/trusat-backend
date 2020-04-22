@@ -14,7 +14,7 @@ setup(
     long_description=open('README.md').read(),
     url = 'https://TruSat.org/',
     packages = ['trusat_backend'],
-    install_requires=requirements,
+    install_requires=[requirements],
     classifiers = [
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
