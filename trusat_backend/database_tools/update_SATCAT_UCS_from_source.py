@@ -3,12 +3,6 @@ from hashlib import md5
 import os
 import sys
 
-# # The following 4 lines are necessary until our modules are public
-# import inspect
-# currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-# sys.path.insert(1,os.path.dirname(currentdir)) 
-from trusat_backend import database
-
 from io import StringIO
 import pandas as pd
 import requests
@@ -17,6 +11,9 @@ from datetime import datetime
 
 import logging
 log = logging.getLogger(__name__)
+
+# Load database *after* pandas, because the reverse order crashes Pandas
+from trusat_backend import database
 
 CONFIG = os.path.abspath("../../trusat-config.yaml")
 
