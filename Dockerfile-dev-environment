@@ -44,6 +44,7 @@ RUN python3 -m pip install -r requirements-database.txt
 RUN python3 -m pip install -r requirements-server.txt
 RUN python3 -m pip install -r trusat_backend/database_tools/requirements.txt
 RUN python3 -m pip install -r ../trusat-orbit/requirements.txt
+RUN git pull
 RUN python3 setup.py develop
 
 RUN mysql --password=${DB_ROOT_PASSWORD} -h ${DB_HOSTNAME} -e  "CREATE DATABASE IF NOT EXISTS ${DB_NAME} DEFAULT CHARACTER SET 'utf8'; \

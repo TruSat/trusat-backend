@@ -11,8 +11,8 @@ with open("README.md", "r") as fh:
 setup(
     name = 'trusat_backend',
     description = 'Server and database environment for TruSat',
-    long_description=long_description,
-    long_description_content_type="text/markdown",
+    # long_description=long_description,
+    # long_description_content_type="text/markdown",
     version = '1.1.0',
     author = "Kenan O'Neal, Chris Lewicki",
     url = 'https://TruSat.org/',
