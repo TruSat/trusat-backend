@@ -40,5 +40,4 @@ setup(
         'Topic :: Database',
         'Topic :: Scientific/Engineering'
     ],
-    platforms = unix, linux, osx, cygwin
 )
