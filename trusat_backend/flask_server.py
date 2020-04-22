@@ -9,8 +9,8 @@ import base64
 import numpy
 import secrets
 import requests
-import database
-import google_email
+from trusat_backend import database
+from trusat_backend import google_email
 
 
 from jwt import encode, decode

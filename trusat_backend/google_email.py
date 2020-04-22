@@ -11,7 +11,7 @@ from time import sleep
 
 import threading
 import logging
-import database
+from trusat_backend import database
 
 
 def init_email_sending():
