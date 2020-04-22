@@ -5,10 +5,14 @@ from setuptools import setup
 with open('requirements-database.txt') as f:
     requirements = f.read().splitlines()
 
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
 setup(
     name = 'trusat_backend',
     description = 'Server and database environment for TruSat',
-    long_description=open('README.md').read(),
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     version = '1.1.0',
     author = "Kenan O'Neal, Chris Lewicki",
     url = 'https://TruSat.org/',
