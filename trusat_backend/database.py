@@ -10,15 +10,6 @@ import random
 import re
 from yaml import load, Loader
 
-
-# The following 9 lines are necessary until the trusat-orbit repo is public
-# import inspect
-# import os
-# import sys
-# currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-# parentdir = os.path.dirname(currentdir)
-# tle_path = os.path.join(parentdir, "trusat-orbit")
-# sys.path.insert(1,tle_path)
 from trusat import tle_util
 from trusat import iod
 
@@ -26,7 +17,7 @@ import logging
 log = logging.getLogger(__name__)
 
 """
-database.py: Does database interactions for the Open Satellite Catalog
+database.py: Does database interactions for TruSat Catalog
 """
 
 def batch(iterable, n=1):
@@ -159,7 +150,6 @@ def generateUsername():
     return username
 
 
-# We haven't defined a Station class anywhere, so might as well do it here.
 class Station:
     """ Class object to contain all the database details for an COSPAR Station record
     """
@@ -2646,6 +2636,7 @@ class Database:
     #######################
     ### TLE-related queries
     #######################
+    # TODO: This doesn't really need to be in the database Class (generic function)
     def cdictQueryToTruSatelliteObj(self, fetch):
         """ Transfer the cdict.fetchall() results of a TLE query to tle_util TruSatellite() object array (all variables)
 
