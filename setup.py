@@ -5,8 +5,8 @@ from setuptools import setup
 with open('requirements-database.txt') as f:
     requirements = f.read().splitlines()
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
+# with open("README.md", "r") as fh:
+#     long_description = fh.read()
 
 setup(
     name = 'trusat_backend',
