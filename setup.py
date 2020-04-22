@@ -7,24 +7,34 @@ with open('requirements-database.txt') as f:
 
 setup(
     name = 'trusat_backend',
-    version = '1.1.0',
-    maintainer = 'Kenan ONeal',
-    maintainer_email = 'email@here',
-    description = 'Database and Server environment for TruSat',
+    description = 'Server and database environment for TruSat',
     long_description=open('README.md').read(),
+    version = '1.1.0',
+    author = "Kenan O'Neal, Chris Lewicki",
     url = 'https://TruSat.org/',
+    project_urls={
+        "Source" : "https://github.com/TruSat/trusat-backend",
+        "Tracker" : "https://github.com/TruSat/trusat-backend/issues",
+        "Learning Hub" : "https://learn.trusat.org/docs/start-here",
+        "Forums" : "https://discuss.trusat.org/"
+    },
     packages = ['trusat_backend'],
     install_requires=[requirements],
     classifiers = [
-        'Development Status :: 5 - Production/Stable',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
+        'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',
-        'Operating System :: OS Independent',
-        'Programming Language :: Python',
+        'Operating System :: POSIX',
+        'Operating System :: MacOS :: MacOS X',
+        'Programming Language :: Python :: 3 :: Only',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
-        'Topic :: Software Development :: Libraries :: Python Modules',
+        'Programming Language :: SQL',
+        'Topic :: Database',
+        'Topic :: Scientific/Engineering'
     ],
+    platforms = unix, linux, osx, cygwin
 )
