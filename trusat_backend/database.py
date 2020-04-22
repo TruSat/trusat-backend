@@ -12,14 +12,15 @@ from yaml import load, Loader
 
 
 # The following 9 lines are necessary until the trusat-orbit repo is public
-# import inspect
-# import os
-# import sys
-# currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-# parentdir = os.path.dirname(currentdir)
-# tle_path = os.path.join(parentdir, "trusat-orbit")
-# sys.path.insert(1,tle_path)
-from trusat import tle_util, iod
+import inspect
+import os
+import sys
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+tle_path = os.path.join(parentdir, "trusat-orbit")
+sys.path.insert(1,tle_path)
+import tle_util
+import iod
 
 import logging
 log = logging.getLogger(__name__)
@@ -2679,7 +2680,7 @@ class Database:
             TLE.line1			 = row["line1"]
             TLE.line2			 = row["line2"]
 
-            TLE.sat_name = TLE.name	            = row["sat_name"]
+            TLE.name            	            = row["sat_name"]
             TLE.satellite_number	            = row["satellite_number"]
             TLE.classification		            = row["classification"]
             TLE.designation			            = row["designation"]
@@ -2706,12 +2707,13 @@ class Database:
 
             TLE.launch_piece_number	= row["launch_piece_number"]
             TLE.analyst_object		= row["analyst_object"]
-            TLE.strict_import		= row["strict_import"]
+            TLE.strict_import		= True if row["strict_import"] else False
             TLE.tle_fingerprint		= row["tle_fingerprint"]
             TLE.tle_file_fingerprint = row["tle_file_fingerprint"]
             TLE.import_timestamp	= row["import_timestamp"]
 
             TLE.derived_values()
+            TLE._validity_check_tle()
 
             TLEs.append(TLE)
         return TLEs
