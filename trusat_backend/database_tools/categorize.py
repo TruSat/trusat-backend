@@ -9,11 +9,11 @@ from bs4 import BeautifulSoup
 from bs4 import element
 from threading import Thread
 
-# The following 4 lines are necessary until our modules are public
-import inspect
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-sys.path.insert(1,os.path.dirname(currentdir)) 
-import database
+# # The following 4 lines are necessary until our modules are public
+# import inspect
+# currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+# sys.path.insert(1,os.path.dirname(currentdir)) 
+from trusat_backend import database
 
 # --- CONSTANTS ---
 

@@ -1,5 +1,5 @@
 import os
-import database
+from trusat_backend import database
 
 CONFIG = os.path.abspath("../trusat-config.yaml")
 db = database.Database(CONFIG)
