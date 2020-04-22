@@ -48,6 +48,8 @@ RUN python3 -m pip install wheel gunicorn
 RUN python3 -m pip install -r requirements-database.txt
 RUN python3 -m pip install -r requirements-server.txt
 RUN python3 -m pip install -r trusat_backend/database_tools/requirements.txt
+# For some reason this helps google_email.py run
+RUN pip3 install --upgrade google-api-core
 
 RUN mysql --password=${DB_ROOT_PASSWORD} -h ${DB_HOSTNAME} -e  "CREATE DATABASE IF NOT EXISTS ${DB_NAME} DEFAULT CHARACTER SET 'utf8'; \
     USE ${DB_NAME}; \
