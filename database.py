@@ -1283,11 +1283,10 @@ class Database:
             #one at a time, line up the items in parsed_iod so they can be checked against the original array of observations, otherwise the numbers returned back won't be aligned with the original lines
             for entry in parsed_iod:
                 it += 1
-                if entry.Station in stations_opted_out:
-                    error_messages.append("Observation on line {} is from a station that is opted out.".format(it))
-                    continue
                 try:
-                    #somethin
+                    if entry.Station in stations_opted_out:
+                        error_messages.append("Observation on line {} is from a station that is opted out.".format(it))
+                        continue
                 except Exception as e:
                     print(e)
                 individual_entry = []
