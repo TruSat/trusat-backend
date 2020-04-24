@@ -651,8 +651,11 @@ class Database:
                             SELECT COUNT(DISTINCT(id)) AS last30_active_users FROM Observer O, Station S, Last30_stations L
                                 WHERE S.station_num = L.station_number
                                 AND O.id = S.user);
-                        SELECT @total_sat_count, @total_obs_count, @total_user_count, @total_station_count, @last30_sat_count, @last30_tle_sat_count, @last30_tle_count, @last30_obs_count, @last30_active_stations, @last30_active_users;
-                        END;"""
+                        SET @previous_month_obs_count = (SELECT COUNT(obs_id) FROM ParsedIOD WHERE YEAR(obs_time) = YEAR(CURRENT_DATE - INTERVAL 1 MONTH) AND MONTH(obs_time) = MONTH(CURRENT_DATE - INTERVAL 1 MONTH));
+                        SET @current_month_obs_count = (SELECT COUNT(obs_id) FROM ParsedIOD WHERE YEAR(obs_time) = YEAR(CURRENT_DATE) AND MONTH(obs_time) = MONTH(CURRENT_DATE));
+                        SELECT @total_sat_count, @total_obs_count, @total_user_count, @total_station_count, @last30_sat_count, @last30_tle_sat_count, @last30_tle_count, @last30_obs_count, @last30_active_stations, @last30_active_users, @current_month_obs_count, @previous_month_obs_count;
+                        END;
+                        """
                     try:
                         self.c.execute(create_trigger_query)
                     except (MySQLdb.Error, MySQLdb.Warning) as e:
@@ -2544,19 +2547,22 @@ class Database:
         if results:
             (total_sat_count, total_obs_count, total_user_count, total_station_count, 
                 last30_sat_count, last30_tle_sat_count, last30_tle_count, last30_obs_count, 
-                last30_active_stations, last30_active_users) = results.fetchone()
+                last30_active_stations, last30_active_users, current_month_obs_count, 
+                previous_month_obs_count) = results.fetchone()
 
             StatDict = dict([
-                    ('total_sat_count',        total_sat_count), 
-                    ('total_obs_count',        total_obs_count), 
-                    ('total_user_count',       total_user_count), 
-                    ('total_station_count',    total_station_count), 
-                    ('last30_sat_count',       last30_sat_count),
-                    ('last30_tle_sat_count',   last30_tle_sat_count),
-                    ('last30_tle_count',       last30_tle_count),
-                    ('last30_obs_count',       last30_obs_count), 
-                    ('last30_active_stations', last30_active_stations),
-                    ('last30_active_users',    last30_active_users)
+                    ('total_sat_count',          total_sat_count), 
+                    ('total_obs_count',          total_obs_count), 
+                    ('total_user_count',         total_user_count), 
+                    ('total_station_count',      total_station_count), 
+                    ('last30_sat_count',         last30_sat_count),
+                    ('last30_tle_sat_count',     last30_tle_sat_count),
+                    ('last30_tle_count',         last30_tle_count),
+                    ('last30_obs_count',         last30_obs_count), 
+                    ('last30_active_stations',   last30_active_stations),
+                    ('last30_active_users',      last30_active_users),
+                    ('current_month_obs_count',  current_month_obs_count),
+                    ('previous_month_obs_count', previous_month_obs_count)
                     ])
 
             return json.dumps(StatDict)
