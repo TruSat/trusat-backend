@@ -3,7 +3,7 @@
 # trusat-backend
 
 
-1. [Intro](##Introduction)
+1. [Intro](##-Introduction)
     1. [trusat-config.yaml](###Update-trusat-config.yaml-file)
     2. [Environmental Variables](###Environmental-variables)
         1. [MAILGUN_API_KEY](####MAILGUN_API_KEY)
