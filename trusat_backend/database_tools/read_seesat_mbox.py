@@ -215,7 +215,7 @@ def main():
 
     # Set up database connection or files
     try:
-        CONFIG = os.path.abspath("../../trusat-config.yaml")
+        CONFIG = os.path.abspath("../../../trusat-config.yaml")
         db = database.Database(CONFIG)
     except: 
         log.error("DB not available.")
