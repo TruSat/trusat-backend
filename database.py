@@ -669,6 +669,7 @@ class Database:
                 source_url TINYTEXT,                /* URL where confirming data can be found */
                 notes TINYTEXT,                     /* TruSat team processing notes */
                 opt_out TINYINT(1) DEFAULT NULL,    /* Flag to prevent processing of data from disinterested stations */
+                creation_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, /* Timestamp of record creation */
                 UNIQUE KEY Station_station_num_idx (station_num) USING BTREE,
                 KEY Station_user_idx (user) USING BTREE,
                 KEY Station_user_station_idx (user, station_num),
@@ -722,6 +723,7 @@ class Database:
                 bio         TEXT,           /* User-specified (publicly visible) bio */
                 url_profile TEXT,           /* Profile URL - notionally gravitar or similar. FIXME: need to protect for exploits */
                 url_image   TEXT,           /* Profile Image URL - notionally gravitar or similar. FIXME: need to protect for exploits */
+                creation_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, /* Timestamp of record creation */
                 KEY `Observer_id_idx` (`id`) USING BTREE,
                 KEY `Observer_eth_addr_idx` (`eth_addr`) USING BTREE,
                 KEY `Observer_reputation_idx` (`reputation`) USING BTREE
@@ -739,6 +741,7 @@ class Database:
                 `email`       TEXT DEFAULT NULL,      /* Email Associated with Observer */
                 `primary`     INT(11) DEFAULT NULL,   /* Order to use Emails */
                 `notes`       TEXT DEFAULT NULL,      /* Internal Notes */
+                `creation_timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, /* Timestamp of record creation */
                 KEY `Observer_email_User_num_idx` (`user_id`) USING BTREE
                 )''' + self.charset_string
             self.c.execute(createquery)
