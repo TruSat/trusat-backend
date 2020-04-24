@@ -52,9 +52,24 @@
 
 ## Introduction
 
+### An open-source space sustainability tool
+
+<img align="right" width="250" height="250" src="https://trusat-assets.s3.amazonaws.com/trusat-posat-animation-540x540.gif">
+
+
+[TruSat](https://trusat.org) is a citizen-powered satellite catalog to form an independent prediction and record of objects orbiting Earth.
+
+The catalog provides citizen-scientists with orbit predictions to help them spot satellites and capture data. Anyone can submit their own satellite observations to update the catalog’s orbit predictions.
+
+- Visit [TruSat.org](https://trusat.org) to see the live app
+- View the [docs](http://learn.trusat.org/) to learn more about the project
+- Join the [Discord](https://discord.gg/HfT62G) to follow the development discussion
+
 This repo contains the code for deploying, populating and interacting with a TruSat database and its standard REST API.
 
-The easiest way to test/exercise this code is by creating a trusat-config.yaml file (see below), setting the environmental variables, launching `wsgi.py`, and then using the snapshot tests to exercise the API and its underlying database.
+The easiest way to test/exercise this code is by [creating a local test environment](##Local-Test-Environment-Setup).
+
+<img src="https://trusat-assets.s3.amazonaws.com/trusat-readmes-catalog_comp-200424.jpg">
 
 ### Update trusat-config.yaml file
 
