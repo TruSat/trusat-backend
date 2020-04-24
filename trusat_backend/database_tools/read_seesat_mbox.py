@@ -39,16 +39,8 @@ from getpass import getpass
 import logging
 log = logging.getLogger(__name__)
 
-# The following 5 lines are necessary until our modules are public
-import inspect
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(currentdir)
-iod_path = os.path.join(parentdir, "../trusat-orbit")
-sys.path.insert(1,iod_path) 
-import iod
-
-sys.path.insert(1,os.path.dirname(currentdir)) 
-import database
+from trusat_backend import database
+from trusat import iod
 
 # Find COSPAR (case insensitive) followed by a space and a 1-4 digit number
 #cospar_format_re = re.compile('(?i)\bCOSPAR\b \d{1,4}') # pylint: disable=anomalous-backslash-in-string
@@ -222,8 +214,12 @@ def main():
             log.debug("%s : %s",arg, getattr(args, arg))
 
     # Set up database connection or files
-    CONFIG = os.path.abspath("../../trusat-config.yaml")
-    db = database.Database(CONFIG)
+    try:
+        CONFIG = os.path.abspath("../../trusat-config.yaml")
+        db = database.Database(CONFIG)
+    except: 
+        log.error("DB not available.")
+
     if (db._dbtype != "INFILE" and init):
         try:
             db.createObsTables()
