@@ -21,6 +21,8 @@ tle_path = os.path.join(parentdir, "trusat-orbit")
 sys.path.insert(1,tle_path)
 import tle_util
 import iod
+# from trusat import tle_util
+# from trusat import iod
 
 import logging
 log = logging.getLogger(__name__)
@@ -635,9 +637,10 @@ class Database:
                         SET @total_obs_count = (SELECT COUNT(DISTINCT(obs_id)) AS total_obs_count FROM ParsedIOD);
                         SET @total_user_count = (SELECT COUNT(DISTINCT(id)) total_user_count FROM Observer);
                         SET @total_station_count = (SELECT COUNT(DISTINCT(station_num)) total_station_count FROM Station WHERE opt_out<>1 OR opt_out IS NULL);
-                        SET @last30_sat_count = (SELECT COUNT(DISTINCT(satellite_number)) AS last30_sat_count FROM TLE WHERE import_timestamp > ADDTIME(NOW(),"-30 00:00:00.000000") AND classification='T');
+                        SET @last30_sat_count = (SELECT COUNT(DISTINCT(object_number)) AS last30_sat_count FROM ParsedIOD WHERE obs_time > ADDTIME(NOW(),"-30 00:00:00.000000"));
+                        SET @last30_tle_sat_count = (SELECT COUNT(DISTINCT(satellite_number)) AS last30_tle_sat_count FROM TLE WHERE import_timestamp > ADDTIME(NOW(),"-30 00:00:00.000000") AND classification='T');
                         SET @last30_tle_count = (SELECT COUNT(DISTINCT(tle_id)) AS last30_tle_count FROM TLE WHERE import_timestamp > ADDTIME(NOW(),"-30 00:00:00.000000") AND classification='T');
-                        SET @last30_obs_count = (SELECT COUNT(DISTINCT(obs_id)) AS last30_obs_count FROM ParsedIOD WHERE import_timestamp > ADDTIME(NOW(),"-30 00:00:00.000000"));
+                        SET @last30_obs_count = (SELECT COUNT(DISTINCT(obs_id)) AS last30_obs_count FROM ParsedIOD WHERE obs_time > ADDTIME(NOW(),"-30 00:00:00.000000"));
                         SET @last30_active_stations = (WITH Last30_obs AS (SELECT station_number FROM ParsedIOD
                                     WHERE obs_time > (ADDTIME(NOW(),"-30 00:00:00.000000"))
                                     GROUP BY station_number)
@@ -648,7 +651,7 @@ class Database:
                             SELECT COUNT(DISTINCT(id)) AS last30_active_users FROM Observer O, Station S, Last30_stations L
                                 WHERE S.station_num = L.station_number
                                 AND O.id = S.user);
-                        SELECT @total_sat_count, @total_obs_count, @total_user_count, @total_station_count, @last30_sat_count, @last30_tle_count, @last30_obs_count, @last30_active_stations, @last30_active_users;
+                        SELECT @total_sat_count, @total_obs_count, @total_user_count, @total_station_count, @last30_sat_count, @last30_tle_sat_count, @last30_tle_count, @last30_obs_count, @last30_active_stations, @last30_active_users;
                         END;"""
                     try:
                         self.c.execute(create_trigger_query)
@@ -2540,7 +2543,7 @@ class Database:
         results = next(self.c.stored_results())
         if results:
             (total_sat_count, total_obs_count, total_user_count, total_station_count, 
-                last30_sat_count, last30_tle_count, last30_obs_count, 
+                last30_sat_count, last30_tle_sat_count, last30_tle_count, last30_obs_count, 
                 last30_active_stations, last30_active_users) = results.fetchone()
 
             StatDict = dict([
@@ -2549,6 +2552,7 @@ class Database:
                     ('total_user_count',       total_user_count), 
                     ('total_station_count',    total_station_count), 
                     ('last30_sat_count',       last30_sat_count),
+                    ('last30_tle_sat_count',   last30_tle_sat_count),
                     ('last30_tle_count',       last30_tle_count),
                     ('last30_obs_count',       last30_obs_count), 
                     ('last30_active_stations', last30_active_stations),
