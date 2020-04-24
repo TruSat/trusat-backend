@@ -497,3 +497,78 @@ sudo apt install python-certbot-nginx
 sudo certbot --nginx -d trusat.org -d www.trusat.org
 sudo ufw delete allow 'Nginx HTTP'
 ```
+
+### Run scraping scripts for UCS and celestrak daily
+
+To keep the database up to date. This method uses systemd to run scripts every day at midnight.
+
+Create the following files with root privileges with the content that matches the title and editing any file directories that don't match your setup:
+```
+/etc/systemd/system/categories.service
+/etc/systemd/system/UCS.service
+```
+
+```
+[Unit]
+Description=Run categorize.py script daily
+After=multi-user.target
+[Service]
+Type=oneshot
+WorkingDirectory=/home/ubuntu/trusat-backend/database_tools
+ExecStart=/home/ubuntu/trusat-backend/flask_server/bin/python3.7 /home/ubuntu/trusat-backend/database_tools/categorize.py
+[Install]
+WantedBy=multi-user.target
+```
+
+```
+[Unit]
+Description=Run update_SATCAT_UCS_from_source.py script daily
+After=multi-user.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/ubuntu/trusat-backend/database_tools
+ExecStart=/home/ubuntu/trusat-backend/flask_server/bin/python3.7 /home/ubuntu/trusat-backend/database_tools/update_SATCAT_UCS_from_source.py
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Then, using the same privileges, make the following files:
+```
+/etc/systemd/system/categories.timer
+/etc/systemd/system/UCS.timer
+```
+
+Containing:
+```
+[Timer]
+OnCalendar=daily
+Unit=categories.service
+```
+
+```
+[Timer]
+OnCalendar=daily
+Unit=UCS.service
+```
+
+Once those files are created, you need to enable them by running:
+
+```
+sudo systemctl daemon-reload
+
+sudo systemctl enable categories.service
+sudo systemctl enable UCS.service
+
+sudo systemctl start categories.service
+sudo systemctl start UCS.service
+
+sudo systemctl start categories.timer
+sudo systemctl start UCS.timer
+```
+
+To check for any error when the scripts were running you can use:
+`sudo systemctl status categories.service` or  `sudo system status UCS.service`
+
+To check that the timers are running, use the command `systemctl list-timers --all` and look for the timers among the list.
