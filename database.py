@@ -21,6 +21,8 @@ tle_path = os.path.join(parentdir, "trusat-orbit")
 sys.path.insert(1,tle_path)
 import tle_util
 import iod
+# from trusat import tle_util
+# from trusat import iod
 
 import logging
 log = logging.getLogger(__name__)
@@ -616,6 +618,52 @@ class Database:
             except (MySQLdb.Error, MySQLdb.Warning) as e:
                 log.warning(e)
                 log.warning("You may need to set log_bin_trust_function_creators=1 in your database instance.")
+
+
+            # Create other stored procedures here, as they will have similar permissions challenges
+            # So might as well do them in one spot
+            check_procedure_query = "SHOW PROCEDURE STATUS WHERE Name='trustats';"
+            try:
+                self.c.execute(check_procedure_query)
+                trustats_procedure = self.c.fetchall()
+
+                if not trustats_procedure:
+                    # Create static procedure for returning TruSat statistics
+                    # To create a stored routine, the CREATE ROUTINE privilege is needed
+                    create_procedure_query = """
+                        CREATE PROCEDURE trustats( )
+                        BEGIN
+                        SET @total_sat_count = (SELECT COUNT(DISTINCT(object_number)) AS total_sat_count FROM ParsedIOD);
+                        SET @total_obs_count = (SELECT COUNT(DISTINCT(obs_id)) AS total_obs_count FROM ParsedIOD);
+                        SET @total_user_count = (SELECT COUNT(DISTINCT(id)) total_user_count FROM Observer);
+                        SET @total_station_count = (SELECT COUNT(DISTINCT(station_num)) total_station_count FROM Station WHERE opt_out<>1 OR opt_out IS NULL);
+                        SET @last30_sat_count = (SELECT COUNT(DISTINCT(object_number)) AS last30_sat_count FROM ParsedIOD WHERE obs_time > ADDTIME(NOW(),"-30 00:00:00.000000"));
+                        SET @last30_tle_sat_count = (SELECT COUNT(DISTINCT(satellite_number)) AS last30_tle_sat_count FROM TLE WHERE import_timestamp > ADDTIME(NOW(),"-30 00:00:00.000000") AND classification='T');
+                        SET @last30_tle_count = (SELECT COUNT(DISTINCT(tle_id)) AS last30_tle_count FROM TLE WHERE import_timestamp > ADDTIME(NOW(),"-30 00:00:00.000000") AND classification='T');
+                        SET @last30_obs_count = (SELECT COUNT(DISTINCT(obs_id)) AS last30_obs_count FROM ParsedIOD WHERE obs_time > ADDTIME(NOW(),"-30 00:00:00.000000"));
+                        SET @last30_active_stations = (WITH Last30_obs AS (SELECT station_number FROM ParsedIOD
+                                    WHERE obs_time > (ADDTIME(NOW(),"-30 00:00:00.000000"))
+                                    GROUP BY station_number)
+                                    SELECT COUNT(station_number) AS last30_active_stations FROM Last30_obs);
+                        SET @last30_active_users = (WITH Last30_stations as (SELECT station_number FROM ParsedIOD
+                                    WHERE obs_time > (ADDTIME(NOW(),"-30 00:00:00.000000"))
+                                    GROUP BY station_number)
+                            SELECT COUNT(DISTINCT(id)) AS last30_active_users FROM Observer O, Station S, Last30_stations L
+                                WHERE S.station_num = L.station_number
+                                AND O.id = S.user);
+                        SET @previous_month_obs_count = (SELECT COUNT(obs_id) FROM ParsedIOD WHERE YEAR(obs_time) = YEAR(CURRENT_DATE - INTERVAL 1 MONTH) AND MONTH(obs_time) = MONTH(CURRENT_DATE - INTERVAL 1 MONTH));
+                        SET @current_month_obs_count = (SELECT COUNT(obs_id) FROM ParsedIOD WHERE YEAR(obs_time) = YEAR(CURRENT_DATE) AND MONTH(obs_time) = MONTH(CURRENT_DATE));
+                        SELECT @total_sat_count, @total_obs_count, @total_user_count, @total_station_count, @last30_sat_count, @last30_tle_sat_count, @last30_tle_count, @last30_obs_count, @last30_active_stations, @last30_active_users, @current_month_obs_count, @previous_month_obs_count;
+                        END;
+                        """
+                    try:
+                        self.c.execute(create_trigger_query)
+                    except (MySQLdb.Error, MySQLdb.Warning) as e:
+                        log.warning(e)
+                        log.warning("You may need to set log_bin_trust_function_creators=1 in your database instance.")
+            except (MySQLdb.Error, MySQLdb.Warning) as e:
+                log.warning(e)
+                log.warning("Unable to check status of TruStats stored procedure.")
 
         if self.checkTableExists("TLE_process"):
             log.info("TLE_process table found.")
@@ -2487,6 +2535,39 @@ class Database:
         else:
             return False
 
+    def selectTruSatStats_JSON(self):
+        """ Return statistical data on the TruSat catalog and user activity 
+
+            Inputs: (None)
+            Output: JSON object with TruSat statistics
+        """
+        # To CALL a stored procedure the EXECUTE privilege is needed
+        self.c.callproc('trustats')
+        results = next(self.c.stored_results())
+        if results:
+            (total_sat_count, total_obs_count, total_user_count, total_station_count, 
+                last30_sat_count, last30_tle_sat_count, last30_tle_count, last30_obs_count, 
+                last30_active_stations, last30_active_users, current_month_obs_count, 
+                previous_month_obs_count) = results.fetchone()
+
+            StatDict = dict([
+                    ('total_sat_count',          total_sat_count), 
+                    ('total_obs_count',          total_obs_count), 
+                    ('total_user_count',         total_user_count), 
+                    ('total_station_count',      total_station_count), 
+                    ('last30_sat_count',         last30_sat_count),
+                    ('last30_tle_sat_count',     last30_tle_sat_count),
+                    ('last30_tle_count',         last30_tle_count),
+                    ('last30_obs_count',         last30_obs_count), 
+                    ('last30_active_stations',   last30_active_stations),
+                    ('last30_active_users',      last30_active_users),
+                    ('current_month_obs_count',  current_month_obs_count),
+                    ('previous_month_obs_count', previous_month_obs_count)
+                    ])
+
+            return json.dumps(StatDict)
+        else:
+            return None
 
     def selectObservationHistory_JSON(self, fetch_row_count=10, offset_row_count=0):
         """ Provide a full observation history of objects starting with most recent valid observations
@@ -2876,6 +2957,7 @@ class Database:
                 result = result + "{}\n{}\n{}\n".format(line0,line1,line2)
         return result
 
+    # FIXME: So that this can be dynamically generated based on the contents of the DB
     def selectTLE_categories(self, category):
         categories_list = {
             "trusat_featured.txt": '"100 (or so) Brightest" OR' +\
