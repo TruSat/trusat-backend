@@ -122,7 +122,7 @@ def create_message(sender, to, subject, message_text):
       'To log into TruSat, you\'ll need your password AND this secret code:\n\n' + message_text + \
       '\n\nThis email is the only time we can send you this code. TruSat cannot reset your password for you. Please save this email forever and make a note of the password you used.\n\n' + \
       'Login here: trusat.org/login\n\n' + \
-      'Why do we do it this way? Read more (trusat.org/faq)\n\n' + \
+      'Why do we do it this way? Read more (learn.trusat.org/docs/FAQ)\n\n' + \
       'Questions? Please email: Help@Beta.TruSat.org'
     message = MIMEText(message_text)
     message['to'] = to
