@@ -192,7 +192,7 @@ class Database:
 
         with open(db_config_path) as f:
             db_config = load(f, Loader=Loader)["Database"]
-    
+
         self._dbname = db_config["name"] or os.getenv('TRUSAT_DATABASE_NAME', None)
         self._dbtype = db_config.get("type")
         self._dbhostname = db_config.get("hostname") or os.getenv('TRUSAT_DATABASE_HOST', None)
@@ -336,7 +336,7 @@ class Database:
               GROUP BY satellite_number) AS latest_tles
             LEFT JOIN TLE ON (TLE.satellite_number = latest_tles.satellite_number AND TLE.epoch = latest_tles.epoch)
             LEFT JOIN celestrak_SATCAT SatCat ON (TLE.satellite_number = SatCat.norad_num)
-			WHERE (SatCat.ops_status_code <> 'D' OR SatCat.ops_status_code IS NULL)
+			WHERE ((SatCat.ops_status_code <> 'D' OR SatCat.ops_status_code IS NULL) AND classification = "T")
             """
 
         self.selectLatestTLEPerObjectCount = """
@@ -346,7 +346,7 @@ class Database:
               GROUP BY satellite_number) AS latest_tles
             LEFT JOIN TLE ON (TLE.satellite_number = latest_tles.satellite_number AND TLE.epoch = latest_tles.epoch)
             LEFT JOIN celestrak_SATCAT SatCat ON (TLE.satellite_number = SatCat.norad_num)
-			WHERE (SatCat.ops_status_code <> 'D' OR SatCat.ops_status_code IS NULL)
+			WHERE ((SatCat.ops_status_code <> 'D' OR SatCat.ops_status_code IS NULL) AND classification = "T")
         """
 
         self.selectLatestTLEPerObjectCountCategories = """
@@ -357,7 +357,7 @@ class Database:
             LEFT JOIN TLE ON (TLE.satellite_number = latest_tles.satellite_number AND TLE.epoch = latest_tles.epoch)
             LEFT JOIN celestrak_SATCAT SatCat ON (TLE.satellite_number = SatCat.norad_num)
             JOIN categories ON (TLE.satellite_number = categories.obj_no)
-			WHERE (SatCat.ops_status_code <> 'D' OR SatCat.ops_status_code IS NULL)
+			WHERE ((SatCat.ops_status_code <> 'D' OR SatCat.ops_status_code IS NULL) AND classification = "T")
         """
 
         self.selectCatalogQueryPrefix = """
@@ -389,7 +389,7 @@ class Database:
                               		FROM categories
                               		GROUP BY obj_no
                               	) AS C ON LU.object_number = C.obj_no
-                              WHERE (SatCat.ops_status_code <> 'D' OR SatCat.ops_status_code IS NULL)  
+                              WHERE (SatCat.ops_status_code <> 'D' OR SatCat.ops_status_code IS NULL)
                               )
               SELECT
                 IODs.*,
@@ -515,7 +515,7 @@ class Database:
                 """
                 SELECT COUNT(*)
                 FROM information_schema.tables
-                WHERE 
+                WHERE
                 table_schema = %s
                 AND table_name = %s
                 """,
@@ -834,7 +834,7 @@ class Database:
             createquery = (
             """CREATE TABLE IF NOT EXISTS celestrak_SATCAT (
                 sat_cat_id               INTEGER """
-                  + self.increment 
+                  + self.increment
                   + """,
                 intl_desg               VARCHAR(11) NOT NULL,
                 norad_num               MEDIUMINT UNSIGNED NOT NULL,
@@ -860,7 +860,7 @@ class Database:
                 KEY `line_fingerprint` (`line_fingerprint`) USING BTREE,
                 KEY `celestrak_SATCAT_name_idx` (`name`) USING BTREE,
                 KEY `celestrak_SATCAT_orbit_status_code_idx` (`orbit_status_code`) USING BTREE
-                )""" 
+                )"""
                   + self.charset_string
             )
 
@@ -932,7 +932,7 @@ class Database:
                 KEY `line_fingerprint` (`line_fingerprint`) USING BTREE,
                 KEY `ucs_SATDB_norad_number_idx` (`norad_number`) USING BTREE,
                 KEY `ucs_SATDB_international_designator_idx` (`international_designator`(11)) USING BTREE
-            )""" 
+            )"""
                 + self.charset_string
             )
 
@@ -961,7 +961,7 @@ class Database:
 
         insert_query = """
         INSERT INTO celestrak_SATCAT VALUES
-            (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
+            (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s, %s, %s, NULL)
         """
         data_to_insert = []
@@ -1015,7 +1015,7 @@ class Database:
 
         insert_query = """
         INSERT INTO ucs_SATDB VALUES
-            (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
+            (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s, %s, NULL)
@@ -1074,7 +1074,7 @@ class Database:
 
         insert_query = """
         INSERT INTO ucs_SATDB_raw VALUES
-            (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
+            (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s, %s, NULL)
@@ -3369,7 +3369,7 @@ class Database:
 
         This function is for the user to be able to download their contributed data.
         It downloads data for all stations associated with the user.
-        
+
         """
         query = """
           -- Our user's ID
@@ -3618,7 +3618,7 @@ class Database:
 
         observations = stringArrayToJSONArray_JSON(self.c.fetchall())
         convert_country_names(observations)
-        
+
         query = (
           self.selectCatalogQueryPrefix +
           """SELECT COUNT(object_number)
@@ -4065,7 +4065,7 @@ class Database:
             User Ethereum Address
 
             Return
-            User Observer ID 
+            User Observer ID
         """
         try:
             query_parameters = {"ADDR": addr}
