@@ -821,7 +821,7 @@ def signup():
                                 'To log into TruSat, you\'ll need your password AND this secret code:\n\n' + payload + \
                                 '\n\nThis email is the only time we can send you this code. TruSat cannot reset your password for you. Please save this email forever and make a note of the password you used.\n\n' + \
                                 'Login here: trusat.org/login\n\n' + \
-                                'Why do we do it this way? Read more (trusat.org/faq)\n\n' + \
+                                'Why do we do it this way? Read more (learn.trusat.org/docs/FAQ)\n\n' + \
                                 'Questions? Please email: Help@Beta.TruSat.org'
                         data = {"from": "TruSat Help <" + MAILGUN_EMAIL_ADDRESS + ">",
                                 "to": [email],
@@ -952,7 +952,7 @@ def edit_profile():
         print(e)
     try:
         station_name = request.get_json()['new_station_names']
-        
+
         for station in station_name:
             result = g.get('db').updateStationName(station, station_name[station], observer_id)
             if result is not True:
@@ -1057,7 +1057,7 @@ def verify_claim_account():
             'To log into TruSat, you\'ll need your password AND this secret code:\n\n' + message_text + \
             '\n\nThis email is the only time we can send you this code. TruSat cannot reset your password for you. Please save this email forever and make a note of the password you used.\n\n' + \
             'Login here: trusat.org/login\n\n' + \
-            'Why do we do it this way? Read more (trusat.org/faq)\n\n' + \
+            'Why do we do it this way? Read more (learn.trusat.org/docs/FAQ)\n\n' + \
             'Questions? Please email: Help@Beta.TruSat.org'
         data = {"from": "TruSat Help <" + MAILGUN_EMAIL_ADDRESS + ">",
             "to": [to],
